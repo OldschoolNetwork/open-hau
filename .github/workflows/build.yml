@@ -1,5 +1,3 @@
-# Installation: copy this file to .github/workflows/build.yml using a GitHub
-# session authorized to manage workflows. It is inert in docs/.
 name: Build OpenHaU Preview
 on:
   workflow_dispatch:
