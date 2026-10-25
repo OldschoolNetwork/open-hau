@@ -165,21 +165,26 @@ small {
 }
 .brand {
   display: flex;
-  align-items:center;
-  gap:10px;
+  align-items: center;
+  gap: 10px;
   padding: 0 14px 25px;
 }
 .brand img {
   display: block;
   max-width: 164px;
   height: 30px;
-  width:58px;
+  width: 58px;
   object-fit: contain;
   object-position: left center;
   filter: brightness(0) saturate(100%);
   opacity: 0.65;
 }
-.brand span{font-size:18px;letter-spacing:-.8px;color:var(--text);font-weight:650}
+.brand span {
+  font-size: 18px;
+  letter-spacing: -0.8px;
+  color: var(--text);
+  font-weight: 650;
+}
 :root[data-theme="dark"] .brand img {
   filter: none;
   opacity: 0.9;
@@ -949,6 +954,8 @@ hr {
   align-items: start;
 }
 .receipt-controls {
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
   position: sticky;
   top: 90px;
 }

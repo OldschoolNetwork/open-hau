@@ -145,6 +145,12 @@ fn main() {
                 root,
                 lock: Mutex::new(()),
             });
+            let window =
+                tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?;
+            // WebView2: preserve the PDF destination but suppress Edge's download flyout.
+            #[cfg(target_os = "windows")]
+            let window = window.on_download(|_, _| true);
+            window.build()?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

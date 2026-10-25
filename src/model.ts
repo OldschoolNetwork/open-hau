@@ -250,6 +250,13 @@ export const projectSchema = z
     }
     if (new Set(p.closed_periods).size !== p.closed_periods.length)
       fail("Повторяющиеся закрытые периоды");
+    if (
+      new TextEncoder().encode(JSON.stringify(p, null, 2)).byteLength >
+      20 * 1024 * 1024
+    )
+      fail(
+        "Полный JSON превышает 20 МБ; уменьшите логотипы или число конфигураций",
+      );
   });
 export type Project = z.infer<typeof projectSchema>;
 export type Account = z.infer<typeof account>;
@@ -258,6 +265,20 @@ export type Tariff = z.infer<typeof tariff>;
 export type Payment = z.infer<typeof payment>;
 export type Adjustment = z.infer<typeof adjustment>;
 export const uid = () => crypto.randomUUID();
+export function unitLabel(unit: string, lang: "ru" | "ro" | "both") {
+  const labels: Record<string, [string, string]> = {
+    person: ["чел.", "pers."],
+    "чел. / pers.": ["чел.", "pers."],
+    account: ["счёт", "cont"],
+    "счёт / cont": ["счёт", "cont"],
+  };
+  const pair = labels[unit];
+  return !pair
+    ? unit
+    : lang === "both"
+      ? pair.join(" / ")
+      : pair[lang === "ru" ? 0 : 1];
+}
 export const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;

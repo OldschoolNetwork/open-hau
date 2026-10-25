@@ -5,7 +5,7 @@
   "identifier": "app.openhau.desktop",
   "build": {"beforeDevCommand":"npm run dev","devUrl":"http://localhost:1420","beforeBuildCommand":"npm run build","frontendDist":"../dist"},
   "app": {
-    "windows": [{"title":"OpenHaU · 26.1 Preview","width":1280,"height":840,"minWidth":980,"minHeight":680}],
+    "windows": [{"label":"main","create":false,"title":"OpenHaU · 26.1 Preview","width":1280,"height":840,"minWidth":980,"minHeight":680}],
     "security": {"csp":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data:; connect-src ipc: http://ipc.localhost"}
   },
   "bundle": {"active":true,"targets":["nsis"],"icon":["icons/32x32.png","icons/128x128.png","icons/128x128@2x.png","icons/icon.icns","icons/icon.ico"],"macOS":{"minimumSystemVersion":"12.6"},"windows":{"nsis":{"displayLanguageSelector":true,"languages":["Russian","English"]}}}

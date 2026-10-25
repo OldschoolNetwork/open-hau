@@ -42,6 +42,7 @@
     type Project,
     type Account,
     type Service,
+    unitLabel,
   } from "./model";
   import {
     D,
@@ -654,7 +655,10 @@
   }
   function savePreset() {
     if (!presetName.trim()) return;
-    if (p.settings.receipt_presets.length >= 20) {
+    if (
+      p.settings.receipt_presets.length >= 20 &&
+      !p.settings.receipt_presets.some((x) => x.name === presetName.trim())
+    ) {
       error = "Максимум 20 конфигураций";
       return;
     }
@@ -1020,7 +1024,7 @@
                 <p>
                   {missing
                     ? t(
-                        `${missing} счетов требуют внимания`,
+                        `Требуют проверки: ${missing}`,
                         `${missing} conturi necesită atenție`,
                       )
                     : t("Все данные заполнены", "Toate datele sunt completate")}
@@ -1248,7 +1252,9 @@
                         : s.calculation_type === "manual"
                           ? t("Ручной объём", "Volum manual")
                           : t("За счёт", "Pe cont")}</span
-                ><span>{s.unit}</span><span>{s.active ? "●" : "○"}</span>
+                ><span>{unitLabel(s.unit, lang)}</span><span
+                  >{s.active ? "●" : "○"}</span
+                >
               </div>
             </article>{/each}
         </div>
@@ -1391,7 +1397,7 @@
                                 : "—"}
                           aria-label={t("Ручной объём", "Volum manual")}
                         /></td
-                      ><td>{s.unit}</td></tr
+                      ><td>{unitLabel(s.unit, lang)}</td></tr
                     >{/each}{/each}</tbody
               >
             </table>
