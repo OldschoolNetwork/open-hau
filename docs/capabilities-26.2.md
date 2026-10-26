@@ -13,8 +13,8 @@ The published 26.1 preview is unchanged.
 | Closed financial history | Preserved snapshots and decimal calculations | Extended correction workflows and service-level reconciliation |
 | Account turnover/balance report | Period filters, totals, inactive accounts, missing-history warnings | Accounting review, service statements and account ledgers |
 | Report exports | CSV, SpreadsheetML XML and printable HTML | XLSX/ODS, dedicated export settings, destination and scheduling |
-| Automatic backup to another location | Opt-in folder, verified SQLite copy after saving, manual copy, disable control and restoration regression test | Native usability checks on Windows/Monterey and a restore interface |
-| Automatic report exports | Planned | Per-report format, folder, schedule/on-close trigger and duplicate protection |
+| Automatic backup to another location | Opt-in folder, verified standalone SQLite copy after saving, manual copy, disable control, restore regression test and Windows demo verification | Monterey acceptance and a restore interface |
+| Automatic report exports | Current-month balance report in selected CSV/XML/HTML formats, save/close triggers, manual export, deduplication and Windows demo verification | Monterey acceptance, additional reports, XLSX/ODS and timed schedules |
 | Income and expenses | Planned | Separate cash/bank journal, categories, supporting documents and monthly summary |
 | Reserve funds | Planned | Opening balances, contributions, spending and fund reconciliation |
 | Bank fees and reconciliation | Planned | Bank-statement mapping and matching without changing resident charges |

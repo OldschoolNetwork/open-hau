@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import {
     native,
+    displayPath,
     backupSettings,
     configureBackups,
     chooseBackupDirectory,
@@ -32,7 +33,7 @@
             tr(
               "Копия создана и проверена: ",
               "Copia a fost creată și verificată: ",
-            ) + path;
+            ) + displayPath(path);
       } else {
         const path = kind === "choose" ? await chooseBackupDirectory() : null;
         if (kind === "choose" && !path) return;
@@ -66,7 +67,7 @@
       )}
     </p>
     <p class="destination">
-      {directory ||
+      {displayPath(directory) ||
         tr(
           "Автоматическое копирование выключено",
           "Copierea automată este dezactivată",

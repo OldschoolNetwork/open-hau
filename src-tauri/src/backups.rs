@@ -80,7 +80,11 @@ pub fn copy(root: &Path) -> Result<Option<String>, String> {
     let partial = folder.join("openhau.sqlite.partial");
     conn.backup(rusqlite::DatabaseName::Main, &partial, None)
         .map_err(|e| e.to_string())?;
-    let backup = Connection::open_with_flags(&partial, OpenFlags::SQLITE_OPEN_READ_ONLY)
+    let backup = Connection::open_with_flags(&partial, OpenFlags::SQLITE_OPEN_READ_WRITE)
+        .map_err(|e| e.to_string())?;
+    // Finish WAL state on our new copy so the verified deliverable is one standalone file.
+    backup
+        .execute_batch("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;")
         .map_err(|e| e.to_string())?;
     let check: String = backup
         .query_row("PRAGMA quick_check", [], |r| r.get(0))

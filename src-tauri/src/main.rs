@@ -10,6 +10,9 @@ use std::{
 };
 use tauri::Manager;
 mod backups;
+mod report_files;
+#[cfg(test)]
+mod report_files_tests;
 
 struct Storage {
     root: PathBuf,
@@ -102,6 +105,27 @@ fn configure_backups(
 fn backup_now(storage: tauri::State<Storage>) -> Result<Option<String>, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
     backups::copy(&storage.root)
+}
+
+#[tauri::command]
+fn report_export_settings(storage: tauri::State<Storage>) -> Result<Value, String> {
+    let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
+    report_files::settings(&storage.root)
+}
+#[tauri::command]
+fn configure_report_exports(value: Value, storage: tauri::State<Storage>) -> Result<Value, String> {
+    let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
+    report_files::configure(&storage.root, value)
+}
+#[tauri::command]
+fn write_report_exports(
+    reason: String,
+    period: String,
+    files: Value,
+    storage: tauri::State<Storage>,
+) -> Result<Option<String>, String> {
+    let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
+    report_files::write(&storage.root, &reason, &period, files)
 }
 
 fn save_value(value: Value, root: &PathBuf) -> Result<String, String> {
@@ -212,7 +236,10 @@ fn main() {
             storage_path,
             backup_settings,
             configure_backups,
-            backup_now
+            backup_now,
+            report_export_settings,
+            configure_report_exports,
+            write_report_exports
         ])
         .run(tauri::generate_context!())
         .expect("Не удалось запустить OpenHaU");
@@ -322,6 +349,7 @@ mod tests {
         assert!(first["backup_warning"].is_null());
         let copied = PathBuf::from(first["backup_path"].as_str().unwrap());
         let old_bytes = fs::read(&copied).unwrap();
+        assert_eq!(fs::read_dir(copied.parent().unwrap()).unwrap().count(), 1);
         let second = save_with_copy(project, &root).unwrap();
         assert_ne!(first["backup_path"], second["backup_path"]);
         assert_eq!(fs::read(&copied).unwrap(), old_bytes);

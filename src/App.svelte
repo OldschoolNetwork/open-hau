@@ -3,6 +3,7 @@
   import Reports from "./Reports.svelte";
   import PhysicalMeters from "./PhysicalMeters.svelte";
   import BackupSettings from "./BackupSettings.svelte";
+  import ExportSettings from "./ExportSettings.svelte";
   import { physicalReadings } from "./meters";
   import {
     LayoutDashboard,
@@ -174,7 +175,7 @@
     dirty = true;
     error = "";
   }
-  async function save() {
+  async function save(reason:"save"|"close"="save") {
     if (busy) return;
     if (loadFailed) {
       error = t(
@@ -194,12 +195,13 @@
     error = "";
     try {
       const snapshot = valid(p),
-        serialized = JSON.stringify(snapshot);
-      const result = await persist(snapshot);
+        serialized = JSON.stringify(p);
+      const result = await persist(snapshot,reason);
       dbPath = result.path;
       dirty =
         Object.keys(readingEdits).length > 0 ||
         JSON.stringify(p) !== serialized;
+      if (!dirty) p = snapshot;
       notice = dirty
         ? t(
             "Снимок сохранён; более новые изменения ещё не записаны.",
@@ -207,6 +209,7 @@
           )
         : t("Сохранено.", "Salvat.");
       if (result.backup_warning) error = t("База сохранена, но внешняя резервная копия не создана: ","Baza a fost salvată, dar copia externă nu a fost creată: ") + result.backup_warning;
+      if (result.export_warning) error += (error?"\n":"")+t("База сохранена, но автоматический экспорт отчётов не выполнен: ","Baza a fost salvată, dar exportul automat al rapoartelor a eșuat: ")+result.export_warning;
     } catch (e) {
       fail(e);
     } finally {
@@ -524,8 +527,9 @@
         ))
       )
         return;
-      setProject(closed ? reopenPeriod(p, period) : closePeriod(p, period));
-      await save();
+      const reopening=closed;
+      setProject(reopening ? reopenPeriod(p, period) : closePeriod(p, period));
+      await save(reopening?"save":"close");
     } catch (e) {
       fail(e);
     }
@@ -857,7 +861,7 @@
           onchange={changed}
           aria-label="Language"
           ><option value="ru">RU</option><option value="ro">RO</option></select
-        ><button class="button small" onclick={save} disabled={busy || loading}
+        ><button class="button small" onclick={()=>save()} disabled={busy || loading}
           ><Save size={15} />{t("Сохранить", "Salvează")}</button
         >
       </div>
@@ -1656,6 +1660,7 @@
         </div>
       {:else if page === "settings"}
         <BackupSettings language={lang} unsaved={dirty || !!Object.keys(readingEdits).length} />
+        <ExportSettings project={p} unsaved={dirty || !!Object.keys(readingEdits).length} />
         <div class="settings-grid">
           <article class="panel">
             <div class="panel-heading">
