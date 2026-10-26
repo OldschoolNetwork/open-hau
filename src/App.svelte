@@ -9,6 +9,7 @@
   import Reports from "./Reports.svelte";
   import PaymentAllocation from "./PaymentAllocation.svelte";
   import PaymentBatches from "./PaymentBatches.svelte";
+  import {displayDate,displayPeriod,dateFormats,periodFormats} from "./date-format";
   import {previousPaymentMonth,type PaymentShare} from "./payment-allocation";
   import PhysicalMeters from "./PhysicalMeters.svelte";
   import MonthlyResidents from "./MonthlyResidents.svelte";
@@ -1207,7 +1208,7 @@
                   ><th>{t("Лицевой счёт", "Cont personal")}</th><th
                     >{t("Плательщик и адрес", "Plătitor și adresă")}</th
                   ><th class="num">m²</th><th class="num"
-                    >{t("Зарегистрировано / мусор", "Înregistrați / deșeuri")} · {period}</th
+                    >{t("Зарегистрировано / мусор", "Înregistrați / deșeuri")} · {displayPeriod(period,p)}</th
                   ><th>{t("Статус", "Stare")}</th><th></th></tr
                 ></thead
               ><tbody
@@ -1321,7 +1322,7 @@
                     ><td
                       >{p.services.find((s) => s.id === tariff.service_id)
                         ?.name[lang]}</td
-                    ><td>{tariff.effective_from}</td><td class="num"
+                    ><td>{displayDate(tariff.effective_from,p)}</td><td class="num"
                       >{tariff.rate}</td
                     ><td
                       ><button
@@ -1483,7 +1484,7 @@
                     ><td
                       >{p.accounts.find((a) => a.id === pay.account_id)
                         ?.payer_name}</td
-                    ><td>{pay.payment_date}</td><td>{pay.entered_date}</td><td
+                    ><td>{displayDate(pay.payment_date,p)}</td><td>{displayDate(pay.entered_date,p)}</td><td
                       >{pay.note}</td
                     ><td class="num strong">{pay.amount}</td><td
                       ><button
@@ -1566,6 +1567,7 @@
                   ><option value="ribbon">Ribbon · {t("Геометрия", "Geometric")}</option
                   ><option value="botanical">Botanical · {t("Узор", "Ornament")}</option
                   ><option value="heritage">Heritage · {t("Привычный бланк", "Formular familiar")}</option
+                  ><option value="aero">Aero · {t("Банковская классика 2000-х", "Stil bancar din anii 2000")}</option
                   ><option value="custom">{t("Своё оформление", "Aspect personalizat")}</option
                   ></select
                 ></label
@@ -1744,6 +1746,10 @@
                   ></label
                 >
               </div>
+              <div class="two-fields">
+                <label>{t("Формат даты","Formatul datei")}<select bind:value={p.settings.date_format} onchange={changed}>{#each dateFormats as style}<option value={style}>{displayDate("2026-10-26",{...p,settings:{...p.settings,date_format:style}})}</option>{/each}</select></label>
+                <label>{t("Формат расчётного месяца","Formatul lunii de calcul")}<select bind:value={p.settings.period_format} onchange={changed}>{#each periodFormats as style}<option value={style}>{displayPeriod("2026-10",{...p,settings:{...p.settings,period_format:style}})}</option>{/each}</select></label>
+              </div>
             </div>
           </article>
           <article class="panel">
@@ -1879,7 +1885,7 @@
 {/snippet}
 <div class="desktop-shell no-print">
   <header class="desktop-chrome">
-    <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><span>{t("Период: ","Perioadă: ")}{period}</span><div class="desktop-state">{dirty?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
+    <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><span>{t("Период: ","Perioadă: ")}{displayPeriod(period,p)}</span><div class="desktop-state">{dirty?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
     <DesktopMenu menus={desktopMenus} language={lang} oncommand={desktopCommand}/>
     <div class="desktop-commandbar"><button class="desktop-save" onclick={()=>save()} disabled={busy||loading}><Save size={17}/>{t("Сохранить","Salvare")}</button></div>
   </header>
@@ -1985,7 +1991,7 @@
               >{t(
                 "Людей для платы за мусор",
                 "Persoane pentru taxa de deșeuri",
-              )} · {draft.wastePersonsPeriod}<input
+              )} · {displayPeriod(draft.wastePersonsPeriod,p)}<input
                 type="number"
                 min="0"
                 step="1"
@@ -2094,7 +2100,7 @@
           </table></div>
           <h3>{t("Тарифы услуги", "Tarifele serviciului")}</h3>
           <div class="table-wrap"><table><thead><tr><th>{t("Действует с", "Valabil din")}</th><th>{t("Тариф, MDL", "Tarif, MDL")} / {unitLabel(draft.unit, lang)}</th></tr></thead><tbody>
-            {#each p.tariffs.filter(x => x.service_id === draft.id).sort((a,b) => b.effective_from.localeCompare(a.effective_from)) as rate}<tr><td>{rate.effective_from}</td><td>{rate.rate}</td></tr>{:else}<tr><td colspan="2">{t("Тариф не задан.", "Tariful nu este stabilit.")}</td></tr>{/each}
+            {#each p.tariffs.filter(x => x.service_id === draft.id).sort((a,b) => b.effective_from.localeCompare(a.effective_from)) as rate}<tr><td>{displayDate(rate.effective_from,p)}</td><td>{rate.rate}</td></tr>{:else}<tr><td colspan="2">{t("Тариф не задан.", "Tariful nu este stabilit.")}</td></tr>{/each}
           </tbody></table></div>
         {:else if modal === "tariff"}
           {#if !p.tariffs.some(x => x.id === draft.id)}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {displayDate,displayPeriod} from "./date-format";
   import { translator } from "./i18n";
   import { issueText } from "./validation-language";
   import {
@@ -306,7 +307,7 @@
               >{#each project.meter_values
                 .filter((r) => r.meter_id === m.id)
                 .sort( (a, b) => b.reading_date.localeCompare(a.reading_date) ) as r}<tr
-                  ><td>{r.period}</td><td>{r.reading_date}</td><td>{r.value}</td
+                  ><td>{displayPeriod(r.period,project)}</td><td>{displayDate(r.reading_date,project)}</td><td>{r.value}</td
                   ><td>{r.notes}</td><td
                     ><button
                       class="button secondary"

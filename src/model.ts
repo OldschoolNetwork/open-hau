@@ -1,5 +1,6 @@
 import { z } from "zod";
 import Decimal from "decimal.js";
+import {dateFormats,periodFormats} from "./date-format";
 import { canonicalUnit } from "./units";
 
 const decimal = z
@@ -316,6 +317,7 @@ export const receiptDesigns = [
   "ribbon",
   "botanical",
   "heritage",
+  "aero",
   "custom",
 ] as const;
 const customReceipt = z.object({
@@ -363,6 +365,8 @@ const currentProjectSchema = z
     payment_batches:z.array(z.object({id,number:z.string().min(1),date,billing_through:period,balancing_service_id:id,method:z.string(),comment:z.string(),state:z.enum(["draft","applied"]),rows:z.array(z.object({id,account_id:id,amount:ledgerMoney.refine(v=>new Decimal(v).gte(0),"Invalid batch payment amount"),manual_maintenance:ledgerMoney.nullable(),payment_id:id.nullable()})).min(1).max(1000)})).max(50000).default([]),
     treasury:treasurySchema.default({wallets:[],funds:[],transactions:[],locked_through:null}),
     settings: legacyProjectSchema.shape.settings.extend({
+      date_format:z.enum(dateFormats).default("iso"),
+      period_format:z.enum(periodFormats).default("iso"),
       payment_balancing_service_id: id.optional(),
       receipt_language: z.enum(["ru", "ro", "both", "en"]),
       receipt_design: z.enum(receiptDesigns).default("studio"),
@@ -710,6 +714,8 @@ export function demoProject(): Project {
       notes: "",
     },
     settings: {
+      date_format:"iso",
+      period_format:"iso",
       language: "ru",
       theme: "system",
       period: month,

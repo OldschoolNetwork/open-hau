@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {displayDate,displayPeriod} from "./date-format";
   import {type Project,type PaymentBatch,uid,today} from "./model";
   import {D} from "./engine";
   import {previousPaymentMonth,type PaymentShare} from "./payment-allocation";
@@ -23,7 +24,7 @@
   {#if error}<p role="alert" class="alert error">{error}</p>{/if}
   {#if !draft}
     <div class="toolbar"><button class="button" onclick={create}><Plus size={16}/>{t("Добавить","Adaugă")}</button></div>
-    <table><thead><tr><th>{t("Дата","Data")}</th><th>{t("Номер","Număr")}</th><th>{t("Вариант оплаты","Modalitate de plată")}</th><th>{t("Комментарий","Comentariu")}</th><th>{t("Статус","Stare")}</th><th></th></tr></thead><tbody>{#each [...project.payment_batches].reverse() as b}<tr><td>{b.date}</td><td>{b.number}</td><td>{b.method}</td><td>{b.comment}</td><td>{b.state==="applied"?t("Проведён","Aplicat"):t("Черновик","Ciornă")}</td><td><button class="icon-button" aria-label={t("Открыть документ","Deschide documentul")} onclick={()=>{draft=structuredClone(b);details=null;error="";}}><Eye size={16}/></button></td></tr>{/each}</tbody></table>
+    <table><thead><tr><th>{t("Дата","Data")}</th><th>{t("Номер","Număr")}</th><th>{t("Вариант оплаты","Modalitate de plată")}</th><th>{t("Комментарий","Comentariu")}</th><th>{t("Статус","Stare")}</th><th></th></tr></thead><tbody>{#each [...project.payment_batches].reverse() as b}<tr><td>{displayDate(b.date,project)}</td><td>{b.number}</td><td>{b.method}</td><td>{b.comment}</td><td>{b.state==="applied"?t("Проведён","Aplicat"):t("Черновик","Ciornă")}</td><td><button class="icon-button" aria-label={t("Открыть документ","Deschide documentul")} onclick={()=>{draft=structuredClone(b);details=null;error="";}}><Eye size={16}/></button></td></tr>{/each}</tbody></table>
   {:else}
     <fieldset disabled={locked} oninput={()=>details=null}>
       <div class="two-fields"><label>{t("Дата оплаты","Data plății")}<input type="date" bind:value={draft.date}/></label><label>{t("Номер документа","Numărul documentului")}<input bind:value={draft.number}/></label><label>{t("Долг по месяц включительно","Datorie până la luna inclusiv")}<input type="month" bind:value={draft.billing_through}/></label><label>{t("Обслуживание дома · услуга для разницы","Deservirea blocului · serviciul diferenței")}<select bind:value={draft.balancing_service_id}><option value="">{t("Выберите услугу","Selectați serviciul")}</option>{#each project.services as s}<option value={s.id}>{s.name[project.settings.language]}</option>{/each}</select></label></div>

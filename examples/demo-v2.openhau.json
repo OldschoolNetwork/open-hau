@@ -27,6 +27,8 @@
     "notes": ""
   },
   "settings": {
+    "date_format": "iso",
+    "period_format": "iso",
     "language": "ru",
     "theme": "system",
     "period": "2026-10",

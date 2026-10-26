@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {displayDate,displayPeriod} from "./date-format";
   import { translator } from "./i18n";
   import { issueText } from "./validation-language";
   import {
@@ -97,7 +98,7 @@
       }}
     >
       <h3>
-        {project.accounts.find((a) => a.id === draft?.account_id)?.number} · {draft.period}
+        {project.accounts.find((a) => a.id === draft?.account_id)?.number} · {displayPeriod(draft.period,project)}
       </h3>
       <div class="fields">
         <label

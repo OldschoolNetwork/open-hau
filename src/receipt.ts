@@ -3,6 +3,7 @@ import { unitLabel, defaultCustomReceipt } from "./model";
 import { receiptEnglish, englishReceiptName } from "./receipt-language";
 import { receiptDesignCSS } from "./receipt-designs";
 import {paymentDeadline} from "./payment-deadlines";
+import {displayDate,displayPeriod} from "./date-format";
 import { statement, add, money } from "./engine";
 import { receiptReadings } from "./meters";
 export const esc = (s: unknown) =>
@@ -55,7 +56,7 @@ export function receipt(p: Project, a: Account, period: string) {
         .map((m) => {
           const service = p.services.find((x) => x.id === m.service_id);
           const label = m.aggregate && service ? text(service.name) : m.label;
-          return `<tr><td>${esc(label)}${m.serial_number ? `<br><small>${esc(m.serial_number)}</small>` : ""}${m.aggregate ? `<br><small>${esc(tr("По услуге", "Pe serviciu"))}</small>` : ""}</td><td class="num">${esc(m.previous ?? "—")}</td><td>${esc(m.previous_date ?? "—")}</td><td class="num">${esc(m.current ?? "—")}</td><td>${esc(m.reading_date ?? "—")}</td><td class="num">${esc(m.consumption ?? "—")} ${esc(unitLabel(m.unit, lang))}</td></tr>`;
+          return `<tr><td>${esc(label)}${m.serial_number ? `<br><small>${esc(m.serial_number)}</small>` : ""}${m.aggregate ? `<br><small>${esc(tr("По услуге", "Pe serviciu"))}</small>` : ""}</td><td class="num">${esc(m.previous ?? "—")}</td><td>${esc(displayDate(m.previous_date,p,lang))}</td><td class="num">${esc(m.current ?? "—")}</td><td>${esc(displayDate(m.reading_date,p,lang))}</td><td class="num">${esc(m.consumption ?? "—")} ${esc(unitLabel(m.unit, lang))}</td></tr>`;
         })
         .join(
           "",
@@ -68,24 +69,26 @@ export function receipt(p: Project, a: Account, period: string) {
       : "";
   const legacyNotice =
     settings.receipt_design === "heritage"
-      ? `<div class="r-legacy-notice"><aside><strong>${sectionIcon("notice")}${esc(tr("Извещение", "Aviz de plată"))}</strong><p>${esc(o.name)}</p><p>${esc(tr("Оплатить до", "Achitați până la"))} ${esc(due)}</p></aside><section><p><strong>${esc(a.payer_name)}</strong> · ${esc(a.number)}</p><p>${esc(a.address)}</p><p>${esc(period)} · <strong>${esc(n(s.balance))} MDL</strong></p><p class="r-paid-box">${esc(tr("Оплачено", "Achitat"))}: __________________</p><p>${esc(tr("Дата / Подпись", "Data / Semnătura"))}: __________________</p></section></div>`
+      ? `<div class="r-legacy-notice"><aside><strong>${sectionIcon("notice")}${esc(tr("Извещение", "Aviz de plată"))}</strong><p>${esc(o.name)}</p><p>${esc(tr("Оплатить до", "Achitați până la"))} ${esc(displayDate(due,p,lang))}</p></aside><section><p><strong>${esc(a.payer_name)}</strong> · ${esc(a.number)}</p><p>${esc(a.address)}</p><p>${esc(displayPeriod(period,p,lang))} · <strong>${esc(n(s.balance))} MDL</strong></p><p class="r-paid-box">${esc(tr("Оплачено", "Achitat"))}: __________________</p><p>${esc(tr("Дата / Подпись", "Data / Semnătura"))}: __________________</p></section></div>`
       : "";
   return `<article class="receipt ${settings.receipt_design}${customClasses}" style="--receipt-color:${esc(settings.receipt_color)};--receipt-size:${settings.font_size}pt">
+  ${settings.receipt_design!=="heritage"?'<div class="r-art" aria-hidden="true"></div>':""}
   ${p.demo ? `<p class="r-demo">DEMO · ${esc(tr("Вымышленные данные", "Date fictive"))}</p>` : ""}
   ${incomplete ? `<p class="r-warning">${esc(tr("ЧЕРНОВИК: неполные показания, тарифы или история. Итог не окончательный.", "CIORNĂ: date incomplete. Totalul nu este final."))}</p>` : ""}
   ${legacyNotice}
-  <div class="r-top"><div><p class="r-caption">${esc(o.association_code)}</p><h1>${esc(o.name)}</h1><p>${esc(text(settings.receipt_title))}</p></div>${settings.organization_logo ? `<img class="r-logo" alt="Logo" src="${esc(settings.organization_logo)}"/>` : ""}<div><p class="r-caption">${esc(tr("Расчётный период", "Perioada de calcul"))}</p><h2>${esc(period)}</h2><p>${esc(tr("Оплатить до", "Achitați până la"))} ${esc(due)}</p></div></div>
+  <div class="r-top"><div><p class="r-caption">${esc(o.association_code)}</p><h1>${esc(o.name)}</h1><p>${esc(text(settings.receipt_title))}</p></div>${settings.organization_logo ? `<img class="r-logo" alt="Logo" src="${esc(settings.organization_logo)}"/>` : ""}<div><p class="r-caption">${esc(tr("Расчётный период", "Perioada de calcul"))}</p><h2>${esc(displayPeriod(period,p,lang))}</h2><p>${esc(tr("Оплатить до", "Achitați până la"))} ${esc(displayDate(due,p,lang))}</p></div></div>
   <div class="r-meta"><div><p class="r-caption">${esc(tr("Плательщик", "Plătitor"))}</p><strong>${esc(a.payer_name)}</strong><p>${esc(a.address)}${a.apartments.length ? ", " + esc(tr("кв.", "ap.")) + " " + esc(a.apartments.join(", ")) : ""}</p></div><div><p class="r-caption">${esc(tr("Лицевой счёт", "Cont personal"))}</p><p class="r-number">${esc(a.number)}</p></div></div>
-  <table><thead><tr><th>${esc(tr("Услуга", "Serviciu"))}</th><th class="num">${esc(tr("Объём", "Volum"))}</th><th>${esc(tr("Ед.", "Unit."))}</th><th class="num">${esc(tr("Тариф", "Tarif"))}</th><th class="num">${esc(tr("Сумма", "Sumă"))}, MDL</th></tr></thead><tbody>${s.lines.map((l) => `<tr><td>${esc(text(l.name))}</td><td class="num">${esc(l.quantity)}</td><td>${esc(unitLabel(l.unit, lang))}</td><td class="num">${esc(l.rate.replace(".", lang === "en" ? "." : ","))}</td><td class="num">${esc(n(l.amount))}</td></tr>`).join("")}</tbody></table>
-  ${meterTable}
+  <div class="r-calculations"><section class="r-charges"><table><thead><tr><th>${esc(tr("Услуга", "Serviciu"))}</th><th class="num">${esc(tr("Объём", "Volum"))}</th><th>${esc(tr("Ед.", "Unit."))}</th><th class="num">${esc(tr("Тариф", "Tarif"))}</th><th class="num">${esc(tr("Сумма", "Sumă"))}, MDL</th></tr></thead><tbody>${s.lines.map((l) => `<tr><td>${esc(text(l.name))}</td><td class="num">${esc(l.quantity)}</td><td>${esc(unitLabel(l.unit, lang))}</td><td class="num">${esc(l.rate.replace(".", lang === "en" ? "." : ","))}</td><td class="num">${esc(n(l.amount))}</td></tr>`).join("")}</tbody></table>
+  </section>${meterTable}
   <div class="r-summary"><p><span>${esc(tr("Остаток на начало", "Sold inițial"))}</span><span>${esc(n(s.opening))}</span></p><p><span>${esc(tr("Начислено за услуги", "Calculat pentru servicii"))}</span><span>${esc(n(add(s.lines.map((l) => l.amount)).toFixed(2)))}</span></p><p><span>${esc(tr("Корректировка", "Ajustare"))}</span><span>${esc(n(s.adjustment))}</span></p><p><span>${esc(tr("Оплачено за месяц", "Achitat în luna curentă"))}</span><span>−${esc(n(s.paid))}</span></p><p class="r-total"><span>${esc(tr("Итого к оплате", "Total spre plată"))}</span><span>${esc(n(s.balance))} MDL</span></p></div>
-  <div class="r-bank">${settings.receipt_design === "heritage" ? `<h2>${sectionIcon("bank")}${esc(tr("Банковские реквизиты", "Date bancare"))}</h2>` : ""}<strong>${esc(o.name)}</strong><p>${esc(o.address)}</p><p>CF/IDNO: ${esc(o.fiscal_code || "—")} · ${esc(o.bank)}</p><p>IBAN: ${esc(o.iban || "—")}</p></div><p class="r-footer">${esc(text(settings.receipt_footer))}</p>
-  ${settings.receipt_design === "classic" ? `<div class="r-stub"><div><strong>${esc(tr("Извещение", "Aviz de plată"))}</strong><p>${esc(a.payer_name)}</p><p>${esc(a.number)} · ${esc(period)}</p></div><div><strong>${esc(n(s.balance))} MDL</strong><p>${esc(tr("Дата / Подпись", "Data / Semnătura"))} __________________</p></div></div>` : ""}</article>`;
+  </div><div class="r-bank">${settings.receipt_design === "heritage" ? `<h2>${sectionIcon("bank")}${esc(tr("Банковские реквизиты", "Date bancare"))}</h2>` : ""}<strong>${esc(o.name)}</strong><p>${esc(o.address)}</p><p>CF/IDNO: ${esc(o.fiscal_code || "—")} · ${esc(o.bank)}</p><p>IBAN: ${esc(o.iban || "—")}</p></div><p class="r-footer">${esc(text(settings.receipt_footer))}</p>
+  ${settings.receipt_design === "classic" ? `<div class="r-stub"><div><strong>${esc(tr("Извещение", "Aviz de plată"))}</strong><p>${esc(a.payer_name)}</p><p>${esc(a.number)} · ${esc(displayPeriod(period,p,lang))}</p></div><div><strong>${esc(n(s.balance))} MDL</strong><p>${esc(tr("Дата / Подпись", "Data / Semnătura"))} __________________</p></div></div>` : ""}</article>`;
 }
 export function receiptDocument(
   p: Project,
   accounts: Account[],
   period: string,
 ) {
-  return `<!doctype html><html lang="${p.settings.receipt_language === "ru" ? "ru" : p.settings.receipt_language === "en" ? "en" : "ro"}"><head><meta charset="utf-8"><title>OpenHaU ${esc(period)}</title><style>${receiptBaseCSS}\n${receiptDesignCSS}\n${p.settings.receipt_css.replace(/<\/style/gi, "")}</style></head><body>${accounts.map((a) => receipt(p, a, period)).join("")}</body></html>`;
+  const lang=p.settings.receipt_language;
+  return `<!doctype html><html lang="${p.settings.receipt_language === "ru" ? "ru" : p.settings.receipt_language === "en" ? "en" : "ro"}"><head><meta charset="utf-8"><title>OpenHaU ${esc(displayPeriod(period,p,lang))}</title><style>${receiptBaseCSS}\n${receiptDesignCSS}\n${p.settings.receipt_css.replace(/<\/style/gi, "")}</style></head><body>${accounts.map((a) => receipt(p, a, period)).join("")}</body></html>`;
 }

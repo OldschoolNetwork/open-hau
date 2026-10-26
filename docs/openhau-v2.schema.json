@@ -169,6 +169,7 @@
             "ribbon",
             "botanical",
             "heritage",
+            "aero",
             "custom"
           ]
         },
@@ -202,6 +203,7 @@
                   "ribbon",
                   "botanical",
                   "heritage",
+                  "aero",
                   "custom"
                 ]
               },
@@ -276,6 +278,33 @@
             "additionalProperties": false
           }
         },
+        "date_format": {
+          "default": "iso",
+          "type": "string",
+          "enum": [
+            "iso",
+            "dmy-dot",
+            "dmy-slash",
+            "mdy-slash",
+            "dmy-short",
+            "long",
+            "short-month",
+            "weekday",
+            "roman-month"
+          ]
+        },
+        "period_format": {
+          "default": "iso",
+          "type": "string",
+          "enum": [
+            "iso",
+            "month-dot",
+            "month-slash",
+            "long",
+            "short-month",
+            "roman-month"
+          ]
+        },
         "payment_balancing_service_id": {
           "type": "string",
           "minLength": 1,
@@ -345,7 +374,9 @@
         "receipt_design",
         "receipt_color",
         "organization_logo",
-        "receipt_presets"
+        "receipt_presets",
+        "date_format",
+        "period_format"
       ],
       "additionalProperties": false
     },

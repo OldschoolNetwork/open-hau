@@ -24,7 +24,7 @@ The published 26.1 preview is unchanged.
 | Legacy database import | Source-profile design; a one-off migration is not a general importer | Read-only source inspection, mapping preview, provenance, archives and control totals |
 | Spreadsheet import | Analysis only | Explicit column mapping, dates/units, duplicates, organisation boundaries and cached-value checks |
 | Windows/macOS interface | Separate Windows 10 22H2-inspired and macOS-oriented presentation; translated calculation/validation messages | Native visual acceptance and remaining wording review |
-| Receipt designs and languages | Seven designs, custom appearance presets, logos, English receipt labels and monthly payment dates | Native print acceptance and broader long-bill checks |
+| Receipt designs and languages | Eight designs including Aero, distinct decorative layouts, custom appearance presets, logos, English receipt labels, selectable date formats and monthly payment dates | Native print acceptance and broader long-bill checks |
 
 ## Export contracts
 

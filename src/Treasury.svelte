@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {displayDate,displayPeriod} from "./date-format";
   import { translator } from "./i18n";
   import { ZodError } from "zod";
   import {
@@ -534,7 +535,7 @@
               size="5"
               bind:value={draft.linked_payment_ids}
               >{#each paymentOptions as pay}<option value={pay.id}
-                  >{pay.payment_date} · {project.accounts.find(
+                  >{displayDate(pay.payment_date,project)} · {project.accounts.find(
                     (a) => a.id === pay.account_id,
                   )?.number} · {pay.amount} MDL · {pay.note}</option
                 >{/each}</select
@@ -566,7 +567,7 @@
         ></thead
       ><tbody>
         {#each report.transactions as tx}<tr
-            ><td>{tx.date}</td><td
+            ><td>{displayDate(tx.date,project)}</td><td
               >{operationLabels[tx.kind]}<small
                 >{"category" in tx ? tx.category : ""}</small
               ></td

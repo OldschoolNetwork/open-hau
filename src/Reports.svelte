@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {displayDate,displayPeriod} from "./date-format";
   import {Download,FileJson,Printer,ReceiptText} from "@lucide/svelte";
   import { translator } from "./i18n";
   import type { Project } from "./model";
@@ -19,7 +20,7 @@
   function generate() {
     try {
       generated = accountReportHTML(project, from, to,mode,serviceFilter);
-      generatedRange = from + "–" + to;
+      generatedRange = displayPeriod(from,project) + "–" + displayPeriod(to,project);
       previewReady = false;
       error = "";
     } catch (e) {

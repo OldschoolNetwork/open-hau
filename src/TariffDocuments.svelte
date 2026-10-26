@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {displayDate,displayPeriod} from "./date-format";
   import { translator } from "./i18n";
   import { uid, today, type Project, type TariffDocument } from "./model";
   import { saveTariffDocument } from "./tariff-documents";
@@ -47,7 +48,7 @@
     </form>
   {/if}
   <div class="table-wrap"><table><thead><tr><th>{tr("Дата", "Data")}</th><th>{tr("Номер", "Număr")}</th><th>{tr("Комментарий", "Comentariu")}</th><th>{tr("Состояние", "Stare")}</th><th></th></tr></thead><tbody>
-    {#each [...project.tariff_documents].sort((a,b) => b.date.localeCompare(a.date)) as doc}<tr><td>{doc.date}</td><td>{doc.number}</td><td>{doc.comment}</td><td>{doc.state === "applied" ? tr("Применён", "Aplicat") : tr("Черновик", "Ciornă")}</td><td><button class="text-button" onclick={() => {draft = structuredClone(doc); error = "";}}>{tr("Открыть", "Deschidere")}</button></td></tr>{:else}<tr><td colspan="5">{tr("Документов пока нет.", "Nu există documente.")}</td></tr>{/each}
+    {#each [...project.tariff_documents].sort((a,b) => b.date.localeCompare(a.date)) as doc}<tr><td>{displayDate(doc.date,project)}</td><td>{doc.number}</td><td>{doc.comment}</td><td>{doc.state === "applied" ? tr("Применён", "Aplicat") : tr("Черновик", "Ciornă")}</td><td><button class="text-button" onclick={() => {draft = structuredClone(doc); error = "";}}>{tr("Открыть", "Deschidere")}</button></td></tr>{:else}<tr><td colspan="5">{tr("Документов пока нет.", "Nu există documente.")}</td></tr>{/each}
   </tbody></table></div>
 </article>
 
