@@ -360,6 +360,7 @@ const currentProjectSchema = z
       state: z.enum(["draft", "applied"]),
       rows: z.array(z.object({id, service_id: id, effective_from: date, rate: nonnegative, tariff_id: id.nullable()})).min(1).max(1000),
     })).max(50000).default([]),
+    payment_batches:z.array(z.object({id,number:z.string().min(1),date,billing_through:period,balancing_service_id:id,method:z.string(),comment:z.string(),state:z.enum(["draft","applied"]),rows:z.array(z.object({id,account_id:id,amount:ledgerMoney.refine(v=>new Decimal(v).gte(0),"Invalid batch payment amount"),manual_maintenance:ledgerMoney.nullable(),payment_id:id.nullable()})).min(1).max(1000)})).max(50000).default([]),
     treasury:treasurySchema.default({wallets:[],funds:[],transactions:[],locked_through:null}),
     settings: legacyProjectSchema.shape.settings.extend({
       payment_balancing_service_id: id.optional(),
@@ -401,6 +402,7 @@ const currentProjectSchema = z
       treasury,
       tariff_documents,
       service_accounting,
+      payment_batches,
       ...common
     } = p;
     const previous = legacyProjectSchema.safeParse({
@@ -428,6 +430,23 @@ const currentProjectSchema = z
         });
     const fail = (message: string) => ctx.addIssue({ code: "custom", message });
     const accountIds=new Set(p.accounts.map(a=>a.id)),serviceIds=new Set(p.services.map(s=>s.id)),paymentById=new Map(p.payments.map(pay=>[pay.id,pay]));
+    if(new Set(payment_batches.map(b=>b.id)).size!==payment_batches.length)fail("Duplicate payment batches");
+    const batchPayments=new Set<string>();
+    for(const batch of payment_batches){
+      if(!serviceIds.has(batch.balancing_service_id)||batch.billing_through>batch.date.slice(0,7))fail("Invalid payment batch configuration");
+      if(new Set(batch.rows.map(r=>r.id)).size!==batch.rows.length||new Set(batch.rows.map(r=>r.account_id)).size!==batch.rows.length)fail("Duplicate payment batch accounts or rows");
+      for(const row of batch.rows){
+        if(!accountIds.has(row.account_id))fail("Unknown payment batch account");
+        if(batch.state==="draft"&&row.payment_id!==null)fail("Draft payment batch references a receipt");
+        if(batch.state==="applied"){
+          const pay=row.payment_id?paymentById.get(row.payment_id):null;
+          if(new Decimal(row.amount).isZero()){if(row.payment_id!==null)fail("Zero batch row references a receipt");continue;}
+          if(!pay||pay.account_id!==row.account_id||pay.payment_date!==batch.date||!new Decimal(pay.amount).eq(row.amount)||pay.allocation_basis!==batch.billing_through||pay.allocation_balancing_service_id!==batch.balancing_service_id||pay.allocation_manual_amount!==(row.manual_maintenance??undefined))fail("Applied payment batch differs from its receipts");
+          if(!row.payment_id||batchPayments.has(row.payment_id))fail("Receipt belongs to multiple payment batches");
+          else {batchPayments.add(row.payment_id);const total=p.service_accounting.payments.filter(s=>s.payment_id===row.payment_id).reduce((s,r)=>s.plus(r.amount),new Decimal(0));if(!total.eq(row.amount))fail("Applied payment batch allocation is incomplete");}
+        }
+      }
+    }
     if(p.settings.payment_balancing_service_id&&!serviceIds.has(p.settings.payment_balancing_service_id))fail("Unknown service accounting account or service");
     for(const pay of p.payments){if(pay.allocation_balancing_service_id&&!serviceIds.has(pay.allocation_balancing_service_id))fail("Unknown service accounting payment or service");if(pay.allocation_basis&&pay.allocation_basis>pay.payment_date.slice(0,7))fail("Payment allocation period is after payment date");}
     for(const rows of [service_accounting.opening,service_accounting.adjustments])for(const row of rows){if(!accountIds.has(row.account_id)||!serviceIds.has(row.service_id))fail("Unknown service accounting account or service");}
@@ -643,6 +662,7 @@ export type CashAccount=z.infer<typeof cashAccount>;
 export type ReserveFund=z.infer<typeof reserveFund>;
 export type CashTransaction=z.infer<typeof cashTransaction>;
 export type TariffDocument = Project["tariff_documents"][number];
+export type PaymentBatch=Project["payment_batches"][number];
 export type Account = z.infer<typeof account>;
 export type Service = z.infer<typeof service>;
 export type Tariff = z.infer<typeof tariff>;
@@ -675,6 +695,7 @@ export function demoProject(): Project {
     schema_version: 2,
     service_accounting:{opening:[],payments:[],adjustments:[]},
     tariff_documents: [],
+    payment_batches: [],
     treasury:{wallets:[],funds:[],transactions:[],locked_through:null},
     demo: true,
     currency: "MDL",

@@ -8,6 +8,7 @@
   import { ZodError } from "zod";
   import Reports from "./Reports.svelte";
   import PaymentAllocation from "./PaymentAllocation.svelte";
+  import PaymentBatches from "./PaymentBatches.svelte";
   import {previousPaymentMonth,type PaymentShare} from "./payment-allocation";
   import PhysicalMeters from "./PhysicalMeters.svelte";
   import MonthlyResidents from "./MonthlyResidents.svelte";
@@ -176,6 +177,7 @@
     { id: "tariffs", ru: "Тарифы", ro: "Tarife", icon: ReceiptText },
     { id: "readings", ru: "Показания", ro: "Indexuri", icon: Gauge },
     { id: "payments", ru: "Оплаты", ro: "Plăți", icon: Wallet },
+    { id: "payment-batches",ru:"Групповой ввод оплаты",ro:"Introducere plăți în grup",icon:Wallet },
     { id: "treasury", ru: "Банк и касса", ro: "Bancă și casă", icon: Building2 },
     { id: "reports", ru: "Отчёты", ro: "Rapoarte", icon: ChartNoAxesCombined },
     { id:"service-reports",ru:"Оборотно-сальдовая ведомость по услугам",ro:"Balanță de verificare pe servicii",icon:ChartNoAxesCombined },
@@ -300,6 +302,7 @@
     error = "";
   }
   function openEditor(kind: string, item?: unknown) {
+    if(kind==="payment"&&item&&p.payment_batches.some(b=>b.state==="applied"&&b.rows.some(r=>r.payment_id===(item as {id:string}).id))){error=t("Оплата относится к проведённому групповому документу. Откройте его для просмотра расшифровки.","Plata aparține unui document de grup aplicat. Deschideți documentul pentru vizualizarea repartizării.");return;}
     if (kind === "tariff" && item && p.tariff_documents.some(d => d.state === "applied" && d.rows.some(r => r.tariff_id === (item as {id: string}).id))) {
       error = t("Тариф введён применённым документом. Документ доступен для просмотра; новый тариф задаётся новой записью.", "Tariful provine dintr-un document aplicat. Documentul poate fi vizualizat; un tarif nou se introduce printr-o înregistrare nouă.");
       return;
@@ -1539,6 +1542,8 @@
         <Treasury project={p} onapply={setProject}/>
       {:else if page === "reports"}
         <Reports project={p} />
+      {:else if page === "payment-batches"}
+        <PaymentBatches project={p} onapply={setProject}/>
       {:else if page === "service-reports"}
         <Reports project={p} mode="service"/>
       {:else if page === "receipts"}
@@ -1874,12 +1879,12 @@
 {/snippet}
 <div class="desktop-shell no-print">
   <header class="desktop-chrome">
-    <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><div class="desktop-state">{dirty?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
+    <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><span>{t("Период: ","Perioadă: ")}{period}</span><div class="desktop-state">{dirty?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
     <DesktopMenu menus={desktopMenus} language={lang} oncommand={desktopCommand}/>
-    <div class="desktop-commandbar"><button class="desktop-save" onclick={()=>save()} disabled={busy||loading}><Save size={17}/>{t("Сохранить","Salvare")}</button><label>{t("Период","Perioadă")}<input type="month" value={period} onchange={e=>changePeriod(e.currentTarget.value)}/></label><label class="desktop-language">{t("Язык","Limbă")}<select bind:value={p.settings.language} onchange={changed}><option value="ru">RU</option><option value="ro">RO</option></select></label></div>
+    <div class="desktop-commandbar"><button class="desktop-save" onclick={()=>save()} disabled={busy||loading}><Save size={17}/>{t("Сохранить","Salvare")}</button></div>
   </header>
   <main class="desktop-area" bind:this={desktopArea}>
-    {#if !desktopViews.some(v=>v.visible&&!v.minimized)}<div class="desktop-empty"><img src="/brand/logo-short.svg" alt="OpenHaU"/></div>{/if}
+    {#if !desktopViews.some(v=>v.visible&&!v.minimized)}<div class="desktop-empty"><img src="/brand/logo-full.svg" alt="OpenHaU OPEN"/></div>{/if}
     {#each desktopViews as view (view.id)}
       <DesktopWindow id={view.id} title={desktopTitle(view.id,lang)} language={lang} active={activeDesktop===view.id} hidden={!view.visible||view.minimized} index={desktopViews.indexOf(view)} bind:position={view.position} onfocus={()=>focusDesktop(view.id)} onclose={()=>hideDesktop(view.id)} onminimize={()=>hideDesktop(view.id,true)}>
         {#if view.id.startsWith("chooser:")}<DesktopChooser group={view.id.slice(8)} language={lang} oncommand={action=>{hideDesktop(view.id);desktopCommand(action);}} onclose={()=>hideDesktop(view.id)}/>
@@ -1890,8 +1895,7 @@
     {/each}
   </main>
   <footer class="desktop-dock" aria-label={t("Панель окон","Bara ferestrelor")}>
-    <div class="desktop-launchers">{#each pages.filter(item=>["accounts","services","tariffs","readings","receipts","reports","treasury","payments"].includes(item.id)) as item}<button title={item[lang]} class:active={activeDesktop===item.id} onclick={()=>navigate(item.id)}><item.icon size={21}/><span>{item[lang]}</span></button>{/each}</div>
-    <div class="desktop-open-windows">{#each desktopViews.filter(v=>v.visible) as view}<button class:active={activeDesktop===view.id&&!view.minimized} onclick={()=>focusDesktop(view.id)}>{desktopTitle(view.id,lang)}</button>{/each}</div>
+    <div class="desktop-open-windows">{#each desktopViews.filter(v=>v.visible) as view}{@const WindowIcon=pages.find(item=>item.id===view.id)?.icon||FolderOpen}<button title={desktopTitle(view.id,lang)} aria-pressed={activeDesktop===view.id&&!view.minimized} class:active={activeDesktop===view.id&&!view.minimized} onclick={()=>focusDesktop(view.id)}><WindowIcon size={18}/><span>{desktopTitle(view.id,lang)}</span></button>{/each}</div>
   </footer>
 </div>
 <div class="print-only">

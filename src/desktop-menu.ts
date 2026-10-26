@@ -96,7 +96,7 @@ export const documents: DesktopCommand[] = [
     "Ввод показаний коллективных приборов учета",
     "Introducere indexuri comune",
   ),
-  item("payment-batch", "Групповой ввод оплаты", "Introducere plăți în grup"),
+  item("payment-batch", "Групповой ввод оплаты", "Introducere plăți în grup", "payment-batches"),
   item("close-account", "Закрытие лицевого счета", "Închidere cont personal"),
   item(
     "citizen-changes",

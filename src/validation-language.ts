@@ -1,5 +1,15 @@
 type Language = "ru" | "ro";
 const messages: Record<string, [string, string]> = {
+  "Duplicate payment batches":["Повторяющиеся документы оплаты","Documente de plată duplicate"],
+  "Invalid payment batch configuration":["Проверьте месяц долга и услугу обслуживания в документе оплаты","Verificați luna datoriei și serviciul deservirii din document"],
+  "Duplicate payment batch accounts or rows":["В документе повторяются лицевые счета или строки","Documentul conține conturi sau rânduri duplicate"],
+  "Unknown payment batch account":["Лицевой счёт документа оплаты не найден","Contul documentului de plată nu a fost găsit"],
+  "Draft payment batch references a receipt":["Черновик не должен содержать проведённых оплат","Ciorna nu poate conține plăți aplicate"],
+  "Zero batch row references a receipt":["Нулевая строка не должна создавать оплату","Rândul nul nu poate crea o plată"],
+  "Applied payment batch differs from its receipts":["Проведённый документ не совпадает со связанными оплатами","Documentul aplicat diferă de plățile asociate"],
+  "Receipt belongs to multiple payment batches":["Оплата связана с несколькими документами","Plata este asociată mai multor documente"],
+  "Applied payment batch allocation is incomplete":["В проведённом документе неполная расшифровка оплаты","Repartizarea plății documentului aplicat este incompletă"],
+  "Invalid batch payment amount":["Сумма оплаты строки должна быть неотрицательной","Suma plății rândului trebuie să fie nenegativă"],
   "Payment allocation period is after payment date":["Месяц погашаемого долга позже даты оплаты","Luna datoriei este după data plății"],
   "Unknown service accounting account or service": ["Не найден счёт или услуга для распределения", "Contul sau serviciul repartizării nu a fost găsit"],
   "Unknown service accounting payment or service": ["Не найдена оплата или услуга для распределения", "Plata sau serviciul repartizării nu a fost găsit"],

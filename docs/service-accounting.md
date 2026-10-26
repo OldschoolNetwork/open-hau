@@ -46,6 +46,20 @@ included in snapshot lines must not be added again as separate adjustments.
 Historical signed payment shares are retained when their net agrees with the
 original receipt. Cash, bank and reserve-fund records remain separate ledgers.
 
-The current payment journal records individual receipts. A dedicated group-entry
-document with batch posting is still pending; its unavailable menu command must
-not be treated as a completed batch workflow.
+## Group payment entry
+
+Open **Accounts → Group payment entry**. Create a document, choose its receipt
+date, billing month and maintenance service, and fill the rows with active accounts.
+Enter the actual receipts; leave unpaid accounts at zero. The payment-method field
+is descriptive text, not a bank connection. A manual maintenance share is optional
+per row. The eye button shows that row's service allocation.
+
+Saving a draft creates no receipts. Posting validates every row and generates all
+receipts and their service shares together. If a row fails, none are applied.
+Zero rows remain in the document without creating zero-value receipts. Repeated
+accounts and posting into closed periods are rejected. The receipt date comes from
+the document; the entry date records the day of posting.
+
+Posted documents are read-only and cannot be posted twice. Their receipts cannot
+be changed through the individual payment editor. Cancellation/reversal documents,
+bank-file import and historical batch reconstruction are not yet available.

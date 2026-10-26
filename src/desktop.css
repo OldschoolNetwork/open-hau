@@ -127,6 +127,7 @@
   padding: 6px 12px;
 }
 .desktop-area {
+  margin-left: 0;
   flex: 1;
   min-height: 0;
   position: relative;
@@ -134,15 +135,19 @@
   background: color-mix(in srgb, var(--sidebar) 65%, var(--bg));
 }
 .desktop-empty {
-  height: 100%;
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
   pointer-events: none;
 }
 .desktop-empty img {
   width: 220px;
+  height: auto;
+  filter: brightness(0);
   opacity: 0.1;
 }
+:root[data-theme="dark"] .desktop-empty img {filter:none}
 .desktop-window {
   position: absolute;
   display: flex;
@@ -275,34 +280,7 @@
   backdrop-filter: blur(20px);
   padding: 4px 10px;
   gap: 3px;
-}
-.desktop-launchers {
-  display: flex;
-  gap: 4px;
-  justify-content: center;
-}
-.desktop-launchers > button {
-  position: relative;
-  background: transparent;
-  border: 0;
-  padding: 8px 13px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  min-height: 38px;
-  font-size: 12px;
-}
-.desktop-launchers > button.active:after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 18px;
-  right: 18px;
-  height: 3px;
-  background: var(--accent);
-}
-.desktop-launchers > button:hover {
-  background: var(--hover);
+  min-height: 42px;
 }
 .desktop-open-windows {
   display: flex;
@@ -310,6 +288,11 @@
   overflow: auto;
 }
 .desktop-open-windows > button {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:none;
+  min-height:34px;
   border: 0;
   border-bottom: 2px solid transparent;
   background: transparent;
@@ -320,6 +303,8 @@
   padding: 6px 12px;
   font-size: 11px;
 }
+.desktop-open-windows > button svg{flex:none}
+.desktop-open-windows > button span{overflow:hidden;text-overflow:ellipsis}
 .desktop-open-windows > button.active {
   border-bottom-color: var(--accent);
   background: var(--hover);
