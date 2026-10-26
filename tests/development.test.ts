@@ -215,3 +215,78 @@ test("inactive accounts retain genuine payments and adjustments without new serv
   assert.equal(row.paid, "10.00");
   assert.equal(row.closing, "120.50");
 });
+
+test("meter replacement requires the retired meter's final period reading", () => {
+  const p = withMeter();
+  p.meters[0].active = false;
+  p.meters[0].retired_on = p.settings.period + "-15";
+  p.meter_values[0].reading_date = p.settings.period + "-15";
+  p.meter_values[0].kind = "final";
+  p.meters.push({
+    ...p.meters[0],
+    id: "replacement",
+    serial_number: "DEMO-NEW",
+    active: true,
+    installed_on: p.settings.period + "-15",
+    retired_on: null,
+    initial_value: "0",
+  });
+  p.meter_values.push({
+    ...p.meter_values[0],
+    id: "replacement-reading",
+    meter_id: "replacement",
+    reading_date: p.settings.period + "-28",
+    kind: "regular",
+    value: "5",
+  });
+  assert(projectSchema.safeParse(p).success);
+  assert.equal(
+    charges(p, p.accounts[0], p.settings.period).lines.find(
+      (l) => l.service_id === "water",
+    )?.quantity,
+    "20",
+  );
+  p.meter_values = p.meter_values.filter((r) => r.meter_id === "replacement");
+  assert.equal(
+    physicalReadings(p, "a1", "water", p.settings.period)[0].warning,
+    "missing",
+  );
+  assert(
+    !charges(p, p.accounts[0], p.settings.period).lines.some(
+      (l) => l.service_id === "water",
+    ),
+  );
+});
+
+test("incompatible meter units block automatic charges while an explicit volume remains separate", () => {
+  const p = withMeter();
+  p.meters[0].unit = "kWh";
+  assert.equal(
+    physicalReadings(p, "a1", "water", p.settings.period)[0].warning,
+    "unit",
+  );
+  assert(
+    !charges(p, p.accounts[0], p.settings.period).lines.some(
+      (l) => l.service_id === "water",
+    ),
+  );
+  p.quantities.push({
+    id: "reviewed-volume",
+    account_id: "a1",
+    service_id: "water",
+    period: p.settings.period,
+    quantity: "15",
+  });
+  assert.equal(
+    charges(p, p.accounts[0], p.settings.period).lines.find(
+      (l) => l.service_id === "water",
+    )?.quantity,
+    "15",
+  );
+  p.quantities = [];
+  p.meters[0].unit = "m3";
+  assert.equal(
+    physicalReadings(p, "a1", "water", p.settings.period)[0].warning,
+    null,
+  );
+});

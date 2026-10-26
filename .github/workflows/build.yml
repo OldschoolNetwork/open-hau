@@ -1,8 +1,8 @@
-name: Build OpenHaU Preview
+name: Build OpenHaU
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, development/26.2]
   pull_request:
 permissions:
   contents: read
@@ -50,7 +50,7 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: '12.6'
       - uses: actions/upload-artifact@v4
         with:
-          name: OpenHaU-26.1-Preview-${{ matrix.name }}
+          name: OpenHaU-${{ matrix.name }}
           path: |
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg

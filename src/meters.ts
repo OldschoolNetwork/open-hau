@@ -13,8 +13,13 @@ export type MeterDisplay = {
   reading_date: string | null;
   consumption: string | null;
   aggregate: boolean;
-  warning: "missing" | "decreasing" | null;
+  warning: "missing" | "decreasing" | "unit" | null;
 };
+
+function canonicalUnit(unit: string) {
+  const value = unit.trim().toLowerCase().replaceAll(" ", "");
+  return ["m3", "m³", "m^3", "м3", "м³"].includes(value) ? "m3" : value;
+}
 
 export function physicalReadings(
   p: Project,
@@ -37,6 +42,7 @@ export function physicalReadings(
     .filter(
       (m) =>
         m.active ||
+        m.retired_on?.slice(0, 7) === period ||
         p.meter_values.some((r) => r.meter_id === m.id && r.period === period),
     )
     .map((m) => {
@@ -61,6 +67,9 @@ export function physicalReadings(
           ? new Decimal(current.value).minus(prior)
           : null;
       const decreasing = delta?.isNegative() ?? false;
+      const service = p.services.find((s) => s.id === serviceId);
+      const incompatibleUnit =
+        !!service && canonicalUnit(service.unit) !== canonicalUnit(m.unit);
       return {
         meter_id: m.id,
         service_id: serviceId,
@@ -71,10 +80,11 @@ export function physicalReadings(
         current: current?.value ?? null,
         previous_date: previous?.reading_date ?? m.installed_on,
         reading_date: current?.reading_date ?? null,
-        consumption: delta && !decreasing ? delta.toFixed() : null,
+        consumption: delta && !decreasing && !incompatibleUnit ? delta.toFixed() : null,
         aggregate: false,
-        warning:
-          !current || prior === null
+        warning: incompatibleUnit
+          ? "unit"
+          : !current || prior === null
             ? "missing"
             : decreasing
               ? "decreasing"

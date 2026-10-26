@@ -12,6 +12,10 @@ and retirement dates, initial values, and dated initial/regular/final readings.
 Shared-meter allocation is not implemented yet. Several individual meters may
 contribute to one service; incomplete or decreasing readings produce a warning.
 An explicit billed-quantity override remains separate from physical consumption.
+Meter units must match the service unit before automatic billing. Common cubic
+metre spellings are equivalent; different quantities such as kWh and cubic metres
+are never added or converted implicitly. A meter retired during the billing month
+still requires its final reading so replacement does not omit its consumption.
 
 The descriptions below document the common version 1 sections. The fictional
 `examples/demo.openhau.json` remains a version 1 compatibility fixture.

@@ -64,22 +64,27 @@ export function charges(
         const meters = physicalReadings(p, a.id, s.id, period);
         if (meters.length) {
           if (meters.some((m) => m.warning)) {
-            warnings.push(s.name[p.settings.language] + ": incomplete or decreasing physical meter readings");
+            warnings.push(
+              s.name[p.settings.language] +
+                (p.settings.language === "ru"
+                  ? ": проверьте показания и единицы измерения каждого прибора"
+                  : ": verificați indexurile și unitățile fiecărui contor"),
+            );
             continue;
           }
           quantity = add(meters.map((m) => m.consumption!)).toFixed();
         } else {
-        const r = p.meter_readings.find(
-          (x) =>
-            x.account_id === a.id &&
-            x.service_id === sid &&
-            x.period === period,
-        );
-        if (!r) {
-          warnings.push(s.name[p.settings.language] + ": нет показаний");
-          continue;
-        }
-        quantity = D(r.current).minus(r.previous).toFixed();
+          const r = p.meter_readings.find(
+            (x) =>
+              x.account_id === a.id &&
+              x.service_id === sid &&
+              x.period === period,
+          );
+          if (!r) {
+            warnings.push(s.name[p.settings.language] + ": нет показаний");
+            continue;
+          }
+          quantity = D(r.current).minus(r.previous).toFixed();
         }
       } else if (s.calculation_type === "person")
         quantity = String(a.waste_charge_persons);
