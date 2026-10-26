@@ -67,6 +67,48 @@ test("equal allocation conserves totals and uses account count rather than meter
   assert.equal(remaining.length, 48);
   assert(remaining.reduce((a, b) => a.plus(b), new Decimal(0)).eq(20));
 });
+test("shared differences use their selected service tariff without a second manual service charge", () => {
+  const {p, g, period} = fixture();
+  p.services.push({id: "water-difference", name: {ru: "Расхождение воды", ro: "Diferență apă"}, unit: "m3", calculation_type: "manual", active: true, default_quantity: "0", notes: ""});
+  p.tariffs.push({id: "difference-rate", service_id: "water-difference", effective_from: period + "-01", rate: "7.1234"});
+  g.difference_service_id = "water-difference";
+  p.accounts[0].service_ids.push("water-difference");
+  assert(projectSchema.safeParse(p).success);
+  const result = charges(p, p.accounts[0], period);
+  const differences = result.lines.filter(x => x.service_id === "water-difference");
+  assert.equal(differences.length, 1);
+  assert.equal(differences[0].quantity, "10.0000");
+  assert.equal(differences[0].rate, "7.1234");
+  assert.equal(differences[0].amount, "71.23");
+  assert.equal(result.lines.find(x => x.service_id === "water")?.quantity, "10");
+  assert.equal(result.lines.find(x => x.service_id === "water")?.rate, "20.66");
+  assert.equal(result.warnings.length, 0);
+  // The network assigns the difference service even without a duplicate account toggle.
+  assert.equal(charges(p, p.accounts[1], period).lines.filter(x => x.service_id === "water-difference").length, 1);
+  p.quantities.push({id: "manual-difference", account_id: "a1", service_id: "water-difference", period, quantity: "8"});
+  const conflict = charges(p, p.accounts[0], period);
+  assert(conflict.warnings.some(x => x.includes("конфликтует")));
+  assert.equal(conflict.lines.filter(x => x.service_id === "water-difference").length, 0);
+});
+test("missing difference tariff never falls back to the base service tariff", () => {
+  const {p, g, period} = fixture();
+  p.services.push({id: "difference", name: {ru: "Расхождение", ro: "Diferență"}, unit: "m³", calculation_type: "manual", active: true, default_quantity: "0", notes: ""});
+  g.difference_service_id = "difference";
+  const result = charges(p, p.accounts[0], period);
+  assert(result.warnings.some(x => x.includes("тариф для расхождений")));
+  assert.equal(result.lines.filter(x => x.service_id === "water").length, 1);
+  assert.equal(result.lines.filter(x => x.service_id === "difference").length, 0);
+});
+test("difference service must exist, match volume units and stay distinct from physical consumption", () => {
+  const {p, g} = fixture();
+  g.difference_service_id = "absent";
+  assert(!projectSchema.safeParse(p).success);
+  g.difference_service_id = "water";
+  assert(!projectSchema.safeParse(p).success);
+  p.services.push({id: "wrong-unit", name: {ru: "Расхождение", ro: "Diferență"}, unit: "kWh", calculation_type: "manual", active: true, default_quantity: "0", notes: ""});
+  g.difference_service_id = "wrong-unit";
+  assert(!projectSchema.safeParse(p).success);
+});
 test("exempt consumers remain in subtraction but do not receive a difference share", () => {
   const { p, g, period } = fixture();
   assert(projectSchema.safeParse(p).success);

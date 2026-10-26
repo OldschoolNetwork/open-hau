@@ -1,0 +1,450 @@
+.desktop-shell {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+.desktop-chrome {
+  position: relative;
+  z-index: 1000;
+  background: var(--surface);
+  flex: none;
+}
+.desktop-titlebar {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+.desktop-titlebar img {
+  width: 20px;
+  height: 20px;
+}
+.desktop-titlebar > span {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.desktop-state {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+.desktop-menubar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 36px;
+  padding: 0 6px;
+  flex-wrap: wrap;
+}
+.desktop-menu,
+.desktop-submenu {
+  position: relative;
+}
+.desktop-menubar summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  padding: 9px 12px;
+  position: relative;
+}
+.desktop-menubar summary::-webkit-details-marker {
+  display: none;
+}
+.desktop-menu[open] > summary,
+.desktop-menubar summary:hover {
+  background: var(--hover);
+}
+.desktop-dropdown {
+  position: absolute;
+  z-index: 2000;
+  min-width: 270px;
+  max-width: min(560px, 80vw);
+  padding: 5px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(22px) saturate(120%);
+  box-shadow: 0 8px 24px #0003;
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+.desktop-dropdown button {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 10px 13px;
+  width: 100%;
+  white-space: normal;
+  font-size: 13px;
+}
+.desktop-dropdown button:hover:enabled {
+  background: var(--hover);
+}
+.desktop-submenu > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.desktop-submenu > .desktop-dropdown {
+  left: 100%;
+  top: -5px;
+}
+.desktop-menu:nth-last-child(-n + 3) > .desktop-dropdown {
+  right: 0;
+}
+.desktop-commandbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 5px 14px;
+  background: var(--sidebar);
+  min-height: 42px;
+}
+.desktop-commandbar label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 12px;
+}
+.desktop-commandbar input,
+.desktop-commandbar select {
+  padding: 4px 8px;
+  min-height: 30px;
+}
+.desktop-commandbar .desktop-language {
+  margin-left: auto;
+}
+.desktop-save {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  padding: 6px 12px;
+}
+.desktop-area {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--sidebar) 65%, var(--bg));
+}
+.desktop-empty {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.desktop-empty img {
+  width: 220px;
+  opacity: 0.1;
+}
+.desktop-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 620px;
+  max-width: calc(100% - 8px);
+  max-height: calc(100% - 8px);
+  background: var(--surface);
+  box-shadow: 0 4px 18px #0002;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  overflow: hidden;
+}
+.desktop-window.active {
+  box-shadow: 0 8px 30px #0004;
+}
+.desktop-window-title {
+  height: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  gap: 9px;
+  background: color-mix(in srgb, var(--sidebar) 86%, transparent);
+  backdrop-filter: blur(18px);
+  cursor: default;
+  touch-action: none;
+  user-select: none;
+}
+.desktop-window-title strong {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.desktop-window:not(.active) .desktop-window-title {
+  color: var(--muted);
+}
+.desktop-window-actions {
+  margin-left: auto;
+  display: flex;
+  align-self: stretch;
+}
+.desktop-window-actions button {
+  width: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+}
+.desktop-window-actions button:hover {
+  background: var(--hover);
+}
+.desktop-window-actions .window-close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
+.desktop-window-symbol {
+  font-size: 18px;
+  color: var(--accent);
+}
+.desktop-window-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.desktop-window-content > .content {
+  padding: 16px;
+  max-width: none;
+  margin: 0;
+}
+.desktop-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  background: transparent;
+  border: 0;
+  cursor: nwse-resize;
+  padding: 0;
+  touch-action: none;
+}
+.desktop-window.maximized > .desktop-resize {
+  display: none;
+}
+.desktop-window.window-hidden {
+  display: none;
+}
+.desktop-window .panel {
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+  padding: 14px 0;
+}
+.desktop-window .panel-heading {
+  border: 0;
+  padding-bottom: 10px;
+}
+.desktop-window .panel-heading h2 {
+  font-size: 17px;
+}
+.desktop-window .toolbar {
+  margin: 0 0 12px;
+}
+.desktop-window .service-card {
+  padding: 16px;
+}
+.desktop-window .stat-card {
+  border: 0;
+  border-radius: 0;
+}
+.desktop-window .quiet-note {
+  font-size: 12px;
+}
+.desktop-window .empty-state {
+  min-height: 100px;
+}
+.desktop-window .content > .panel {
+  margin-bottom: 14px;
+}
+.desktop-dock {
+  flex: none;
+  position: relative;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--sidebar) 85%, transparent);
+  backdrop-filter: blur(20px);
+  padding: 4px 10px;
+  gap: 3px;
+}
+.desktop-launchers {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+.desktop-launchers > button {
+  position: relative;
+  background: transparent;
+  border: 0;
+  padding: 8px 13px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 38px;
+  font-size: 12px;
+}
+.desktop-launchers > button.active:after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 18px;
+  right: 18px;
+  height: 3px;
+  background: var(--accent);
+}
+.desktop-launchers > button:hover {
+  background: var(--hover);
+}
+.desktop-open-windows {
+  display: flex;
+  gap: 4px;
+  overflow: auto;
+}
+.desktop-open-windows > button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 6px 12px;
+  font-size: 11px;
+}
+.desktop-open-windows > button.active {
+  border-bottom-color: var(--accent);
+  background: var(--hover);
+}
+.desktop-chooser {
+  display: flex;
+  gap: 16px;
+  padding: 12px;
+  height: 100%;
+  min-height: 260px;
+}
+.desktop-chooser-list {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.desktop-list {
+  overflow: auto;
+  flex: 1;
+  border: 1px solid var(--border);
+}
+.desktop-list > button {
+  display: block;
+  text-align: left;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  background: transparent;
+  font-size: 13px;
+}
+.desktop-list > button.selected {
+  background: var(--accent);
+  color: #fff;
+}
+.desktop-list > button.unavailable:not(.selected) {
+  color: var(--muted);
+}
+.desktop-chooser-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 100px;
+}
+.desktop-simple-form {
+  padding: 24px;
+  max-width: 760px;
+}
+.desktop-simple-form > label {
+  display: block;
+  margin-bottom: 20px;
+}
+.desktop-simple-form > label input {
+  display: block;
+  margin-top: 8px;
+}
+:root[data-platform="windows"] .desktop-shell {
+  --accent: #0078d4;
+  --soft: #d7eaf8;
+}
+:root[data-platform="windows"][data-theme="dark"] .desktop-shell {
+  --accent: #4ca6e8;
+  --soft: #163e5d;
+}
+.desktop-shell :is(button, summary) {
+  position: relative;
+}
+.desktop-shell :is(button, summary):before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(
+    85px circle at var(--reveal-x, 50%) var(--reveal-y, 50%),
+    #ffffff35,
+    transparent 75%
+  );
+}
+.desktop-shell :is(button, summary):hover:before {
+  opacity: 1;
+}
+:root[data-platform="macos"] .desktop-window {
+  border-radius: 9px;
+}
+:root[data-platform="macos"] .desktop-dock {
+  border-radius: 12px 12px 0 0;
+}
+.desktop-shell input,
+.desktop-shell select,
+.desktop-shell textarea {
+  border-radius: 0;
+}
+.desktop-shell .button {
+  border-radius: 0;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .desktop-dropdown,
+  .desktop-dock,
+  .desktop-window-title {
+    backdrop-filter: none;
+    background: var(--surface);
+  }
+}
+@media (forced-colors: active) {
+  .desktop-dropdown,
+  .desktop-dock,
+  .desktop-window-title {
+    backdrop-filter: none;
+    background: Canvas;
+  }
+  .desktop-shell :is(button, summary):before {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .desktop-shell * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+.desktop-menubar summary,.desktop-dropdown>button{display:flex;align-items:center;gap:9px}.desktop-menubar svg{flex:none}.desktop-menu-label{flex:1}.desktop-window-actions button{display:grid;place-items:center}.desktop-shell .button{display:inline-flex;align-items:center;justify-content:center;gap:8px}.desktop-menubar summary{padding:9px 9px}
+/* Solid fallbacks keep older WebKit and reduced-transparency modes legible. */
+.desktop-area{background:var(--bg)}.desktop-window{background:transparent;border-color:var(--border)}.desktop-window-content{background:var(--surface)}.desktop-dropdown,.desktop-dock,.desktop-window-title{background:var(--surface)}.modal-backdrop{z-index:10000}
+@supports(background:color-mix(in srgb,white 85%,transparent)){.desktop-dropdown,.desktop-window-title{background:color-mix(in srgb,var(--surface) 88%,transparent)}.desktop-dock{background:color-mix(in srgb,var(--sidebar) 88%,transparent)}}
+:root[data-platform="macos"] .desktop-window-actions{order:-1;margin-left:0;margin-right:10px;align-items:center;gap:8px}:root[data-platform="macos"] .desktop-window-actions button{width:13px;height:13px;border-radius:50%;background:#f5bd4f}:root[data-platform="macos"] .desktop-window-actions button:nth-child(2){background:#61c554}:root[data-platform="macos"] .desktop-window-actions .window-close{order:-1;background:#ed6a5e}:root[data-platform="macos"] .desktop-window-actions svg{opacity:0;width:10px;height:10px;color:#222}:root[data-platform="macos"] .desktop-window-actions:hover svg{opacity:1}:root[data-platform="macos"] .desktop-window-symbol{display:none}

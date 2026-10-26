@@ -5,7 +5,7 @@ import {
   projectSchema,
   type MonthlyOccupancy,
 } from "../src/model";
-import { monthlyPersons } from "../src/occupancy";
+import { monthlyPersons, setAccountMonthlyPersons } from "../src/occupancy";
 import { charges } from "../src/engine";
 function row(
   period: string,
@@ -24,6 +24,34 @@ function row(
     notes: "",
   };
 }
+test("account card monthly count changes charges without rewriting earlier months or defaults", () => {
+  const original = demoProject();
+  const september = setAccountMonthlyPersons(original, "a1", "2026-09", 3);
+  const october = setAccountMonthlyPersons(september, "a1", "2026-10", 4);
+  assert(projectSchema.safeParse(october).success);
+  assert.equal(monthlyPersons(october, october.accounts[0], "2026-09").persons, 3);
+  assert.equal(monthlyPersons(october, october.accounts[0], "2026-10").persons, 4);
+  assert.equal(charges(october, october.accounts[0], "2026-10").lines.find(l => l.service_id === "waste")?.quantity, "4");
+  assert.equal(october.accounts[0].waste_charge_persons, original.accounts[0].waste_charge_persons);
+  assert.equal(original.monthly_occupancy.length, 0);
+  const empty = setAccountMonthlyPersons(october, "a1", "2026-10", 0);
+  assert.equal(monthlyPersons(empty, empty.accounts[0], "2026-10").persons, 0);
+  october.closed_periods.push("2026-10");
+  assert.throws(() => setAccountMonthlyPersons(october, "a1", "2026-10", 2));
+  assert.throws(() => setAccountMonthlyPersons(original, "a1", "2026-10", 1.5));
+});
+test("account total replaces only that month's apartment detail", () => {
+  const p = demoProject();
+  p.monthly_occupancy = [
+    {...row("2026-09", 0, 3, "2"), id: "old"},
+    {...row("2026-10", 0, 2, "2"), id: "one"},
+    {...row("2026-10", 0, 1, "6"), id: "two"},
+  ];
+  const next = setAccountMonthlyPersons(p, "a1", "2026-10", 4);
+  assert.equal(next.monthly_occupancy.length, 2);
+  assert.deepEqual(next.monthly_occupancy[0], p.monthly_occupancy[0]);
+  assert.equal(monthlyPersons(next, next.accounts[0], "2026-10").persons, 4);
+});
 test("monthly waste count supports cumulative 3 to 7 as four residents", () => {
   const p = demoProject();
   p.monthly_occupancy.push(row(p.settings.period, 3, 7));

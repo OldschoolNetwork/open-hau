@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { translator } from "./i18n";
   import { issueText } from "./validation-language";
   import { projectSchema, uid, type Project, type SharedGroup } from "./model";
   import { sharedDistribution } from "./shared-consumption";
@@ -6,14 +7,14 @@
   export let onapply: (next: Project) => void;
   let draft: SharedGroup | null = null,
     error = "";
-  const tr = (ru: string, ro: string) =>
-    project.settings.language === "ru" ? ru : ro;
+  $: tr = translator(project.settings.language);
   function create() {
     draft = {
       id: uid(),
       name: "",
       shared_meter_id:
         project.meters.find((m) => m.scope === "shared")?.id || "",
+      difference_service_id: "",
       individual_meter_ids: [],
       effective_from: project.settings.period,
       effective_to: null,
@@ -45,12 +46,14 @@
               [...old.individual_meter_ids].sort(),
               old.precision,
               old.allow_negative,
+              old.difference_service_id || "",
             ]) !==
               JSON.stringify([
                 draft.shared_meter_id,
                 [...draft.individual_meter_ids].sort(),
                 draft.precision,
                 draft.allow_negative,
+                draft.difference_service_id || "",
               ]))
         )
           throw Error(
@@ -162,6 +165,10 @@
               >{/each}</select
           ></label
         ><label
+          >{tr("Услуга для начисления расхождений", "Serviciu pentru facturarea diferențelor")}<select bind:value={draft.difference_service_id}>
+            <option value="">{tr("Тариф основной услуги", "Tariful serviciului de bază")}</option>
+            {#each project.services.filter(s => !project.meters.some(m => m.service_id === s.id)) as s}<option value={s.id}>{s.name[project.settings.language]} · {s.unit}</option>{/each}
+          </select></label><label
           >{tr("С месяца", "Din luna")}<input
             required
             type="month"

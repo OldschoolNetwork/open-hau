@@ -1,8 +1,20 @@
 <script lang="ts">
+  import { translator } from "./i18n";
   import { onMount } from "svelte";
+  import DesktopMenu from "./DesktopMenu.svelte";
+  import DesktopWindow from "./DesktopWindow.svelte";
+  import DesktopChooser from "./DesktopChooser.svelte";
+  import {desktopMenus,chooserGroups} from "./desktop-menu";
+  import { ZodError } from "zod";
   import Reports from "./Reports.svelte";
+  import PaymentAllocation from "./PaymentAllocation.svelte";
+  import {previousPaymentMonth,type PaymentShare} from "./payment-allocation";
   import PhysicalMeters from "./PhysicalMeters.svelte";
   import MonthlyResidents from "./MonthlyResidents.svelte";
+  import { monthlyPersons, setAccountMonthlyPersons } from "./occupancy";
+  import { addAverageTariff } from "./tariff-transitions";
+  import TariffDocuments from "./TariffDocuments.svelte";
+  import Treasury from "./Treasury.svelte";
   import SharedMeters from "./SharedMeters.svelte";
   import ReceiptDesigner from "./ReceiptDesigner.svelte";
   import {paymentDeadline} from "./payment-deadlines";
@@ -100,7 +112,53 @@
     { previous: string; current: string; quantity: string }
   > = {};
   let presetName = "";
+  let tariffServiceFilter = "";
+  let tariffEntryMode = "standard", tariffTransitionPeriod = "", tariffFollowingRate = "";
   let loadFailed = false;
+  type WorkspaceView={id:string;page:string;visible:boolean;minimized:boolean;position:{x:number;y:number;width:number;height:number}};
+  let desktopViews:WorkspaceView[]=[],activeDesktop="",desktopArea:HTMLElement;
+  function openDesktop(id:string){
+    const existing=desktopViews.find(v=>v.id===id);
+    if(existing){existing.visible=true;existing.minimized=false;focusDesktop(id);return;}
+    const n=desktopViews.length%6;
+    desktopViews=[...desktopViews,{id,page:id,visible:true,minimized:false,position:{x:16+n*22,y:16+n*22,width:Math.max(620,Math.min(1060,(desktopArea?.clientWidth||window.innerWidth)-50)),height:Math.max(300,Math.min(650,(desktopArea?.clientHeight||window.innerHeight-150)-40))}}];
+    activeDesktop=id;
+  }
+  function focusDesktop(id:string){
+    const view=desktopViews.find(v=>v.id===id);if(!view)return;
+    if(activeDesktop===id&&view.visible&&!view.minimized)return;
+    view.visible=true;view.minimized=false;desktopViews=[...desktopViews.filter(v=>v.id!==id),view];activeDesktop=id;
+    if(pages.some(x=>x.id===id))page=id;
+  }
+  function hideDesktop(id:string,minimize=false){
+    desktopViews=desktopViews.map(v=>v.id===id?{...v,visible:minimize?v.visible:false,minimized:minimize}:v);
+    activeDesktop=[...desktopViews].reverse().find(v=>v.visible&&!v.minimized)?.id||"";
+  }
+  function desktopTitle(id:string,language:"ru"|"ro"){
+    const titles:Record<string,[string,string]>={reports:["Оборотно-сальдовая ведомость","Balanță de verificare"],receipts:["Квитанция","Factură"],tariffs:["Изменение тарифов на услуги","Modificare tarife servicii"],settings:["Общие настройки","Setări generale"]};
+    if(titles[id])return titles[id][language==="ru"?0:1];
+    if(id.startsWith("chooser:")){const group=chooserGroups[id.slice(8)];return t("Выбор объекта: ","Selectare obiect: ")+(group?.[language]||"");}
+    if(id==="period")return t("Смена расчетного периода","Schimbare perioadă de calcul");
+    if(id==="manual")return t("Документация","Documentație");
+    const entry=pages.find(x=>x.id===id);return entry?.[language]||id;
+  }
+  function desktopCommand(action:string){
+    if(action==="about"){modal="about";return;}
+    if(action.startsWith("window:")){
+      const visible=desktopViews.filter(v=>v.visible),index=visible.findIndex(v=>v.id===activeDesktop);
+      if(action==="window:next"||action==="window:previous"){if(visible.length)focusDesktop(visible[(Math.max(index,0)+(action==="window:next"?1:visible.length-1))%visible.length].id);}
+      else if(action==="window:close")hideDesktop(activeDesktop);
+      else if(action==="window:close-all"){desktopViews=desktopViews.map(v=>({...v,visible:false}));activeDesktop="";}
+      else if(action==="window:cascade")desktopViews=desktopViews.map((v,i)=>({...v,position:{...v.position,x:16+(i%8)*26,y:16+(i%8)*26}}));
+      return;
+    }
+    if(pages.some(x=>x.id===action))navigate(action);else openDesktop(action);
+  }
+  function reveal(e:PointerEvent){
+    const element=e.target instanceof Element?e.target.closest<HTMLElement>('button,summary'):null;
+    if(element){const rect=element.getBoundingClientRect();element.style.setProperty('--reveal-x',(e.clientX-rect.left)+'px');element.style.setProperty('--reveal-y',(e.clientY-rect.top)+'px');}
+  }
+
   const pages = [
     { id: "overview", ru: "Обзор", ro: "Prezentare", icon: LayoutDashboard },
     {
@@ -111,18 +169,20 @@
     },
     {
       id: "services",
-      ru: "Услуги и тарифы",
-      ro: "Servicii și tarife",
+      ru: "Услуги",
+      ro: "Servicii",
       icon: Layers3,
     },
+    { id: "tariffs", ru: "Тарифы", ro: "Tarife", icon: ReceiptText },
     { id: "readings", ru: "Показания", ro: "Indexuri", icon: Gauge },
     { id: "payments", ru: "Оплаты", ro: "Plăți", icon: Wallet },
+    { id: "treasury", ru: "Банк и касса", ro: "Bancă și casă", icon: Building2 },
     { id: "reports", ru: "Отчёты", ro: "Rapoarte", icon: ChartNoAxesCombined },
+    { id:"service-reports",ru:"Оборотно-сальдовая ведомость по услугам",ro:"Balanță de verificare pe servicii",icon:ChartNoAxesCombined },
     { id: "receipts", ru: "Квитанции", ro: "Facturi", icon: ReceiptText },
     { id: "settings", ru: "Настройки", ro: "Setări", icon: Settings },
   ];
-  const t = (ru: string, ro: string) =>
-    p.settings.language === "ru" ? ru : ro;
+  $: t = translator(p.settings.language);
   $: period = p.settings.period;
   $: lang = p.settings.language;
   $: closed = p.closed_periods.includes(period);
@@ -172,7 +232,9 @@
     }catch(e){fail(e);}
   }
   function fail(e: unknown) {
-    error = validationText(e instanceof Error ? e.message : String(e),p.settings.language);
+    error = e instanceof ZodError
+      ? e.issues.slice(0, 5).map(i => issueText(i, p.settings.language)).join("; ")
+      : validationText(e instanceof Error ? e.message : String(e),p.settings.language);
   }
   function valid(candidate: unknown): Project {
     const parsed = projectSchema.safeParse(candidate);
@@ -201,7 +263,7 @@
     }
     if (Object.keys(readingEdits).length) {
       error = t(
-        "Сначала нажми «Применить показания».",
+        "Сначала примените введённые показания.",
         "Aplicați mai întâi indexurile introduse.",
       );
       return;
@@ -233,10 +295,18 @@
   }
   function navigate(id: string) {
     page = id;
+    openDesktop(id);
     query = "";
     error = "";
   }
   function openEditor(kind: string, item?: unknown) {
+    if (kind === "tariff" && item && p.tariff_documents.some(d => d.state === "applied" && d.rows.some(r => r.tariff_id === (item as {id: string}).id))) {
+      error = t("Тариф введён применённым документом. Документ доступен для просмотра; новый тариф задаётся новой записью.", "Tariful provine dintr-un document aplicat. Documentul poate fi vizualizat; un tarif nou se introduce printr-o înregistrare nouă.");
+      return;
+    }
+    tariffEntryMode = "standard";
+    tariffTransitionPeriod = period;
+    tariffFollowingRate = "";
     modal = kind;
     error = "";
     if (kind === "account")
@@ -301,18 +371,50 @@
         },
       );
     else if (kind === "organization") draft = structuredClone(p.organization);
-    if (kind === "account") draft.apartmentsText = draft.apartments.join(", ");
+    if (kind === "account") {
+      draft.apartmentsText = draft.apartments.join(", ");
+      draft.wastePersonsPeriod = period;
+      draft.wastePersonsMonth = monthlyPersons(p, draft, period).persons;
+      draft.wastePersonsOriginal = draft.wastePersonsMonth;
+    }
+    if(kind==="payment"){
+      draft.allocationThrough=draft.allocation_basis||previousPaymentMonth(draft.payment_date);
+      draft.balancingServiceId=draft.allocation_balancing_service_id||p.settings.payment_balancing_service_id||"";
+      draft.allocationManual=draft.allocation_manual_amount!==undefined;
+      draft.allocationManualAmount=draft.allocation_manual_amount||"0.00";
+      draft.allocationCalculated=false;
+      draft.serviceShares=structuredClone(p.service_accounting.payments.filter(r=>r.payment_id===draft.id).map(({service_id,amount})=>({service_id,amount})));
+      draft.allocationSignature=draft.serviceShares.length?JSON.stringify([draft.account_id,draft.payment_date,draft.amount,draft.allocationThrough,draft.balancingServiceId]):"";
+    }
   }
   function saveEditor() {
     try {
-      const next = structuredClone(p);
+      if (modal === "tariff" && tariffEntryMode === "average") {
+        setProject(addAverageTariff(p, draft.service_id, tariffTransitionPeriod, draft.rate, tariffFollowingRate));
+        modal = "";
+        return;
+      }
+      let next = structuredClone(p);
       let item = structuredClone(draft);
+      if(modal==="payment"){
+        const signature=JSON.stringify([draft.account_id,draft.payment_date,draft.amount,draft.allocationThrough,draft.balancingServiceId]);
+        const total=(draft.serviceShares as PaymentShare[]).reduce((s,r)=>s.plus(r.amount),D(0));
+        if(draft.allocationSignature!==signature||!total.eq(item.amount))throw Error(t("Распределите оплату по услугам; итог должен совпадать с суммой платежа.","Repartizați plata pe servicii; totalul trebuie să coincidă cu suma plății."));
+        next.service_accounting.payments=next.service_accounting.payments.filter(r=>r.payment_id!==item.id);
+        next.service_accounting.payments.push(...(draft.serviceShares as PaymentShare[]).map(r=>({...r,payment_id:item.id})));
+        if(draft.balancingServiceId)next.settings.payment_balancing_service_id=draft.balancingServiceId;
+        if(draft.allocationCalculated){item.allocation_basis=draft.allocationThrough;item.allocation_balancing_service_id=draft.balancingServiceId;if(draft.allocationManual)item.allocation_manual_amount=draft.allocationManualAmount;else delete item.allocation_manual_amount;}
+        for(const key of ["allocationThrough","balancingServiceId","serviceShares","allocationSignature","allocationManual","allocationManualAmount","allocationCalculated"])delete item[key];
+      }
       if (modal === "account") {
         item.apartments = item.apartmentsText
           .split(",")
           .map((x: string) => x.trim())
           .filter(Boolean);
         delete item.apartmentsText;
+        delete item.wastePersonsMonth;
+        delete item.wastePersonsOriginal;
+        delete item.wastePersonsPeriod;
         if (next.snapshots.some((x) => x.account_id === item.id)) {
           const old = next.accounts.find((x) => x.id === item.id)!;
           if (
@@ -371,6 +473,8 @@
         if (idx < 0) items.push(item);
         else items[idx] = item;
       }
+      if (modal === "account" && draft.wastePersonsMonth !== draft.wastePersonsOriginal)
+        next = setAccountMonthlyPersons(next, item.id, draft.wastePersonsPeriod, draft.wastePersonsMonth);
       setProject(next);
       modal = "";
     } catch (e) {
@@ -397,6 +501,7 @@
         )
           throw Error(t("Сначала откройте закрытый период","Redeschideți mai întâi perioada închisă"));
         next.payments = next.payments.filter((x) => x.id !== id);
+        next.service_accounting.payments=next.service_accounting.payments.filter(r=>r.payment_id!==id);
       } else if (kind === "adjustments") {
         const row = next.adjustments.find((x) => x.id === id)!;
         if (next.closed_periods.includes(row.period))
@@ -822,135 +927,23 @@
 </script>
 
 <svelte:head><title>OpenHaU · {period}</title></svelte:head>
-<div class="app-shell">
-  <aside class="sidebar no-print">
-    <a
-      class="brand"
-      href="#overview"
-      onclick={() => navigate("overview")}
-      aria-label="OpenHaU"
-      ><img src="/brand/logo-short.svg" alt="" /><span>OpenHaU</span></a
-    >
-    <div class="workspace">
-      <div class="org-symbol"><Building2 size={18} /></div>
-      <div>
-        <strong>{p.organization.name}</strong><small
-          >{t("Локальная база · MDL", "Bază locală · MDL")}</small
-        >
-      </div>
-    </div>
-    <div class="nav-label">{t("РАБОЧЕЕ ПРОСТРАНСТВО", "SPAȚIU DE LUCRU")}</div>
-    <nav>
-      {#each pages as item}<button
-          class:active={page === item.id}
-          onclick={() => navigate(item.id)}
-          ><item.icon size={19} /><span
-            >{lang === "ru" ? item.ru : item.ro}</span
-          >{#if item.id === "accounts"}<small>{p.accounts.length}</small
-            >{/if}</button
-        >{/each}
-    </nav>
-    <div class="sidebar-bottom">
-      <div class="local-pill">
-        <span></span>{t("Работает без интернета", "Funcționează offline")}
-      </div>
-      <button class="about-button" onclick={() => (modal = "about")}
-        ><img src="/brand/icon.png" alt="" /><span
-          >OpenHaU <small>26.2 Development</small></span
-        ><Info size={16} /></button
-      >
-    </div>
-  </aside>
-  <main class="no-print">
-    <header class="topbar">
-      <div class="breadcrumb">
-        OpenHaU <ChevronRight size={14} /><span
-          >{lang === "ru" ? heading?.ru : heading?.ro}</span
-        >
-      </div>
-      <div class="top-actions">
-        <span class="save-state" class:unsaved={dirty}
-          ><span></span>{dirty
-            ? t("Есть изменения", "Modificări nesalvate")
-            : t("Все изменения сохранены", "Toate modificările salvate")}</span
-        ><select
-          class="language-select"
-          bind:value={p.settings.language}
-          onchange={changed}
-          aria-label="Language"
-          ><option value="ru">RU</option><option value="ro">RO</option></select
-        ><button class="button small" onclick={()=>save()} disabled={busy || loading}
-          ><Save size={15} />{t("Сохранить", "Salvează")}</button
-        >
-      </div>
-    </header>
+<svelte:window onpointermove={reveal}/>
+{#snippet workspaceContent(page:string)}
     <section class="content">
-      {#if error}<div class="alert error" role="alert">
+      {#if error && activeDesktop===page}<div class="alert error" role="alert">
           <TriangleAlert size={18} /><span>{error}</span><button
             class="icon-button"
             onclick={() => (error = "")}
             aria-label="Close"><X size={16} /></button
           >
         </div>{/if}
-      {#if notice}<div class="alert success" role="status">
+      {#if notice && activeDesktop===page}<div class="alert success" role="status">
           <Check size={18} /><span>{notice}</span><button
             class="icon-button"
             onclick={() => (notice = "")}
             aria-label="Close"><X size={16} /></button
           >
         </div>{/if}
-      <div class="page-heading">
-        <div>
-          <div class="eyebrow">HOUSE & UTILITIES</div>
-          <h1>{lang === "ru" ? heading?.ru : heading?.ro}</h1>
-          <p>
-            {page === "overview"
-              ? t(
-                  "Всё, что нужно для спокойного расчётного месяца.",
-                  "Tot ce este necesar pentru o lună de calcul bine organizată.",
-                )
-              : page === "accounts"
-                ? t(
-                    "Жители, помещения и персональные условия начислений.",
-                    "Locatari, locuințe și condiții individuale de calcul.",
-                  )
-                : page === "services"
-                  ? t(
-                      "Твои услуги, названия и история тарифов.",
-                      "Serviciile tale, denumiri și istoricul tarifelor.",
-                    )
-                  : page === "readings"
-                    ? t(
-                        "Точные объёмы. Прозрачные начисления.",
-                        "Volume exacte. Calcule transparente.",
-                      )
-                    : page === "payments"
-                      ? t(
-                          "Оплаты и корректировки с понятной историей.",
-                          "Plăți și ajustări cu un istoric clar.",
-                        )
-                      : page === "reports"
-                        ? t("Остатки и обороты за выбранный период.", "Solduri și rulaje pentru perioada selectată.")
-                      : page === "receipts"
-                        ? t(
-                            "Квитанции с настраиваемым оформлением и языком.",
-                            "Facturi cu aspect și limbă configurabile.",
-                          )
-                        : t(
-                            "Параметры организации, расчётов и оформления.",
-                            "Setările asociației, calculelor și aspectului.",
-                          )}
-          </p>
-        </div>
-        <div class="period-picker">
-          <small>{t("РАСЧЁТНЫЙ ПЕРИОД", "PERIOADA DE CALCUL")}</small><input
-            type="month"
-            value={period}
-            onchange={(e) => changePeriod(e.currentTarget.value)}
-            aria-label={t("Расчётный период", "Perioada de calcul")}
-          />
-        </div>
-      </div>
       {#if loading}<div class="empty-state">
           {t("Открываем базу…", "Deschidem baza…")}
         </div>
@@ -960,8 +953,8 @@
           <h3>{t("Не удалось прочитать базу", "Baza nu a putut fi citită")}</h3>
           <p>
             {t(
-              "Данные не перезаписаны. Сохрани исходный файл и проверь резервные копии.",
-              "Datele nu au fost suprascrise. Păstrează fișierul original și verifică copiile de rezervă.",
+              "Данные не перезаписаны. Сохраните исходный файл и проверьте резервные копии.",
+              "Datele nu au fost suprascrise. Păstrați fișierul original și verificați copiile de rezervă.",
             )}
           </p>
         </div>
@@ -1066,7 +1059,7 @@
                 <strong
                   >{t(
                     "Проверить начисления и оплаты",
-                    "Verifică sumele și plățile",
+                    "Verificați sumele și plățile",
                   )}</strong
                 >
                 <p>
@@ -1211,7 +1204,7 @@
                   ><th>{t("Лицевой счёт", "Cont personal")}</th><th
                     >{t("Плательщик и адрес", "Plătitor și adresă")}</th
                   ><th class="num">m²</th><th class="num"
-                    >{t("Жители / мусор", "Locatari / deșeuri")}</th
+                    >{t("Зарегистрировано / мусор", "Înregistrați / deșeuri")} · {period}</th
                   ><th>{t("Статус", "Stare")}</th><th></th></tr
                 ></thead
               ><tbody
@@ -1221,7 +1214,7 @@
                         >{a.address} · {a.apartments.join(", ")}</small
                       ></td
                     ><td class="num">{a.total_area_m2}</td><td class="num"
-                      >{a.registered_residents} / {a.waste_charge_persons}</td
+                      >{a.registered_residents} / {monthlyPersons(p, a, period).persons ?? "—"}</td
                     ><td
                       ><span class="badge"
                         >{a.active
@@ -1251,8 +1244,8 @@
         <div class="toolbar">
           <p class="muted">
             {t(
-              "Тарифы задаются с первого числа месяца.",
-              "Tarifele se aplică din prima zi a lunii.",
+              "У каждой услуги своя история тарифов и подключённые приборы учёта.",
+              "Fiecare serviciu are propriul istoric al tarifelor și contoare asociate.",
             )}
           </p>
           <button class="button" onclick={() => openEditor("service")}
@@ -1284,8 +1277,18 @@
                   >{s.active ? "●" : "○"}</span
                 >
               </div>
+              <button class="button secondary small" onclick={() => { tariffServiceFilter = s.id; navigate("tariffs"); }}>
+                {t("Тарифы услуги", "Tarifele serviciului")}
+              </button>
+              <p class="quiet-note">{t("Приборов учёта", "Contoare")}: {p.meters.filter(m => m.service_id === s.id).length}</p>
             </article>{/each}
         </div>
+      {:else if page === "tariffs"}
+        <TariffDocuments project={p} onapply={setProject}/>
+        <label>{t("Услуга", "Serviciu")}<select bind:value={tariffServiceFilter}>
+          <option value="">{t("Все услуги", "Toate serviciile")}</option>
+          {#each p.services as s}<option value={s.id}>{s.name[lang]} · {unitLabel(s.unit, lang)}</option>{/each}
+        </select></label>
         <article class="panel">
           <div class="panel-heading">
             <div>
@@ -1297,7 +1300,7 @@
                 )}
               </p>
             </div>
-            <button class="button small" onclick={() => openEditor("tariff")}
+            <button class="button small" onclick={() => { openEditor("tariff"); if (tariffServiceFilter) draft.service_id = tariffServiceFilter; }}
               ><Plus size={15} />{t("Добавить тариф", "Adaugă tarif")}</button
             >
           </div>
@@ -1311,7 +1314,7 @@
                   ></th></tr
                 ></thead
               ><tbody
-                >{#each [...p.tariffs].sort( (a, b) => b.effective_from.localeCompare(a.effective_from) ) as tariff}<tr
+                >{#each p.tariffs.filter(x => !tariffServiceFilter || x.service_id === tariffServiceFilter).sort( (a, b) => b.effective_from.localeCompare(a.effective_from) ) as tariff}<tr
                     ><td
                       >{p.services.find((s) => s.id === tariff.service_id)
                         ?.name[lang]}</td
@@ -1422,7 +1425,7 @@
                           placeholder={s.calculation_type === "fixed"
                             ? s.default_quantity
                             : s.calculation_type === "person"
-                              ? String(a.waste_charge_persons)
+                              ? String(monthlyPersons(p, a, period).persons ?? "—")
                               : s.calculation_type === "area"
                                 ? a.total_area_m2
                                 : "—"}
@@ -1496,8 +1499,8 @@
                 <h3>{t("Оплат пока нет", "Încă nu sunt plăți")}</h3>
                 <p>
                   {t(
-                    "Добавь первую — она сразу появится в расчётах.",
-                    "Adaugă prima plată — va apărea imediat în calcule.",
+                    "Внесённые оплаты учитываются в расчётах и ведомостях.",
+                    "Plățile înregistrate sunt incluse în calcule și rapoarte.",
                   )}
                 </p>
               </div>{/if}
@@ -1532,8 +1535,12 @@
             </table>
           </div>
         </article>
+      {:else if page === "treasury"}
+        <Treasury project={p} onapply={setProject}/>
       {:else if page === "reports"}
         <Reports project={p} />
+      {:else if page === "service-reports"}
+        <Reports project={p} mode="service"/>
       {:else if page === "receipts"}
         <div class="receipts-layout">
           <aside class="receipt-controls panel">
@@ -1679,7 +1686,7 @@
                   a,
                   period,
                 )}{/each}{#if !receiptAccounts.length}<div class="empty-state">
-                  {t("Выбери счета слева.", "Selectează conturile din stânga.")}
+                  {t("Выберите счета слева.", "Selectați conturile din stânga.")}
                 </div>{/if}
             </div>
           </div>
@@ -1862,16 +1869,30 @@
           </article>
         </div>
       {/if}
-      <footer class="app-footer">
-        <span>OpenHaU · 26.2 Development</span><span
-          >{t(
-            "Сделано с заботой о людях и их времени.",
-            "Creat cu grijă pentru oameni și timpul lor.",
-          )}</span
-        >
-      </footer>
+
     </section>
+{/snippet}
+<div class="desktop-shell no-print">
+  <header class="desktop-chrome">
+    <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><div class="desktop-state">{dirty?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
+    <DesktopMenu menus={desktopMenus} language={lang} oncommand={desktopCommand}/>
+    <div class="desktop-commandbar"><button class="desktop-save" onclick={()=>save()} disabled={busy||loading}><Save size={17}/>{t("Сохранить","Salvare")}</button><label>{t("Период","Perioadă")}<input type="month" value={period} onchange={e=>changePeriod(e.currentTarget.value)}/></label><label class="desktop-language">{t("Язык","Limbă")}<select bind:value={p.settings.language} onchange={changed}><option value="ru">RU</option><option value="ro">RO</option></select></label></div>
+  </header>
+  <main class="desktop-area" bind:this={desktopArea}>
+    {#if !desktopViews.some(v=>v.visible&&!v.minimized)}<div class="desktop-empty"><img src="/brand/logo-short.svg" alt="OpenHaU"/></div>{/if}
+    {#each desktopViews as view (view.id)}
+      <DesktopWindow id={view.id} title={desktopTitle(view.id,lang)} language={lang} active={activeDesktop===view.id} hidden={!view.visible||view.minimized} index={desktopViews.indexOf(view)} bind:position={view.position} onfocus={()=>focusDesktop(view.id)} onclose={()=>hideDesktop(view.id)} onminimize={()=>hideDesktop(view.id,true)}>
+        {#if view.id.startsWith("chooser:")}<DesktopChooser group={view.id.slice(8)} language={lang} oncommand={action=>{hideDesktop(view.id);desktopCommand(action);}} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id==="period"}<div class="desktop-simple-form"><label>{t("Расчетный период","Perioada de calcul")}<input type="month" value={period} onchange={e=>changePeriod(e.currentTarget.value)}/></label><button class="button secondary" onclick={()=>hideDesktop(view.id)}>{t("Закрыть","Închidere")}</button></div>
+        {:else if view.id==="manual"}<div class="desktop-simple-form"><h2>{t("Работа с базой","Lucrul cu baza")}</h2><p>{t("Справочники и документы открываются через верхнее меню. Открытые окна можно перемещать, сворачивать и переключать через нижнюю панель или меню «Окно».","Cataloagele și documentele se deschid din meniul de sus. Ferestrele pot fi mutate, minimizate și selectate din bara de jos sau meniul «Fereastră».")}</p><p>{t("После применения изменений используйте «Сохранить». Резервные копии, импорт и экспорт доступны в общих настройках.","După aplicarea modificărilor utilizați «Salvare». Copiile de siguranță, importul și exportul sunt disponibile în setările generale.")}</p></div>
+        {:else}{@render workspaceContent(view.page)}{/if}
+      </DesktopWindow>
+    {/each}
   </main>
+  <footer class="desktop-dock" aria-label={t("Панель окон","Bara ferestrelor")}>
+    <div class="desktop-launchers">{#each pages.filter(item=>["accounts","services","tariffs","readings","receipts","reports","treasury","payments"].includes(item.id)) as item}<button title={item[lang]} class:active={activeDesktop===item.id} onclick={()=>navigate(item.id)}><item.icon size={21}/><span>{item[lang]}</span></button>{/each}</div>
+    <div class="desktop-open-windows">{#each desktopViews.filter(v=>v.visible) as view}<button class:active={activeDesktop===view.id&&!view.minimized} onclick={()=>focusDesktop(view.id)}>{desktopTitle(view.id,lang)}</button>{/each}</div>
+  </footer>
 </div>
 <div class="print-only">
   {#each receiptAccounts as a}{@html receipt(p, a, period)}{/each}
@@ -1881,7 +1902,7 @@
   <div class="modal-backdrop no-print" role="presentation">
     <div
       class="modal"
-      class:wide={modal === "json" || modal === "import"}
+      class:wide={modal === "json" || modal === "import" || modal === "payment"}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-heading"
@@ -1889,7 +1910,6 @@
     >
       <header>
         <div>
-          <div class="eyebrow">OPENHAU</div>
           <h2 id="modal-heading">
             {modal === "account"
               ? t("Лицевой счёт", "Cont personal")
@@ -1961,13 +1981,19 @@
               >{t(
                 "Людей для платы за мусор",
                 "Persoane pentru taxa de deșeuri",
-              )}<input
+              )} · {draft.wastePersonsPeriod}<input
                 type="number"
                 min="0"
-                bind:value={draft.waste_charge_persons}
+                step="1"
+                disabled={p.closed_periods.includes(draft.wastePersonsPeriod)}
+                bind:value={draft.wastePersonsMonth}
               /></label
             >
           </div>
+          <p class="quiet-note">{t(
+            "Количество для мусора сохраняется за указанный месяц. Изменение общего количества заменяет поквартирную разбивку только за этот месяц. Предыдущие месяцы сохраняются.",
+            "Numărul pentru deșeuri se salvează pentru luna indicată. Modificarea totalului înlocuiește detaliile pe apartamente doar pentru această lună. Lunile precedente se păstrează.",
+          )}</p>
           <label
             >{t(
               "Начальный остаток, MDL (минус = переплата)",
@@ -2054,27 +2080,49 @@
             >{t("Примечание", "Notă")}<textarea bind:value={draft.notes}
             ></textarea></label
           >
+          <h3>{t("Приборы учёта услуги", "Contoarele serviciului")}</h3>
+          <p class="quiet-note">{t("Подключения и показания редактируются в разделе «Показания». Здесь показаны также отключённые приборы и история дат подключения.", "Conexiunile și indexurile se editează în secțiunea «Indexuri». Sunt afișate și contoarele deconectate, cu datele de instalare și demontare.")}</p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>{t("Прибор / номер", "Contor / număr")}</th><th>{t("Лицевой счёт", "Cont personal")}</th><th>{t("Тип", "Tip")}</th><th>{t("Состояние", "Stare")}</th><th>{t("Установка / снятие", "Instalare / demontare")}</th></tr></thead>
+            <tbody>{#each p.meters.filter(m => m.service_id === draft.id) as m}
+              <tr><td>{m.label}<small>{m.serial_number || "—"} · {unitLabel(m.unit, lang)}</small></td><td>{p.accounts.find(a => a.id === m.account_id)?.number || "—"}</td><td>{m.scope === "shared" ? t("Общий", "Comun") : t("Индивидуальный", "Individual")}</td><td>{m.retired_on ? t("Снят", "Demontat") : m.active ? t("Активен", "Activ") : t("Отключён", "Deconectat")}</td><td>{m.installed_on || "—"} / {m.retired_on || "—"}</td></tr>
+            {:else}<tr><td colspan="5">{t("Приборы учёта не добавлены.", "Nu au fost adăugate contoare.")}</td></tr>{/each}</tbody>
+          </table></div>
+          <h3>{t("Тарифы услуги", "Tarifele serviciului")}</h3>
+          <div class="table-wrap"><table><thead><tr><th>{t("Действует с", "Valabil din")}</th><th>{t("Тариф, MDL", "Tarif, MDL")} / {unitLabel(draft.unit, lang)}</th></tr></thead><tbody>
+            {#each p.tariffs.filter(x => x.service_id === draft.id).sort((a,b) => b.effective_from.localeCompare(a.effective_from)) as rate}<tr><td>{rate.effective_from}</td><td>{rate.rate}</td></tr>{:else}<tr><td colspan="2">{t("Тариф не задан.", "Tariful nu este stabilit.")}</td></tr>{/each}
+          </tbody></table></div>
         {:else if modal === "tariff"}
+          {#if !p.tariffs.some(x => x.id === draft.id)}
+            <label>{t("Способ ввода", "Mod de introducere")}<select bind:value={tariffEntryMode}>
+              <option value="standard">{t("Обычный тариф", "Tarif obișnuit")}</option>
+              <option value="average">{t("Средняя цена за месяц и новый тариф", "Preț mediu lunar și tarif nou")}</option>
+            </select></label>
+          {/if}
           <label
             >{t("Услуга", "Serviciu")}<select bind:value={draft.service_id}
               >{#each p.services as s}<option value={s.id}
                   >{s.name[lang]}</option
                 >{/each}</select
             ></label
-          ><label
+          >{#if tariffEntryMode === "average"}<label>{t("Переходный месяц", "Luna de tranziție")}<input type="month" bind:value={tariffTransitionPeriod}/></label>{:else}<label
             >{t(
               "Действует с первого дня месяца",
               "Valabil din prima zi a lunii",
             )}<input type="date" bind:value={draft.effective_from} /></label
-          ><label
-            >{t("Тариф, MDL", "Tarif, MDL")}<input
+          >{/if}<label
+            >{tariffEntryMode === "average" ? t("Средняя цена за переходный месяц, MDL", "Preț mediu pentru luna de tranziție, MDL") : t("Тариф, MDL", "Tarif, MDL")}<input
               bind:value={draft.rate}
             /></label
           >
+          {#if tariffEntryMode === "average"}
+            <label>{t("Новый тариф с первого числа следующего месяца, MDL", "Tarif nou din prima zi a lunii următoare, MDL")}<input bind:value={tariffFollowingRate}/></label>
+            <p class="quiet-note">{t("Среднюю цену вводит бухгалтер. Будут сохранены две записи истории тарифов; существующие записи не перезаписываются.", "Prețul mediu este introdus de contabil. Se salvează două înregistrări în istoricul tarifelor; cele existente nu se suprascriu.")}</p>
+          {/if}
           <p class="quiet-note">
             {t(
-              "Для нового тарифа добавляй новую запись с датой, чтобы сохранить историю.",
-              "Pentru un tarif nou adaugă o înregistrare cu dată, pentru a păstra istoricul.",
+              "Для нового тарифа добавьте новую запись с датой, чтобы сохранить историю.",
+              "Pentru un tarif nou adăugați o înregistrare cu dată, pentru a păstra istoricul.",
             )}
           </p>
         {:else if modal === "payment" || modal === "adjustment"}
@@ -2110,6 +2158,7 @@
             >{t("Примечание / причина", "Notă / motiv")}<textarea
               bind:value={draft.note}></textarea></label
           >
+          {#if modal==="payment"}<PaymentAllocation project={p} accountId={draft.account_id} date={draft.payment_date} paymentId={draft.id} amount={draft.amount} bind:through={draft.allocationThrough} bind:balancingServiceId={draft.balancingServiceId} bind:shares={draft.serviceShares} bind:signature={draft.allocationSignature} bind:manual={draft.allocationManual} bind:manualAmount={draft.allocationManualAmount} bind:calculated={draft.allocationCalculated}/>{/if}
         {:else if modal === "organization"}
           <label
             >{t("Название организации", "Denumirea organizației")}<input
@@ -2164,8 +2213,8 @@
           <p><strong>{imported.organization.name}</strong></p>
           <p class="quiet-note">
             {t(
-              "Одинаковое количество строк не означает одинаковое содержимое. Проверь полный JSON до применения.",
-              "Același număr de rânduri nu înseamnă același conținut. Verifică JSON-ul complet înainte de aplicare.",
+              "Одинаковое количество строк не означает одинаковое содержимое. Проверьте полный JSON до применения.",
+              "Același număr de rânduri nu înseamnă același conținut. Verificați JSON-ul complet înainte de aplicare.",
             )}
           </p>
           <button
@@ -2185,14 +2234,14 @@
             <p>House & Utilities · 26.2 Development</p>
             <p>
               {t(
-                "Локальная бухгалтерия для небольших ассоциаций жильцов. Сделано для бабушки, с вниманием к деталям.",
-                "Contabilitate locală pentru asociații mici de locatari. Creat pentru bunica, cu atenție la detalii.",
+                "Учёт коммунальных услуг для ассоциаций жильцов.",
+                "Evidența serviciilor comunale pentru asociații de locatari.",
               )}
             </p>
             <p class="quiet-note">
               {t(
-                "Предварительная версия: проверяй расчёты параллельно с рабочей системой.",
-                "Versiune preliminară: verifică sumele în paralel cu sistemul curent.",
+                "Предварительная версия. Рекомендуется сверять расчёты с действующей системой учёта.",
+                "Versiune preliminară. Se recomandă verificarea calculelor în paralel cu sistemul de evidență utilizat.",
               )}
             </p>
             <a
@@ -2249,7 +2298,7 @@
             error = "";
           }}>{t("Закрыть", "Închide")}</button
         >{#if modal === "json"}<button class="button" onclick={applyJSON}
-            >{t("Проверить изменения", "Verifică modificările")}</button
+            >{t("Проверить изменения", "Verificați modificările")}</button
           >{:else if modal === "import"}<button
             class="button"
             onclick={applyImport}

@@ -1,5 +1,11 @@
 # Monthly residents and waste charges
 
+The account card's waste-person field edits the total for the selected billing
+month. The calculation uses that monthly value. Previous months and the legacy
+default remain unchanged. Closed months cannot be edited. Changing this total
+replaces any apartment-level entries for the same account and month; leave it
+unchanged to retain apartment details or cumulative entry.
+
 The reading workspace supports monthly occupancy for a whole account or for each
 of its apartments. Do not mix account totals and apartment details in one month.
 When apartment details are used, every apartment must be covered; zero is a valid

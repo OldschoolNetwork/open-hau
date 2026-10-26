@@ -30,3 +30,12 @@ requires review rather than silently adding the same difference again.
 Closed charge snapshots retain their financial amounts. Changing a group's
 connections across closed history requires a new dated configuration; overlapping
 groups cannot reuse the same physical meters.
+
+A group may select a separate billing service for its difference. Its dated tariff
+is independent of the base water/electricity tariff; matching prices are not
+assumed. This service must have matching volume units and no physical meters.
+The group assigns it to linked consumers without requiring a second account
+service toggle. If it is also listed on the account, it is not billed twice.
+Missing tariffs and manual-quantity conflicts are reported instead of silently
+using the base price. An empty selector retains the original base-tariff behavior.
+Changing the billing service across closed history requires a new dated group.

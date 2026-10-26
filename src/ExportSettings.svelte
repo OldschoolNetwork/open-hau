@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { translator } from "./i18n";
   import { onMount } from "svelte";
   import type { Project } from "./model";
   import {
@@ -12,8 +13,7 @@
   } from "./storage";
   export let project: Project;
   export let unsaved = false;
-  const tr = (ru: string, ro: string) =>
-    project.settings.language === "ru" ? ru : ro;
+  $: tr = translator(project.settings.language);
   let config: ReportExportSettings = {
       directory: null,
       trigger: "close",

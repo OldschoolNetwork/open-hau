@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
 import type { Project, PhysicalMeter } from "./model";
+import { canonicalUnit } from "./units";
 
 export type MeterDisplay = {
   meter_id: string;
@@ -16,10 +17,6 @@ export type MeterDisplay = {
   warning: "missing" | "decreasing" | "unit" | null;
 };
 
-function canonicalUnit(unit: string) {
-  const value = unit.trim().toLowerCase().replaceAll(" ", "");
-  return ["m3", "m³", "m^3", "м3", "м³"].includes(value) ? "m3" : value;
-}
 
 export function physicalReadings(
   p: Project,

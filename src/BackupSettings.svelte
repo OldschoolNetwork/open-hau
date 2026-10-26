@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { translator } from "./i18n";
   import { onMount } from "svelte";
   import {
     native,
@@ -10,7 +11,7 @@
   } from "./storage";
   export let language: "ru" | "ro";
   export let unsaved = false;
-  const tr = (ru: string, ro: string) => (language === "ru" ? ru : ro);
+  $: tr = translator(language);
   let directory: string | null = null,
     error = "",
     message = "",

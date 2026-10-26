@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { translator } from "./i18n";
   import { defaultCustomReceipt, type Project } from "./model";
   export let project: Project;
   export let onapply: (next: Project) => void;
@@ -6,8 +7,7 @@
     ...defaultCustomReceipt,
   };
   $: design = { ...defaultCustomReceipt, ...project.settings.custom_receipt };
-  const tr = (ru: string, ro: string) =>
-    project.settings.language === "ru" ? ru : ro;
+  $: tr = translator(project.settings.language);
   function apply() {
     onapply({
       ...project,

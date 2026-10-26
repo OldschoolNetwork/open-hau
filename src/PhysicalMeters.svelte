@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { translator } from "./i18n";
   import { issueText } from "./validation-language";
   import {
     projectSchema,
@@ -13,8 +14,7 @@
   let meter: PhysicalMeter | null = null,
     reading: PhysicalMeterValue | null = null,
     error = "";
-  const tr = (ru: string, ro: string) =>
-    project.settings.language === "ru" ? ru : ro;
+  $: tr = translator(project.settings.language);
   function newMeter() {
     meter = {
       id: uid(),

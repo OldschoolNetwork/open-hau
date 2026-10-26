@@ -27,6 +27,19 @@ monthly exceptions, and due-date overrides. Receipt settings include additional
 designs, custom appearance controls and English labels. English names are optional.
 The version 2 machine-readable schema describes normalized exported documents.
 
+`tariff_documents` defaults to an empty array when absent. It stores document
+numbers, dates, comments, draft/applied state and service-rate rows. Applied rows
+reference entries in `tariffs`; relational validation checks that they match.
+`shared_groups[].difference_service_id` is optional and selects an independent
+billing service for allocated differences; an omitted or empty value retains
+base-service billing.
+
+`treasury` defaults to empty wallet, fund and transaction arrays with no ledger
+lock. It stores confirmed cash/bank opening balances, earmarked funds and dated
+income/expense/transfers. Resident-payment links are explicit and their exact sum
+is validated; the same payment cannot belong to two income entries. Treasury
+records do not replace or automatically change resident financial records.
+
 `*.openhau.json` is indented UTF-8 JSON. The machine-readable schema is
 `openhau.schema.json` for version 1 and `openhau-v2.schema.json` for version 2;
 additional relational checks are implemented in
@@ -99,6 +112,17 @@ formulas are escaped. Import account numbers as text to preserve leading zeros.
 CSV is not a full backup.
 
 ## Legacy conversion
+
+Version 2 also supports `service_accounting`: `opening` rows identify an account,
+service and signed amount; `payments` rows identify a payment, service and signed
+amount; `adjustments` rows identify an account, month, service and signed amount.
+Missing sections default to empty arrays. Unclassified remainders stay visible.
+Payment shares are unique per payment/service; their net cannot exceed the receipt
+or be negative. The payment editor requires an exact total for newly saved payments.
+Optional payment fields `allocation_basis`, `allocation_balancing_service_id` and
+`allocation_manual_amount` retain the basis of newly calculated splits. The optional
+setting `payment_balancing_service_id` remembers the chosen maintenance service.
+See [service accounting](service-accounting.md) for calculation and export behavior.
 
 An arbitrary SDF cannot be imported merely by renaming it. SQL Server Compact
 describes a storage format, not a common accounting schema. A converter must

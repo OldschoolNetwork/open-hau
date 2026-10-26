@@ -28,7 +28,7 @@ export function accountBalanceReport(p: Project, from: string, to: string) {
   const rows: AccountReportRow[] = p.accounts
     .filter((a) => a.opening_period <= to)
     .map((a) => {
-      const opening = statement(p, a, from).opening;
+      const opening = from < a.opening_period ? money(a.opening_balance,p) : statement(p, a, from).opening;
       let charges = D(0),
         adjustments = D(0),
         paid = D(0);

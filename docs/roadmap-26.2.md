@@ -49,6 +49,14 @@ that matching screens is sufficient. Areas identified for analysis include:
 - Historical charge preservation, reconciliation, closing and correction workflows.
 - Receipt configuration and the required reporting suite.
 
+Account-card coverage includes settlement, street, building, apartment, floor,
+total and living area, account opening/closure dates, and payer history.
+Resident records need registration type, residence status, relationship to the
+payer, benefit category, and dated changes. Meter connections need dated active
+and disconnected states, individual/shared classification, readings, consumption,
+and replacement history. Displaying an archived latest reading must not treat it
+as current-period consumption.
+
 Some areas may require a richer versioned data model. Preserve original values and
 clearly identify unsupported or inferred mappings.
 

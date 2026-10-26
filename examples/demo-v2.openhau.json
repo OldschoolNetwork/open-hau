@@ -1,6 +1,18 @@
 {
   "format": "openhau",
   "schema_version": 2,
+  "service_accounting": {
+    "opening": [],
+    "payments": [],
+    "adjustments": []
+  },
+  "tariff_documents": [],
+  "treasury": {
+    "wallets": [],
+    "funds": [],
+    "transactions": [],
+    "locked_through": null
+  },
   "demo": true,
   "currency": "MDL",
   "organization": {

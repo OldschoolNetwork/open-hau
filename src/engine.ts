@@ -46,9 +46,12 @@ export function charges(
     };
   const lines: Line[] = [],
     warnings: string[] = [];
+  const groups = applicableGroups(p, period).filter(g => g.individual_meter_ids.some(mid => p.meters.find(m => m.id === mid)?.account_id === a.id));
   for (const sid of a.service_ids) {
     const s = p.services.find((x) => x.id === sid);
     if (!s || !s.active) continue;
+    // The configured difference service is generated once by its source group.
+    if (groups.some(g => g.difference_service_id === sid)) continue;
     const tariff = p.tariffs
       .filter((t) => t.service_id === sid && t.effective_from <= period + "-01")
       .sort((x, y) => y.effective_from.localeCompare(x.effective_from))[0];
@@ -141,19 +144,30 @@ export function charges(
         continue;
       }
       const share = distribution.rows.find((r) => r.account_id === a.id)?.share;
-      if (share !== undefined && !D(share).isZero())
+      if (share !== undefined && !D(share).isZero()) {
+        const billedService = group.difference_service_id ? p.services.find(x => x.id === group.difference_service_id) : s;
+        const billedTariff = group.difference_service_id ? p.tariffs.filter(t => t.service_id === group.difference_service_id && t.effective_from <= period + "-01").sort((x,y) => y.effective_from.localeCompare(x.effective_from))[0] : tariff;
+        if (!billedService?.active || !billedTariff) {
+          warnings.push(group.name + (p.settings.language === "ru" ? ": отсутствует активная услуга или тариф для расхождений" : ": lipsește serviciul activ sau tariful pentru diferențe"));
+          continue;
+        }
+        if (group.difference_service_id && p.quantities.some(x => x.account_id === a.id && x.service_id === group.difference_service_id && x.period === period)) {
+          warnings.push(group.name + (p.settings.language === "ru" ? ": ручной объём услуги расхождений конфликтует с распределением" : ": volumul manual al serviciului pentru diferențe este în conflict cu repartizarea"));
+          continue;
+        }
         lines.push({
-          service_id: s.id,
-          name: {
+          service_id: billedService.id,
+          name: group.difference_service_id ? billedService.name : {
             ru: s.name.ru + " · общая разница",
             ro: s.name.ro + " · diferență comună",
             en:s.name.en?s.name.en+" · shared difference":undefined,
           },
-          unit: s.unit,
+          unit: billedService.unit,
           quantity: share,
-          rate: tariff.rate,
-          amount: money(D(share).times(tariff.rate), p),
+          rate: billedTariff.rate,
+          amount: money(D(share).times(billedTariff.rate), p),
         });
+      }
     }
   }
   const adjustment = money(

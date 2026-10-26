@@ -1,17 +1,44 @@
 <script lang="ts">
+  import {Download,FileJson,Printer,ReceiptText} from "@lucide/svelte";
+  import { translator } from "./i18n";
   import type { Project } from "./model";
   import { accountBalanceReport, accountReportCSV } from "./reports";
+  import {serviceBalanceReport,serviceReportCSV,UNALLOCATED_SERVICE} from "./service-reports";
   import { exportText } from "./storage";
   import { accountReportHTML, accountReportXML } from "./report-exports";
   export let project: Project;
+  export let mode:"account"|"service"="account";
+  let serviceFilter="";
   let from = project.settings.period,
     to = project.settings.period,
     error = "";
-  const tr = (ru: string, ro: string) =>
-    project.settings.language === "ru" ? ru : ro;
+  let generated = "",
+    generatedRange = "",
+    preview: HTMLIFrameElement,
+    previewReady = false;
+  function generate() {
+    try {
+      generated = accountReportHTML(project, from, to,mode,serviceFilter);
+      generatedRange = from + "–" + to;
+      previewReady = false;
+      error = "";
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+  }
+  function printReport() {
+    if (!generated || !previewReady) return;
+    try {
+      preview.contentWindow?.focus();
+      preview.contentWindow?.print();
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+  }
+  $: tr = translator(project.settings.language);
   $: report = (() => {
     try {
-      return accountBalanceReport(project, from, to);
+      return mode==="service"?serviceBalanceReport(project,from,to,serviceFilter):accountBalanceReport(project, from, to);
     } catch {
       return null;
     }
@@ -21,12 +48,12 @@
       error = "";
       const content =
         format === "csv"
-          ? accountReportCSV(project, from, to)
+          ? (mode==="service"?serviceReportCSV(project,from,to,serviceFilter):accountReportCSV(project, from, to))
           : format === "xml"
-            ? accountReportXML(project, from, to)
-            : accountReportHTML(project, from, to);
+            ? accountReportXML(project, from, to,mode,serviceFilter)
+            : accountReportHTML(project, from, to,mode,serviceFilter);
       await exportText(
-        `OpenHaU-balances-${from}-${to}.${format}`,
+        `OpenHaU-${mode}-balances-${from}-${to}.${format}`,
         content,
         format,
       );
@@ -37,18 +64,8 @@
 </script>
 
 <article class="panel">
-  <div class="panel-heading">
-    <div>
-      <h2>{tr("Оборотная ведомость по счетам", "Balanța conturilor")}</h2>
-      <p>
-        {tr(
-          "Включает закрытые счета, если они относятся к выбранной истории.",
-          "Include conturile închise relevante pentru perioada selectată.",
-        )}
-      </p>
-    </div>
-  </div>
   <div class="filters">
+    {#if mode==="service"}<label>{tr("Услуга","Serviciu")}<select bind:value={serviceFilter}><option value="">{tr("Все услуги","Toate serviciile")}</option>{#each project.services as s}<option value={s.id}>{s.name[project.settings.language]}</option>{/each}<option value={UNALLOCATED_SERVICE}>{tr("Нераспределено","Nerepartizat")}</option></select></label>{/if}
     <label
       >{tr("С месяца", "Din luna")}<input
         type="month"
@@ -59,29 +76,51 @@
         type="month"
         bind:value={to}
       /></label
+    ><button class="button" onclick={generate} disabled={!report}
+      ><ReceiptText size={16}/>{tr("Сформировать", "Formare")}</button
+    ><button
+      class="button secondary"
+      onclick={printReport}
+      disabled={!generated || !previewReady}
+      ><Printer size={16}/>{tr("Печать / сохранить PDF", "Imprimare / salvare PDF")}</button
     ><button
       class="button secondary"
       onclick={() => download("csv")}
-      disabled={!report}>{tr("Экспорт CSV", "Export CSV")}</button
+      disabled={!report}><Download size={16}/>{tr("Экспорт CSV", "Export CSV")}</button
     ><button
       class="button secondary"
       onclick={() => download("xml")}
-      disabled={!report}>{tr("Таблица Excel XML", "Tabel Excel XML")}</button
+      disabled={!report}><Download size={16}/>{tr("Таблица Excel XML", "Tabel Excel XML")}</button
     ><button
       class="button secondary"
       onclick={() => download("html")}
       disabled={!report}
-      >{tr("HTML для печати / PDF", "HTML pentru imprimare / PDF")}</button
+      ><FileJson size={16}/>{tr("HTML (дополнительно)", "HTML (suplimentar)")}</button
     >
   </div>
   {#if error}<p role="alert" class="alert error">{error}</p>{/if}
+  {#if generated}<section class="report-preview">
+      <p>
+        {tr(
+          "Предпросмотр сформированного отчёта",
+          "Previzualizarea raportului format",
+        )} · {generatedRange}
+      </p>
+      <iframe
+        bind:this={preview}
+        title={tr("Предпросмотр отчёта", "Previzualizare raport")}
+        srcdoc={generated}
+        sandbox="allow-same-origin allow-modals"
+        onload={() => (previewReady = true)}
+      ></iframe>
+    </section>{/if}
   {#if !report}<p class="alert" role="alert">
       {tr(
         "Выберите корректный диапазон месяцев.",
         "Selectați un interval valid de luni.",
       )}
     </p>
-  {:else}
+  {:else if !generated}
     {#if report.incomplete}<p class="alert" role="alert">
         {tr(
           "Предварительный отчёт: есть неполные начисления или пропуски истории. Проверьте отмеченные счета.",
@@ -92,7 +131,8 @@
       <table>
         <thead
           ><tr
-            ><th>{tr("Счёт / Плательщик", "Cont / Plătitor")}</th><th
+            >{#if mode==="service"}<th>{tr("Услуга","Serviciu")}</th>{/if}<th
+            >{tr("Счёт / Плательщик", "Cont / Plătitor")}</th><th
               class="num">{tr("На начало", "Sold inițial")}</th
             ><th class="num">{tr("Начислено", "Calculat")}</th><th class="num"
               >{tr("Корректировки", "Ajustări")}</th
@@ -102,7 +142,7 @@
           ></thead
         ><tbody>
           {#each report.rows as row}<tr
-              ><td
+              >{#if mode==="service"}<td>{"service"in row?row.service:""}</td>{/if}<td
                 ><strong>{row.number}</strong><small>{row.payer}</small
                 >{#if !row.active}<small
                     >{tr("Счёт закрыт", "Cont închis")}</small
@@ -127,7 +167,8 @@
             >{/each}
         </tbody><tfoot
           ><tr
-            ><th>{tr("Итого, MDL", "Total, MDL")}</th><td class="num"
+            >{#if mode==="service"}<th></th>{/if}<th
+            >{tr("Итого, MDL", "Total, MDL")}</th><td class="num"
               >{report.totals.opening}</td
             ><td class="num">{report.totals.charges}</td><td class="num"
               >{report.totals.adjustments}</td
@@ -142,6 +183,24 @@
 </article>
 
 <style>
+  .report-preview {
+    margin: 12px 0;
+    background: #e4e4e4;
+    padding: 12px;
+    color: #222;
+  }
+  .report-preview iframe {
+    display: block;
+    width: 100%;
+    height: 65vh;
+    min-height: 360px;
+    background: white;
+    border: 0;
+  }
+  .report-preview > p {
+    font-size: 12px;
+    margin: 0 0 8px;
+  }
   .filters {
     display: flex;
     align-items: end;

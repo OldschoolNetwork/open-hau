@@ -1,5 +1,6 @@
 import { z } from "zod";
 import Decimal from "decimal.js";
+import { canonicalUnit } from "./units";
 
 const decimal = z
   .string()
@@ -298,6 +299,7 @@ const sharedGroup = z.object({
   id,
   name: z.string().min(1),
   shared_meter_id: id,
+  difference_service_id: z.union([id, z.literal("")]).optional(),
   individual_meter_ids: z.array(id).min(1).max(100000),
   effective_from: period,
   effective_to: period.nullable(),
@@ -330,11 +332,37 @@ export const defaultCustomReceipt = {
   heading: "left",
   economy: false,
 } as const;
+const ledgerMoney=decimal.refine(v=>new Decimal(v).decimalPlaces()<=2,"Ledger amounts require at most two decimal places");
+const positiveLedgerMoney=ledgerMoney.refine(v=>new Decimal(v).gt(0),"Ledger amount must be positive");
+const optionalId=z.union([id,z.literal("")]);
+const cashAccount=z.object({id,name:z.string().min(1),kind:z.enum(["bank","cash"]),opening_date:date,opening_balance:ledgerMoney,active:z.boolean()});
+const reserveFund=z.object({id,name:z.string().min(1),opening_date:date,opening_balance:ledgerMoney,active:z.boolean()});
+const cashCommon=z.object({id,date,amount:positiveLedgerMoney,reference:z.string(),notes:z.string()});
+const cashTransaction=z.discriminatedUnion("kind",[
+  cashCommon.extend({kind:z.literal("income"),wallet_id:id,fund_id:optionalId,category:z.string().min(1),counterparty:z.string(),linked_payment_ids:z.array(id).max(10000).default([])}),
+  cashCommon.extend({kind:z.literal("expense"),wallet_id:id,fund_id:optionalId,category:z.string().min(1),counterparty:z.string()}),
+  cashCommon.extend({kind:z.literal("transfer"),from_wallet_id:id,to_wallet_id:id}),
+  cashCommon.extend({kind:z.literal("fund_transfer"),from_fund_id:optionalId,to_fund_id:optionalId}),
+]);
+const treasurySchema=z.object({wallets:z.array(cashAccount).max(1000),funds:z.array(reserveFund).max(1000),transactions:z.array(cashTransaction).max(100000),locked_through:date.nullable()});
 const currentProjectSchema = z
   .object({
     ...legacyProjectSchema.shape,
     schema_version: z.literal(2),
+      payments:z.array(payment.extend({allocation_basis:period.optional(),allocation_balancing_service_id:id.optional(),allocation_manual_amount:ledgerMoney.optional()})).max(100000),
+    service_accounting: z.object({
+      opening:z.array(z.object({account_id:id,service_id:id,amount:ledgerMoney})).max(100000),
+      payments:z.array(z.object({payment_id:id,service_id:id,amount:ledgerMoney})).max(300000),
+      adjustments:z.array(z.object({account_id:id,period,service_id:id,amount:ledgerMoney})).max(100000),
+    }).default({opening:[],payments:[],adjustments:[]}),
+    tariff_documents: z.array(z.object({
+      id, number: z.string().min(1), date, comment: z.string(),
+      state: z.enum(["draft", "applied"]),
+      rows: z.array(z.object({id, service_id: id, effective_from: date, rate: nonnegative, tariff_id: id.nullable()})).min(1).max(1000),
+    })).max(50000).default([]),
+    treasury:treasurySchema.default({wallets:[],funds:[],transactions:[],locked_through:null}),
     settings: legacyProjectSchema.shape.settings.extend({
+      payment_balancing_service_id: id.optional(),
       receipt_language: z.enum(["ru", "ro", "both", "en"]),
       receipt_design: z.enum(receiptDesigns).default("studio"),
       custom_receipt: customReceipt.optional(),
@@ -370,6 +398,9 @@ const currentProjectSchema = z
       monthly_occupancy,
       shared_groups,
       payment_deadlines,
+      treasury,
+      tariff_documents,
+      service_accounting,
       ...common
     } = p;
     const previous = legacyProjectSchema.safeParse({
@@ -396,6 +427,47 @@ const currentProjectSchema = z
           message: issue.message,
         });
     const fail = (message: string) => ctx.addIssue({ code: "custom", message });
+    const accountIds=new Set(p.accounts.map(a=>a.id)),serviceIds=new Set(p.services.map(s=>s.id)),paymentById=new Map(p.payments.map(pay=>[pay.id,pay]));
+    if(p.settings.payment_balancing_service_id&&!serviceIds.has(p.settings.payment_balancing_service_id))fail("Unknown service accounting account or service");
+    for(const pay of p.payments){if(pay.allocation_balancing_service_id&&!serviceIds.has(pay.allocation_balancing_service_id))fail("Unknown service accounting payment or service");if(pay.allocation_basis&&pay.allocation_basis>pay.payment_date.slice(0,7))fail("Payment allocation period is after payment date");}
+    for(const rows of [service_accounting.opening,service_accounting.adjustments])for(const row of rows){if(!accountIds.has(row.account_id)||!serviceIds.has(row.service_id))fail("Unknown service accounting account or service");}
+    for(const [rows,key] of [[service_accounting.opening,(r:any)=>r.account_id+"|"+r.service_id],[service_accounting.payments,(r:any)=>r.payment_id+"|"+r.service_id],[service_accounting.adjustments,(r:any)=>r.account_id+"|"+r.period+"|"+r.service_id]] as const){if(new Set(rows.map(key)).size!==rows.length)fail("Duplicate service accounting allocation");}
+    const allocatedPayments=new Map<string,Decimal>();
+    for(const row of service_accounting.payments){if(!paymentById.has(row.payment_id)||!serviceIds.has(row.service_id))fail("Unknown service accounting payment or service");allocatedPayments.set(row.payment_id,(allocatedPayments.get(row.payment_id)||new Decimal(0)).plus(row.amount));}
+    for(const [pid,total] of allocatedPayments){if(total.lt(0)||total.gt(paymentById.get(pid)?.amount||0))fail("Service payment allocation exceeds payment amount");}
+    if (new Set(tariff_documents.map(d => d.id)).size !== tariff_documents.length) fail("Duplicate tariff document identifiers");
+    const documentRates = new Set<string>();
+    for (const doc of tariff_documents) {
+      if (new Set(doc.rows.map(r => r.id)).size !== doc.rows.length) fail("Duplicate tariff document rows");
+      if (new Set(doc.rows.map(r => r.service_id + "|" + r.effective_from)).size !== doc.rows.length) fail("Duplicate tariff document service dates");
+      for (const row of doc.rows) {
+        if (!p.services.some(s => s.id === row.service_id)) fail("Unknown tariff document service");
+        if (!row.effective_from.endsWith("-01")) fail("Tariff document effective date must start a month");
+        if (doc.state === "draft" && row.tariff_id !== null) fail("Draft tariff document cannot reference applied rates");
+        if (doc.state === "applied") {
+          const rate = p.tariffs.find(t => t.id === row.tariff_id);
+          if (!rate || rate.service_id !== row.service_id || rate.effective_from !== row.effective_from || !new Decimal(rate.rate).eq(row.rate)) fail("Applied tariff document differs from tariff history");
+          if (row.tariff_id && documentRates.has(row.tariff_id)) fail("Tariff belongs to more than one document");
+          if (row.tariff_id) documentRates.add(row.tariff_id);
+        }
+      }
+    }
+    for(const values of [treasury.wallets,treasury.funds,treasury.transactions])if(new Set(values.map(x=>x.id)).size!==values.length)fail("Duplicate treasury identifiers");
+    const walletMap=new Map(treasury.wallets.map(w=>[w.id,w])),fundMap=new Map(treasury.funds.map(f=>[f.id,f]));
+    const paymentMap=new Map(p.payments.map(payment=>[payment.id,payment])),linkedPayments=new Set<string>();
+    for(const tx of treasury.transactions){
+      const walletIds=tx.kind==="transfer"?[tx.from_wallet_id,tx.to_wallet_id]:tx.kind==="fund_transfer"?[]:[tx.wallet_id];
+      for(const wid of walletIds){const wallet=walletMap.get(wid);if(!wallet)fail("Treasury transaction references an unknown wallet");else if(tx.date<wallet.opening_date)fail("Treasury transaction precedes wallet opening");}
+      const fundIds=tx.kind==="fund_transfer"?[tx.from_fund_id,tx.to_fund_id]:tx.kind==="transfer"?[]:[tx.fund_id];
+      for(const fid of fundIds.filter(Boolean)){const fund=fundMap.get(fid);if(!fund)fail("Treasury transaction references an unknown fund");else if(tx.date<fund.opening_date)fail("Treasury transaction precedes fund opening");}
+      if(tx.kind==="transfer"&&tx.from_wallet_id===tx.to_wallet_id)fail("Wallet transfer requires different wallets");
+      if(tx.kind==="fund_transfer"&&tx.from_fund_id===tx.to_fund_id)fail("Fund transfer requires different funds");
+      if(tx.kind==="income"&&tx.linked_payment_ids.length){
+        let total=new Decimal(0);
+        for(const pid of tx.linked_payment_ids){const payment=paymentMap.get(pid);if(!payment)fail("Treasury income references an unknown resident payment");else total=total.plus(payment.amount);if(linkedPayments.has(pid))fail("Resident payment is linked to treasury more than once");linkedPayments.add(pid);}
+        if(!total.eq(tx.amount))fail("Linked payment sum differs from treasury income");
+      }
+    }
     if (
       new Set(payment_deadlines.map((d) => d.period)).size !==
       payment_deadlines.length
@@ -446,6 +518,14 @@ const currentProjectSchema = z
       fail("Duplicate shared group identifiers");
     for (const g of shared_groups) {
       const master = meterById.get(g.shared_meter_id);
+      if (g.difference_service_id) {
+        const service = p.services.find(s => s.id === g.difference_service_id);
+        if (!service) fail("Unknown shared difference billing service");
+        else {
+          if (service.id === master?.service_id || meters.some(m => m.service_id === service.id)) fail("Shared difference service cannot have physical meters");
+          if (master && canonicalUnit(service.unit) !== canonicalUnit(master.unit)) fail("Shared difference service unit mismatch");
+        }
+      }
       if (!master || master.scope !== "shared")
         fail("Group requires a shared meter");
       if (g.effective_to && g.effective_to < g.effective_from)
@@ -559,6 +639,10 @@ export type PhysicalMeter = z.infer<typeof physicalMeter>;
 export type PhysicalMeterValue = z.infer<typeof physicalMeterValue>;
 export type MonthlyOccupancy = z.infer<typeof monthlyOccupancy>;
 export type SharedGroup = z.infer<typeof sharedGroup>;
+export type CashAccount=z.infer<typeof cashAccount>;
+export type ReserveFund=z.infer<typeof reserveFund>;
+export type CashTransaction=z.infer<typeof cashTransaction>;
+export type TariffDocument = Project["tariff_documents"][number];
 export type Account = z.infer<typeof account>;
 export type Service = z.infer<typeof service>;
 export type Tariff = z.infer<typeof tariff>;
@@ -589,6 +673,9 @@ export function demoProject(): Project {
   return {
     format: "openhau",
     schema_version: 2,
+    service_accounting:{opening:[],payments:[],adjustments:[]},
+    tariff_documents: [],
+    treasury:{wallets:[],funds:[],transactions:[],locked_through:null},
     demo: true,
     currency: "MDL",
     organization: {

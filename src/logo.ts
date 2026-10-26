@@ -60,7 +60,7 @@ export async function loadLogo(file: File) {
     return "data:image/svg+xml;base64," + btoa(binary);
   }
   if (!["image/png", "image/jpeg", "image/webp"].includes(file.type))
-    throw Error("Выбери SVG, PNG, JPEG или WebP");
+    throw Error("Выберите SVG, PNG, JPEG или WebP");
   return await new Promise<string>((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(String(r.result));

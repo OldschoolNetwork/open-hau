@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { translator } from "./i18n";
   import { issueText } from "./validation-language";
   import {
     projectSchema,
@@ -11,8 +12,7 @@
   export let onapply: (next: Project) => void;
   let draft: MonthlyOccupancy | null = null,
     error = "";
-  const tr = (ru: string, ro: string) =>
-    project.settings.language === "ru" ? ru : ro;
+  $: tr = translator(project.settings.language);
   function edit(accountId: string, apartment = "") {
     const period = project.settings.period;
     const saved = project.monthly_occupancy.find(

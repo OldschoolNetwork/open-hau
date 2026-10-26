@@ -7,17 +7,18 @@ The published 26.1 preview is unchanged.
 | Workflow | Current development status | Remaining work |
 | --- | --- | --- |
 | Account, service and tariff editing | Existing preview implementation | Dated resident/status changes and richer property relationships |
+| Tariff workspace and change documents | Separate navigation, service filter, associated meter list, manual transition-month price, multi-service draft/applied documents with atomic validation, browser save/reload verification | Native acceptance, correction documents, intra-month reading splits and meter-type catalog |
 | Physical meter identities and readings | Format 2 model, meter/reading editor, history and calculation/receipt functions | Replacement workflow, imported history and broader usability checks |
 | Previous/current readings on receipts | Individual meters printed separately, dates retained; legacy aggregate fallback | Full meter-entry workflow and print acceptance on both platforms |
-| Shared meters | Dated meter groups, equal per-account allocation, month-specific exemptions, rounding conservation and preview | Broader native acceptance and imported meter-network mapping |
-| Monthly waste counts | Whole-account or per-apartment direct/cumulative monthly entry and missing-data checks | Broader native acceptance and spreadsheet mapping |
+| Shared meters | Dated meter groups, equal per-account allocation, month-specific exemptions, rounding conservation, optional separate difference-service tariff and preview | Broader native acceptance and imported meter-network mapping |
+| Monthly waste counts | Account-card monthly total, whole-account or per-apartment direct/cumulative entry, closed-month protection and missing-data checks | Native acceptance of the account-card field and spreadsheet mapping |
 | Closed financial history | Preserved snapshots and decimal calculations | Extended correction workflows and service-level reconciliation |
 | Account turnover/balance report | Period filters, totals, inactive accounts, missing-history warnings | Accounting review, service statements and account ledgers |
 | Report exports | CSV, SpreadsheetML XML and printable HTML | XLSX/ODS, dedicated export settings, destination and scheduling |
 | Automatic backup to another location | Opt-in folder, verified standalone SQLite copy after saving, manual copy, disable control, restore regression test and Windows demo verification | Monterey acceptance and a restore interface |
 | Automatic report exports | Current-month balance report in selected CSV/XML/HTML formats, save/close triggers, manual export, deduplication and Windows demo verification | Monterey acceptance, additional reports, XLSX/ODS and timed schedules |
-| Income and expenses | Planned | Separate cash/bank journal, categories, supporting documents and monthly summary |
-| Reserve funds | Planned | Opening balances, contributions, spending and fund reconciliation |
+| Income and expenses | Separate bank/cash journal, editable entries, categories, document references, monthly totals, CSV, locks and browser save/reload verification | Native acceptance, statement imports and reversal documents |
+| Reserve funds | Opening balances, earmarked income/spending, allocations, separate cash totals and unfunded-balance warnings | Native acceptance and historical spreadsheet mapping |
 | Bank fees and reconciliation | Planned | Bank-statement mapping and matching without changing resident charges |
 | Payroll and statutory forms | Analysis only | Separate scope, validated jurisdiction/date-specific rules and approved templates |
 | Legacy database import | Source-profile design; a one-off migration is not a general importer | Read-only source inspection, mapping preview, provenance, archives and control totals |
