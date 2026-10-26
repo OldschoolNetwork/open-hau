@@ -14,9 +14,14 @@ async function api(route,options={}){
 }
 const command=process.argv[2];
 if(command==='metadata'){
- await api('',{method:'PATCH',body:JSON.stringify({description:'OpenHaU · House & Utilities — offline accounting for small housing associations. Русский / Română. Windows + macOS.',homepage:'https://oldschoolnetwork.online/'})});
+ await api('',{method:'PATCH',body:JSON.stringify({description:'OpenHaU · House & Utilities — offline accounting for small housing associations. Russian and Romanian. Windows + macOS.',homepage:'https://oldschoolnetwork.online/'})});
  await api('/topics',{method:'PUT',body:JSON.stringify({names:['tauri','svelte','sqlite','offline-first','desktop-app','housing','romanian','russian','windows','macos']})});
  console.log('Repository description and topics updated.');
+}else if(command==='presentation'){
+ await api('',{method:'PATCH',body:JSON.stringify({description:'OpenHaU · House & Utilities — offline accounting for small housing associations. Russian and Romanian. Windows + macOS.'})});
+ const release=await api('/releases/tags/v26.1.0-preview.1');
+ await api(`/releases/${release.id}`,{method:'PATCH',body:JSON.stringify({body:await fs.readFile('RELEASE_NOTES.md','utf8')})});
+ console.log('Updated English repository description and preview release notes.');
 }else if(command==='build'){
  await api('/actions/workflows/build.yml/dispatches',{method:'POST',body:JSON.stringify({ref:'main'})});
  console.log('Windows + macOS build workflow dispatched.');
@@ -40,14 +45,14 @@ if(command==='metadata'){
  const tag='v26.1.0-preview.1';
  const releases=await api('/releases');
  let release=releases.find(r=>r.tag_name===tag);
- if(!release)release=await api('/releases',{method:'POST',body:JSON.stringify({tag_name:tag,target_commitish:'main',name:'OpenHaU 26.1 · First Preview',prerelease:true,body:'Первая предварительная сборка OpenHaU.\n\nТемы: системная, светлая и тёмная. Русский / Română. Счета, услуги и тарифы, показания, оплаты, корректировки, закрытие месяца. Три шаблона квитанций, логотип организации SVG/PNG/JPEG/WebP, конфигурации оформления. SQLite с резервными копиями, JSON, CSV и HTML.\n\nWindows x64: установщик или самостоятельный EXE (нужен WebView2). Это Preview для вымышленных данных и параллельной проверки расчётов.\n\nmacOS Monterey 12.6 — целевая система; DMG требует отдельной проверки и настройки подписи. Автообновление пока не включено.\n\nСоцсети и инструкции — в README.'})});
+ if(!release)release=await api('/releases',{method:'POST',body:JSON.stringify({tag_name:tag,target_commitish:'main',name:'OpenHaU 26.1 · First Preview',prerelease:true,body:await fs.readFile('RELEASE_NOTES.md','utf8')})});
  const directories=[path.resolve('../builds/26.1.0-preview.1/windows-x64'),path.resolve('../builds/26.1.0-preview.1/macos-universal')];
  for(const directory of directories){for(const name of await fs.readdir(directory).catch(()=>[])){
    if(!/\.(exe|txt|dmg)$/.test(name)||release.assets.some(a=>a.name===name))continue;
    const bytes=await fs.readFile(path.join(directory,name));
-   const response=await fetch(release.upload_url.replace(/\{.*$/,'')+'?name='+encodeURIComponent(name),{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':name.endsWith('.exe')?'application/octet-stream':'text/plain'},body:bytes});
+   const response=await fetch(release.upload_url.replace(/\{.*$/,'')+'?name='+encodeURIComponent(name),{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':/\.(exe|dmg)$/.test(name)?'application/octet-stream':'text/plain'},body:bytes});
    if(!response.ok)throw Error(`Asset upload failed (${response.status}): ${name}`);
    console.log(`Uploaded: ${name}`);
  }}
  console.log(release.html_url);
-}else throw Error('Use metadata, build, status, jobs, download-mac, or release.');
+}else throw Error('Use metadata, presentation, build, status, jobs, download-mac, or release.');

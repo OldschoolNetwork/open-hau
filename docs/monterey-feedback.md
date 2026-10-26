@@ -1,42 +1,34 @@
-# Проверка на macOS Monterey 12.6
+# macOS Monterey 12.6 test checklist
 
-Статус: ожидаем проверку Макса на целевом Mac. Настройка минимальной версии
-12.6 и успешная сборка DMG сами по себе не подтверждают совместимость.
+Launch and a superficial functional check have been reported successful on
+Monterey. The initial unsigned application was blocked by a Telegram quarantine
+attribute; launch succeeded after removing the app-specific flag.
+Detailed functional acceptance remains pending. Minimum-version metadata and
+a successful build alone do not establish compatibility.
 
-## Что проверить
+## Checks
 
-1. Напиши модель Mac и процессор: Intel или Apple M1/M2. Их можно посмотреть
-   в меню Apple → «Об этом Mac».
-2. Открой DMG. Проверь, что в окне видны OpenHaU и Applications, а приложение
-   можно перетащить в Applications. Если macOS сообщает об ошибке подписи
-   или запрещает запуск, пришли точный текст сообщения.
-3. Запусти приложение. Проверь, что показаны два демонстрационных счёта,
-   а интерфейс не пустой и текст читается.
-4. В настройках попробуй светлую, тёмную и системную темы, затем переключи
-   язык RU/RO. Проверь румынские ă, â, î, ș, ț.
-5. Измени имя демонстрационной организации, нажми «Сохранить», закрой
-   приложение крестиком и открой снова. Имя и тема должны сохраниться.
-6. Внеси вымышленную оплату 10.00 MDL первому счёту за текущий месяц.
-   У первого счёта сумма к оплате должна уменьшиться с 1047.44 до 1037.44.
-   Не используй для этого рабочую базу бабушки.
-7. В «Квитанциях» выбери первый счёт. Попробуй Studio, Compact и Classic,
-   русский, румынский и два языка. Проверь, что текст не перекрывается,
-   суммы совпадают, номер счёта подписан правильно.
-8. Загрузи SVG или PNG логотип, поменяй цвет, сохрани конфигурацию и выбери
-   её снова. Затем сохрани базу и проверь конфигурацию после перезапуска.
-9. Нажми «Печать / PDF» и сохрани PDF через диалог macOS. Проверь A4,
-   переносы страниц, символы, копирование румынского текста и чёрно-белую
-   печать. Если диалог не откроется, проверь экспорт HTML и печать из Safari.
-10. Экспортируй JSON в выбранную папку. Импортируй его обратно, проверь
-    сводку перед применением и наличие счетов после импорта.
-11. Измени что-нибудь и закрой окно без сохранения: должно появиться
-    предложение сохранить. Отказ должен оставить окно открытым, согласие —
-    сохранить и закрыть. Если показания не применены, выход должен
-    предложить сначала применить их.
+1. Record the Mac model, processor architecture and exact macOS version.
+2. Open the DMG, verify the application and Applications link, then drag the app into Applications.
+3. Launch the installed copy. Verify the two fictional demonstration accounts and readable text.
+4. Test light, dark and system appearance, Russian/Romanian switching, and Romanian ă â î ș ț.
+5. Change the fictional organisation name and theme, save, quit and reopen. Both should persist.
+6. Enter a fictional October payment of 10.00 MDL for the first sample account. Its balance should decrease from 1047.44 to 1037.44 MDL.
+7. Preview Studio, Compact and Classic receipts in Russian, Romanian and bilingual modes. Check totals, labels and overlapping content.
+8. Upload an SVG or PNG logo, change colour, save a configuration and select it again. Save and verify it after reopening.
+9. Save a PDF through the Mac print dialog. Check A4, page breaks, copied Romanian text and monochrome output. Test exported HTML in Safari if embedded printing fails.
+10. Export full JSON and import it again after inspecting the preview. Verify records, settings and totals.
+11. Close with unsaved changes. Verify the save prompt, cancel path and successful saved exit. Unapplied readings must not silently disappear.
 
-## Как прислать отзыв
+Use a demonstration database for destructive tests. Keep real accounting records
+and an independent export safe.
 
-Для каждого сбоя: номер пункта, что нажал, что ожидал, что произошло.
-Скриншот или точный текст сообщения полезнее общего «не работает».
-Для проверки достаточно вымышленных данных. После отзыва обновим README
-и статус Monterey, отдельно указав проверенную архитектуру процессора.
+## Reporting results
+
+For each failure, provide the step number, exact action, expected and actual
+behaviour, and a redacted screenshot or error text. Record individual checks as
+passed only after completing them; a general successful launch is not a substitute
+for persistence and printing checks.
+
+Known visual issue: the Mac icon currently appears larger than adjacent Launchpad
+icons. A platform-specific margin adjustment remains pending.

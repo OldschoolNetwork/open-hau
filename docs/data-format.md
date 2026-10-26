@@ -1,67 +1,79 @@
-# Формат данных версии 1
+# Exchange format, version 1
 
-`*.openhau.json` — обычный JSON UTF-8 с отступами. Данные доступны для
-ручного редактирования и обработки ИИ. Схема: `openhau.schema.json`.
-Дополнительные межзаписные проверки реализованы в `src/model.ts`.
+`*.openhau.json` is indented UTF-8 JSON. The machine-readable schema is
+`openhau.schema.json`; additional relational checks are implemented in
+`src/model.ts`. `examples/demo.openhau.json` contains only fictional records.
 
-Пример в `examples/demo.openhau.json` содержит только вымышленные данные.
+## Sections
 
-## Состав
+- `format: "openhau"`, `schema_version: 1`, `currency: "MDL"`, and `demo`.
+- `organization`: association identity and bank details.
+- `settings`: languages, appearance, receipt controls, embedded logo and configurations.
+- `accounts`: identifiers, apartments, area, opening balances and connected services.
+- `services`, `tariffs`: service definitions and dated tariffs.
+- `meter_readings`: previous/current values for an account, service and month.
+- `quantities`: explicit monthly quantity overrides.
+- `payments`: amount, payment date and separate entry date.
+- `adjustments`: signed monthly adjustments.
+- `closed_periods`, `snapshots`: closed months and preserved charge lines.
+- `template_manifest`: reserved; must be empty in this preview.
 
-- `format: "openhau"`, `schema_version: 1`, `currency: "MDL"`, `demo`.
-- `organization`: реквизиты и название ассоциации.
-- `settings`: темы, языки, оформление, логотип и конфигурации квитанций.
-- `accounts`: счета, площади, начальные остатки и подключённые услуги.
-- `services`, `tariffs`: справочники и история тарифов.
-- `meter_readings`: предыдущие и текущие показания за месяц.
-- `quantities`: явная замена объёма услуги на определённом счёте за месяц.
-- `payments`: сумма, фактическая дата платежа и отдельная дата ввода.
-- `adjustments`: положительные или отрицательные корректировки за месяц.
-- `closed_periods`, `snapshots`: закрытые периоды и сохранённые начисления.
-- `template_manifest`: зарезервирован; в Preview должен быть пустым.
+IDs use ASCII letters, digits, hyphens and underscores. Dates are `YYYY-MM-DD`;
+periods are `YYYY-MM`. Account numbers and bank identifiers remain strings.
+Money, area, tariffs and readings are decimal strings using a dot, without
+exponents, with at most 16 digits on either side of the decimal point.
+Saved monetary totals have exactly two decimal places.
 
-ID — стабильные строки из латинских букв, цифр, дефиса и подчёркивания.
-Даты — `YYYY-MM-DD`, периоды — `YYYY-MM`. Номера счетов и реквизиты — строки.
-Числа для денег, тарифов, площадей и показаний — десятичные строки с точкой,
-без экспоненты, до 16 цифр до и после точки.
-Сохранённые денежные итоги имеют ровно два знака после точки.
+Logos are embedded image data URLs for SVG/PNG/JPEG/WebP. The full JSON includes
+receipt configurations and does not depend on an external logo file. Uploaded
+SVG is sanitized before use.
 
-В Preview логотип хранится как data URL (SVG/PNG/JPEG/WebP), поэтому
-JSON-экспорт включает оформление и не зависит от исходного файла логотипа.
-При загрузке отдельного SVG скрипты и внешние ссылки удаляются.
+## Calculations
 
-## Расчёты
+A service line is quantity × tariff, rounded to two decimal places.
+Charges sum rounded lines and adjustments. Half up is the default; half even
+can be selected.
 
-Начисление услуги = объём × тариф с округлением денежной строки до двух
-знаков. Общая сумма = сумма денежных строк + корректировки. Half up
-используется по умолчанию; half even выбирается в настройках.
+Opening balance equals the account's initial balance plus prior closed charge
+snapshots minus earlier payments after the opening date. Closing balance adds
+current charges and subtracts current payments. Missing history or readings
+produce warnings and prevent closing.
 
-Начальный остаток месяца = начальный остаток счёта + сохранённые начисления
-предыдущих закрытых месяцев − платежи предыдущих месяцев после даты
-начального остатка. К оплате = остаток + начисления − платежи этого месяца.
-Пропуски в истории и показаниях помечаются; закрытие неполного месяца
-блокируется. Закрытые начисления не пересчитываются при изменении тарифа.
+Tariffs start on a month's first day. Common-consumption allocation is manual
+in the preview. Closed snapshots retain historical values rather than silently
+recalculating them.
 
-Тариф в Preview действует с первого дня месяца. Распределение общего
-расхода пока нужно рассчитать отдельно и ввести ручным объёмом: точные
-правила автоматического распределения ещё согласуются с бухгалтером.
+## Validation and import
 
-## Импорт и резервное копирование
+Import replaces the project, not individual records. Review counts and full JSON
+before applying. The validator checks dates, decimals, duplicate identifiers,
+references and snapshot sums. The current project is saved before replacement;
+native saving uses a transaction and a consistent backup of a nonempty database.
 
-Импорт полностью заменяет текущий проект. До применения показываются
-сводка и полный JSON; проверяются формат, даты, десятичные значения,
-дубликаты, ссылки и сумма сохранённых начислений. Текущая база сначала
-сохраняется, затем новая записывается в транзакции. Перед сохранением
-непустой базы SQLite Backup API создаёт согласованную копию.
+Unknown top-level fields and schema versions are rejected. Extra account
+metadata can be stored in `accounts[].custom_fields` as string values.
+The entire indented export, including images and configurations, is limited to
+20 MB.
 
-Неизвестные верхнеуровневые поля и версии отклоняются. Дополнительные
-пользовательские поля счёта задаются в `accounts[].custom_fields`.
+New application versions must read older schemas through explicit migrations.
+Older applications are not required to understand newer schemas and must refuse
+unsafe writes. Preserve an independent backup before migration.
 
-SQLite-файл хранит разделы JSON в `project_sections`; это стандартный
-SQLite, который открывается SQLite-редакторами. Ручная правка работающей
-базы не поддерживается. Штатный путь правок — экспорт и проверяемый импорт.
+## SQLite and CSV
 
-CSV экспортирует только сводку счетов за выбранный месяц. Разделитель —
-точка с запятой, кодировка — UTF-8 с BOM. Потенциальные формулы экранируются.
-В табличном редакторе импортируй колонку номера счёта как текст, чтобы
-сохранить начальные нули. CSV не является полной резервной копией.
+The working SQLite database uses `project_sections` for JSON sections and
+`save_log` for saves. It is standard SQLite, but not a normalized table-per-entity
+accounting database. Do not edit it while OpenHaU is running; use validated JSON
+exchange for supported manual edits.
+
+CSV is a monthly summary using semicolons and UTF-8 BOM. Potential spreadsheet
+formulas are escaped. Import account numbers as text to preserve leading zeros.
+CSV is not a full backup.
+
+## Legacy conversion
+
+An arbitrary SDF cannot be imported merely by renaming it. SQL Server Compact
+describes a storage format, not a common accounting schema. A converter must
+identify tables, references, date semantics, movements and unsupported entities;
+then validate the target and reconcile balances. Keep unmapped original records
+in a separate private archive. Never treat inferred field mappings as confirmed.

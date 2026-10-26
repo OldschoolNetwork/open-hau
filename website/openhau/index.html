@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="OpenHaU — offline housing association accounting for Windows and Mac. Editable accounts, transparent calculations and Russian / Romanian receipts.">
+  <title>OpenHaU — House &amp; Utilities · Oldschool Network</title>
+  <link rel="icon" href="assets/icon.png" type="image/png">
+  <link rel="stylesheet" href="openhau.css?v=build-0013">
+  <link rel="stylesheet" href="../mobile-navigation.css?v=20261019-1">
+  <link rel="stylesheet" href="../site-common.css?v=build-0007">
+  <link rel="stylesheet" href="../site-mode.css?v=server-build-0002">
+  <script src="../site-mode.js?v=server-build-0002"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="navbar">
+    <a class="on-brand" href="../index.html"><img src="../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a>
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="../index.html">Main</a>
+      <a href="#features">Features</a>
+      <a href="#downloads">Downloads</a>
+      <a href="wiki/index.html">Wiki</a>
+      <a href="https://github.com/OldschoolNetwork/open-hau">GitHub ↗</a>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hau-hero">
+      <div class="hero-copy">
+        <p class="eyebrow">OLDSCHOOL NETWORK / DESKTOP SOFTWARE</p>
+        <img class="hau-wordmark" src="assets/logo-full.svg" width="216" height="68" alt="OpenHaU">
+        <h1>A clearer picture<br>of every household.</h1>
+        <p class="lead">House &amp; Utilities. An offline workspace for a small housing association — from meter readings and payments to a receipt that feels like your own.</p>
+        <p class="platforms">Windows x64 <span>·</span> Mac Intel + Apple Silicon <span>·</span> Russian / Romanian</p>
+        <div class="hero-actions"><a class="metal-btn primary" href="#downloads">Get 26.1 Preview <span aria-hidden="true">↓</span></a><a class="metal-btn" href="wiki/index.html">User guide <span aria-hidden="true">→</span></a></div>
+        <p class="preview-note">A first preview, not a certified accounting system. Start with fictional data and verify calculations alongside your existing records.</p>
+      </div>
+      <div class="hero-product"><img src="assets/icon.png" width="240" height="240" alt="OpenHaU app icon"><div class="product-caption"><span class="status-dot" aria-hidden="true"></span> LOCAL DATA. YOUR WORKSPACE.</div><p>No ON Account required.</p></div>
+    </section>
+    <section class="showcase" aria-labelledby="workspace-title">
+      <div class="section-top"><div><p class="eyebrow">THE WORKSPACE</p><h2 id="workspace-title">One month. Everything in view.</h2></div><p>Actual 26.1 interface.<br>Fictional demonstration data.</p></div>
+      <a class="screenshot-link" href="assets/overview-light.jpg"><img class="app-shot" src="assets/overview-light.jpg" width="1280" height="720" alt="OpenHaU overview: accounts, monthly charges, payments and balances" loading="lazy"></a>
+      <div class="screenshot-caption"><span>Overview · Light theme</span><a href="assets/settings-dark.jpg">See the dark theme ↗</a></div>
+    </section>
+    <section id="features" class="features-section">
+      <div class="section-top"><div><p class="eyebrow">BUILT AROUND THE MONTH</p><h2>Less friction.<br>More control.</h2></div><p>The essentials of a local billing workflow,<br>without a mandatory cloud account.</p></div>
+      <div class="feature-grid">
+        <article class="skeuo-card"><span class="feature-number">01 / ORGANISE</span><h3>Every account has its place.</h3><p>Manage payers, multiple apartments, area, residents and opening balances. Choose which services apply to each account.</p><a href="wiki/setup.html">Set up your organisation →</a></article>
+        <article class="skeuo-card"><span class="feature-number">02 / CALCULATE</span><h3>Follow the numbers.</h3><p>Metered, per-person, area, fixed and manual quantities. Dated tariffs, decimal arithmetic, payments and adjustments.</p><a href="wiki/monthly-work.html">Work through a month →</a></article>
+        <article class="skeuo-card"><span class="feature-number">03 / KEEP</span><h3>Your data stays yours.</h3><p>A local SQLite database, backups before saving an existing database, and a full editable JSON export. CSV is available for monthly summaries.</p><a href="wiki/data-and-backups.html">Save and move your data →</a></article>
+      </div>
+    </section>
+    <section class="receipt-section">
+      <div class="receipt-copy"><p class="eyebrow">THE FINAL DETAIL</p><h2>A receipt with<br>your identity.</h2><p>Studio, Compact or Classic. Choose Russian, Romanian or both, adjust the colour and type size, and add your organisation’s logo.</p><p>Vector SVG or PNG, JPEG and WebP images. Save named configurations and print through the system dialog, or export a standalone HTML file.</p><a class="metal-btn" href="wiki/receipts.html">Explore receipts →</a><p class="small-note">Check a sample on paper before a print run, especially in black and white.</p></div>
+      <a class="receipt-visual" href="assets/receipt-studio.jpg"><img src="assets/receipt-studio.jpg" width="1280" height="720" alt="Studio receipt preview with custom appearance controls and fictional accounts" loading="lazy"></a>
+    </section>
+    <section id="downloads" class="downloads-section">
+      <p class="eyebrow">START HERE</p><h2>OpenHaU 26.1 Preview</h2><p>Small downloads. System webview. No bundled development tools required.</p>
+      <div class="download-grid">
+        <article class="skeuo-card"><h3>macOS</h3><p class="download-meta">Universal DMG · 6.4 MiB</p><p>Intel and Apple Silicon. Target: Monterey 12.6+. Drag OpenHaU to Applications.</p><a class="metal-btn primary" href="https://github.com/OldschoolNetwork/open-hau/releases/download/v26.1.0-preview.1/OpenHaU_26.1.0_universal.dmg">Download DMG ↓</a><p class="small-note">Unsigned, not notarized. First launch on Monterey was reported successful after removing the Telegram quarantine flag. Other Mac workflows still require testing.</p><a href="wiki/troubleshooting.html">Mac first-launch help →</a></article>
+        <article class="skeuo-card"><h3>Windows</h3><p class="download-meta">x64 installer · 2.2 MiB</p><p>Uses Microsoft Edge WebView2. The installer can download the runtime if it is missing.</p><a class="metal-btn primary" href="https://github.com/OldschoolNetwork/open-hau/releases/download/v26.1.0-preview.1/OpenHaU_26.1.0_x64-setup.exe">Download installer ↓</a><p class="small-note">Prefer no installation? A standalone EXE is also available. It still requires WebView2 and uses the app data directory.</p><a href="https://github.com/OldschoolNetwork/open-hau/releases/download/v26.1.0-preview.1/OpenHaU-26.1-Preview.exe">Standalone EXE · 7.4 MiB ↗</a></article>
+      </div>
+      <p class="release-links"><a href="https://github.com/OldschoolNetwork/open-hau/releases/tag/v26.1.0-preview.1">Release notes &amp; SHA-256 checksums ↗</a><span>·</span><a href="wiki/installation.html">Installation &amp; updates →</a></p>
+      <aside class="preview-banner"><strong>Know what is — and isn’t — included.</strong><p>26.1 does not include automatic updates, turnover/balance reports, regulated reporting or direct Infocraft import. Decorative receipt themes and platform-specific Windows/macOS interfaces are planned for 26.2, not part of this preview.</p></aside>
+    </section>
+    <section class="wiki-callout"><div><p class="eyebrow">DOCUMENTATION, NOT GUESSWORK</p><h2>From the first account<br>to the month-end backup.</h2><p>The project wiki explains real controls, data formats, limitations and recovery steps. The user guide is available in English.</p></div><a class="metal-btn" href="wiki/index.html">Open the wiki →</a></section>
+  </main>
+  <footer><p>Oldschool Network · <a href="https://bsky.app/profile/oldnet.bsky.social">Bluesky</a> · <a href="https://www.youtube.com/@oldschoolnetwork">YouTube</a> · <a href="https://x.com/oldschool_net">X</a> · <a href="https://t.me/OldschoolNetwork">Telegram</a> · <a href="https://github.com/OldschoolNetwork/open-hau">GitHub</a></p></footer>
+  <details class="on-display-settings on-display-fallback"><summary>Display settings</summary><iframe id="onDisplayControls" title="Display mode: Full, Lite, Super Lite" src="../display-controls.php?page=openhau/index.html" width="100%" height="84" frameborder="0" scrolling="no"><a href="../display.php?page=openhau/index.html">Full / Lite / Super Lite</a></iframe></details>
+  <script src="../mobile-navigation.js?v=20261019-1"></script>
+  <script src="../site-common.js?v=build-0007"></script>
+</body>
+</html>

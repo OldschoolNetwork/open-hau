@@ -1,52 +1,68 @@
-# Идеи для 26.2
+# 26.2 roadmap
 
-## Интерфейс Windows 10 / Metro
+This is planned work, not a list of available 26.1 features.
+The first two version digits identify the year: 26 means 2026.
 
-По прямому пожеланию Макса в 26.2 перейти к оформлению в духе Windows 10 /
-Metro: плоские поверхности, строгая сетка, плитки, акцентные цвета и минимум
-скруглений. Сохранить системную, светлую и тёмную темы. Макеты и дизайнерские
-решения согласовываются с Максом; текущая 26.1 сохраняет свой дизайн.
+## Platform-appropriate interfaces
 
-## Декоративные квитанции
+- Windows: a Windows 10 / Metro-inspired layout, clear grid, flat surfaces and restrained rounding.
+- macOS: macOS-oriented controls, spacing, navigation and platform conventions rather than a Metro skin.
+- Shared functionality and database format, with system/light/dark appearance on both.
+- Neutral professional wording throughout the product.
 
-Пожелание Макса: под альтернативными стилями подразумеваются не только
-варианты таблицы или отрывного корешка, но и выразительные композиции:
-декор, узоры, геометрические и органические формы на фоне.
+## Receipts
 
-- Добавить несколько визуально разных декоративных вариантов.
-- Сохранить читаемость текста и чисел, качество чёрно-белой печати.
-- Предусмотреть экономный режим без фонового декора.
-- Оставить выбор цвета, логотипа и сохранение конфигураций.
-- Редактор собственных макетов — отдельный будущий этап.
+Add visually distinct decorative compositions, patterns and background shapes.
+Preserve colour/logo configurations, monochrome legibility and an economical
+no-background mode. A custom layout editor is a separate milestone.
 
-## Печать и язык
+Include previous and latest physical meter readings, reading dates and calculated
+consumption on receipts. Show separate identified meter rows when an account has
+several meters; do not label a billed quantity as a cumulative meter reading.
 
-Интерфейс готового продукта должен обращаться на «вы» и использовать
-нейтральный деловой тон. Убрать обращения лично к Максу, историю про
-бабушку и разговорные приглашения. Примеры: «Настройки интерфейса»,
-«Добавьте лицевой счёт», «Выберите файл», «Демонстрационная база».
+## Reports
 
-Пользователь заметил «Всего: 2 листы бумаги» во встроенном окне печати
-WebView2. Это перевод системного компонента, отсутствующий в исходных
-строках OpenHaU. Собственные счётчики должны использовать корректные
-склонения. Возможный будущий вариант — собственная подготовка к печати
-с понятным количеством страниц перед системным диалогом.
+Plan account and service turnover/balance statements, payment reports and account
+ledgers with opening balances, charges, adjustments, payments and closing balances.
+Include period filters, totals, printing and spreadsheet export.
+Validate column definitions and calculations against controlled examples before
+claiming any reporting compliance.
 
-## Проверка Mac
+## Legacy functional coverage
 
-Получить отзыв по `monterey-feedback.md`, исправить обнаруженные проблемы
-и обновить README с указанием версии macOS и архитектуры процессора.
+Build a tested capability matrix for legacy billing workflows rather than assuming
+that matching screens is sufficient. Areas identified for analysis include:
 
-## Отчёты
+- Organisations, buildings, apartments, payers, residents and dated status changes.
+- Multiple physical meters, replacements, initial/current readings and shared meters.
+- Tariff histories, calculation bases, norms and common-consumption allocation.
+- Opening balances, payments, refunds, service allocations and adjustments.
+- Historical charge preservation, reconciliation, closing and correction workflows.
+- Receipt configuration and the required reporting suite.
 
-По отзыву мамы Макса добавить в 26.2:
+Some areas may require a richer versioned data model. Preserve original values and
+clearly identify unsupported or inferred mappings.
 
-- Оборотно-сальдовую ведомость по лицевым счетам.
-- Оборотно-сальдовую ведомость по услугам.
-- Отчёт по оплатам и карточку расчётов счёта.
-- Колонки: остаток на начало, начислено, корректировки, оплачено,
-  остаток на конец; понятное отображение долгов и переплат.
-- Выбор периода, фильтры, итоги, печать и экспорт для таблиц.
+## Import framework
 
-Точный состав и порядок колонок согласовать с бухгалтером на примере
-вымышленного счёта; это не заявление о регламентированной отчётности.
+Support explicit source profiles, including SQL Server Compact SDF and structured
+exports from other systems. A file extension is not a schema. Inspect read-only
+copies, preview mappings, preserve unmapped records and reconcile financial
+control totals before applying. General-purpose import is not available in 26.1.
+
+## Backups and compatibility
+
+Add optional automatic copies to a user-selected location, with scheduling,
+dated filenames, result verification and visible failures. A copy must be
+consistent, not a raw copy of a live database mid-write. Keep retention
+user-controlled and avoid silently deleting backups.
+
+New application versions must read supported older formats through explicit
+backup-protected migrations. Older applications may refuse newer formats.
+Test restoration and rollback as well as successful migration.
+
+## Platform verification
+
+Complete persistence/printing checks on Monterey, adapt the Mac icon's transparent
+margins, and finish the Windows PDF download-panel regression check. Keep system
+print-dialog text separate from the application's own translations.

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Organisation, accounts, services and tariffs — OpenHaU documentation 26.1 Preview"><title>Organisation, accounts, services and tariffs · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0013"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
+<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html">OpenHaU</a><a href="index.html">Wiki</a><a href="../index.html#downloads">Download</a><a href="https://github.com/OldschoolNetwork/open-hau">GitHub ↗</a></nav></header>
+<main id="main" class="wiki-shell"><aside class="wiki-nav"><h2>OpenHaU Wiki</h2><nav aria-label="Guide sections"><a href="index.html">User guide</a>
+<a href="installation.html">Installation</a>
+<a href="setup.html" aria-current="page">Organisation and accounts</a>
+<a href="monthly-work.html">Monthly workflow</a>
+<a href="receipts.html">Receipts and PDF</a>
+<a href="data-and-backups.html">Data and backups</a>
+<a href="troubleshooting.html">Troubleshooting</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.1 Preview · User guide · English</p><h1>Organisation, accounts, services and tariffs</h1>
+<h2>Organisation</h2>
+<p>Edit the organisation in settings: name, association code, CF/IDNO, address, bank, IBAN and notes. Verify them in a receipt preview. Choose the organisation logo in the receipt workspace.</p>
+<h2>Personal accounts</h2>
+<p>Create an account or edit an existing one. Available fields include:</p>
+<ul>
+<li>Account number and payer.</li>
+<li>Address and comma-separated apartment numbers; one account can cover several apartments.</li>
+<li>Total area, registered residents and a separate person count for waste charges.</li>
+<li>Opening period and opening balance in MDL; a negative balance means an advance.</li>
+<li>Active status, connected services and notes.</li>
+</ul>
+<p>The opening balance is an initial debt or advance, not a current payment. An account does not participate before its opening period. Changes affecting closed history require reopening the relevant periods.</p>
+<h2>Services</h2>
+<p>Each service has Russian/Romanian names, a unit and a calculation method:</p>
+<ul>
+<li>Metered: current reading minus previous reading.</li>
+<li>Per person: 26.1 uses the account's waste-charge person field, not its registered resident count.</li>
+<li>Area: total account area multiplied by the tariff.</li>
+<li>Fixed: the service's default quantity.</li>
+<li>Manual: a quantity entered for the selected month.</li>
+</ul>
+<p>The service must be active and connected to the account. An explicit monthly quantity override takes precedence over the standard calculation method.</p>
+<h2>Tariffs and rounding</h2>
+<p>Tariffs take effect on the first day of a month. Add a dated record instead of overwriting an old tariff. The latest applicable record at month start is used. Splitting a month between tariffs is not supported in the preview.</p>
+<p>Each quantity × tariff line is rounded to two decimal places, then rounded lines and adjustments are summed. Settings offer half up and half even rounding. Confirm the intended method with the accountant and verify control examples before starting a real ledger.</p>
+<p><a href="monthly-work.html">Monthly workflow</a> · <a href="index.html">User guide</a></p><p class="doc-meta">Source: docs/guide/setup.md.</p></article></main>
+<footer><p>Oldschool Network · <a href="https://t.me/OldschoolNetwork">Telegram</a> · <a href="https://github.com/OldschoolNetwork/open-hau">GitHub</a></p></footer><details class="on-display-settings on-display-fallback"><summary>Display settings</summary><iframe id="onDisplayControls" title="Display mode: Full, Lite, Super Lite" src="../../display-controls.php?page=openhau/wiki/setup.html" width="100%" height="84" frameborder="0" scrolling="no"><a href="../../display.php?page=openhau/wiki/setup.html">Full / Lite / Super Lite</a></iframe></details><script src="../../mobile-navigation.js?v=20261019-1"></script><script src="../../site-common.js?v=build-0007"></script></body></html>

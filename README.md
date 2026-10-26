@@ -1,56 +1,90 @@
 <p align="center"><img src="public/brand/icon.png" width="100" alt="OpenHaU"></p>
 
 <h1 align="center">OpenHaU</h1>
-<p align="center">House & Utilities · Учёт с заботой о людях</p>
-<p align="center">Офлайн · Русский / Română · SQLite · Windows + macOS</p>
+<p align="center">House & Utilities</p>
+<p align="center">Offline accounting · Russian / Romanian · Windows + macOS</p>
 
-OpenHaU — настольное приложение для небольшой ассоциации жильцов.
-Проект начался с желания сделать удобную программу для бабушки:
-с редактируемыми реквизитами, понятными начислениями и красивыми квитанциями.
+OpenHaU is a desktop workspace for small housing associations. Manage accounts,
+tariffs, readings and payments, then prepare receipts with your organisation's
+identity. No mandatory account or cloud connection is required.
 
-**26.1 Preview — предварительная версия для проверки на вымышленных данных.**
-Она не заменяет проверенную бухгалтерскую систему. Правила начисления
-и округления нужно подтвердить с бухгалтером, затем сверять результаты
-параллельно с действующей системой.
+**26.1 Preview is a preliminary release.** Start with fictional data and verify
+calculations alongside an established system before relying on them.
 
-![OpenHaU · светлая тема](docs/screenshots/overview-light.png)
+![Overview in the light theme](docs/screenshots/overview-light.jpg)
 
-## Возможности
+## Features
 
-- Лицевые счета, несколько квартир на один счёт, площадь, жители и отдельное
-  число людей для начисления за мусор.
-- Редактируемые услуги: счётчик, человек, площадь, фиксированный и ручной объём.
-- Тарифы с историей, действующие с первого дня месяца.
-- Показания, ручная замена объёма, оплаты и корректировки.
-- Точная десятичная арифметика; выбор half up / half even.
-- Закрытие месяца с сохранением начислений; повторное открытие для исправлений.
-- Системная, светлая и тёмная темы; собственный акцентный цвет.
-- Квитанции на русском, румынском или двух языках: Studio, Compact и Classic.
-- Цвет квитанции, SVG / PNG / JPEG / WebP логотип организации и конфигурации оформления.
-- SQLite с резервной копией перед сохранением существующей базы.
-- Полный JSON с проверяемым импортом, CSV-сводка и HTML-квитанции для печати.
+- Personal accounts with multiple apartments, area, residents and a separate
+  person count for waste charges.
+- Metered, per-person, area-based, fixed and manually entered quantities.
+- Dated tariffs, payments, adjustments and decimal arithmetic.
+- Closed-period snapshots that preserve historical charges.
+- System, light and dark themes; Russian and Romanian interfaces.
+- Studio, Compact and Classic receipts in Russian, Romanian or both.
+- Receipt colours, type sizes, SVG/PNG/JPEG/WebP logos and saved configurations.
+- Local SQLite storage with a backup before saving an existing database.
+- Validated full JSON exchange, monthly CSV summaries and printable HTML.
 
-## Скачать и установить
+## Download
 
-Проверенные сборки публикуются в [Releases](https://github.com/OldschoolNetwork/open-hau/releases).
-Наличие исходников или workflow не означает, что сборка уже опубликована.
+[26.1 First Preview](https://github.com/OldschoolNetwork/open-hau/releases/tag/v26.1.0-preview.1)
+includes SHA-256 checksums and these files:
 
-- **Windows x64:** установщик NSIS либо самостоятельный EXE. Нужен WebView2;
-  установщик может предложить загрузить его, если компонента нет.
-- **macOS:** предусмотрен универсальный DMG для Intel и Apple Silicon:
-  перетащи OpenHaU в Applications. SQLite включён в приложение; Rust и Node.js
-  пользователю не нужны. Цель совместимости — Monterey 12.6 и новее.
-  Подпись Apple и notarization требуют отдельной настройки. До проверки
-  на настоящем Monterey Mac-версия считается неподтверждённой.
+- **macOS:** universal Intel/Apple Silicon DMG, 6.4 MiB. Drag OpenHaU to
+  Applications. Target: macOS Monterey 12.6 or later. No Rust, Node.js or separate
+  SQLite installation is needed.
+- **Windows x64:** installer, 2.2 MiB, or standalone EXE, 7.4 MiB.
+  Microsoft Edge WebView2 Runtime is required; the installer can download it
+  when missing. The standalone EXE is not a portable-data mode.
 
-Облачная сборка — [build.yml](.github/workflows/build.yml).
-Ручной запуск в GitHub Actions собирает Windows и универсальный macOS DMG.
-[Список проверок на Monterey](docs/monterey-feedback.md) подготовлен для отзыва.
+The Mac preview is not signed with Apple Developer ID or notarized.
+Launch and a superficial functional check were reported successful on Monterey
+after removing a download quarantine flag. This is not a complete acceptance test.
+See [first-launch troubleshooting](docs/guide/troubleshooting.md) and the
+[Mac test checklist](docs/monterey-feedback.md).
 
-## Разработка
+## Documentation
 
-Нужны Node.js 24 LTS, Rust и системные инструменты сборки Tauri.
-На Windows — MSVC C++ и Windows SDK, на Mac — инструменты Xcode.
+[User guide](docs/guide/index.md) · [Data format](docs/data-format.md) ·
+[Example project](examples/demo.openhau.json) · [Testing](docs/testing.md) ·
+[Updates](docs/updates.md) · [26.2 roadmap](docs/roadmap-26.2.md)
+
+The user guide and public documentation are in English. The application currently
+provides Russian and Romanian interfaces; screenshots show the localized UI.
+[Project wiki sources](wiki/Home.md) contain the same guide in GitHub Wiki format.
+
+## Storage and privacy
+
+Save explicitly with the save control or Ctrl/Cmd+S. Apply edited readings before
+saving. Unsaved changes trigger a prompt when closing the desktop window.
+
+The desktop database is `openhau.sqlite`; its location is shown in settings.
+The `project_sections` table stores JSON sections and `save_log` records saves.
+SQLite Backup API creates a consistent copy before overwriting a nonempty database.
+Backups are not automatically pruned.
+
+Full `*.openhau.json` export includes records, settings, logos and receipt
+configurations. Import replaces the project rather than merging it.
+CSV is a monthly summary, not a full backup. Never edit the live SQLite database.
+The application does not upload accounting records to a server. Files are not
+encrypted by the application; protect the device and independent backups.
+
+## Preview limitations
+
+There is no automatic common-area allocation, general-purpose legacy importer,
+mid-month tariff splitting, regulated reporting, turnover/balance report suite,
+template editor or automatic updater. Common quantities can be entered manually.
+An incomplete calculation is marked as a draft and cannot close the month.
+
+PDF output uses the system print dialog. If it is unavailable, export HTML and
+print from a browser. Verify pagination, Romanian characters and monochrome output
+before printing a full batch.
+
+## Development
+
+Requires Node.js 24, Rust and Tauri's platform build tools: MSVC C++/Windows SDK
+on Windows, or Xcode tools on macOS.
 
 ```sh
 npm ci
@@ -62,53 +96,22 @@ npm run tauri dev
 ```sh
 # Windows
 npm run tauri build
-# macOS (выполняется на Mac)
+# macOS, executed on a Mac
 rustup target add aarch64-apple-darwin x86_64-apple-darwin
 npm run tauri build -- --target universal-apple-darwin --config src-tauri/tauri.macos.conf.json
 ```
 
-В локальной папке родительский `dev-env.ps1` подключает инструменты,
-установленные на D:, только для текущей сессии PowerShell.
+`npm run dev` is a browser preview using localStorage, not desktop SQLite.
+Calculations use decimal.js in TypeScript; Rust handles native storage and files.
+[GitHub Actions](.github/workflows/build.yml) can build Windows and universal DMG
+artifacts through manual dispatch.
 
-`npm run dev` открывает браузерный предпросмотр: он использует localStorage,
-а не нативную SQLite-базу. Рабочая база настольной версии находится
-в каталоге данных приложения, путь показан в настройках.
+## Website
 
-## Формат и сохранение
-
-Данные сохраняются кнопкой **Сохранить** или Ctrl/Cmd+S. Введённые показания
-сначала нужно применить. При выходе с несохранёнными изменениями приложение
-предложит сохранение.
-
-Рабочий файл — `openhau.sqlite`. Таблица `project_sections` хранит разделы
-проекта в виде JSON; `save_log` — журнал сохранений. Перед перезаписью
-существующей базы SQLite Backup API создаёт согласованную копию в `backups`.
-Копии пока не удаляются автоматически.
-
-[Описание открытого формата](docs/data-format.md) ·
-[Пример JSON](examples/demo.openhau.json) ·
-[План обновлений](docs/updates.md) · [Проверка версии](docs/testing.md)
-
-Редактируй экспортированный JSON и импортируй его с предварительной
-проверкой. Не редактируй SQLite, пока приложение работает. CSV — сводка,
-не полная резервная копия. Логотипы и конфигурации включены в JSON.
-
-## Ограничения Preview
-
-Нет автоматического распределения общедомовых расходов, импорта Инфокрафта,
-серединных изменений тарифов, льгот, пеней и регламентированной отчётности.
-Общие расходы пока вводятся ручным объёмом. Пользовательские HTML-шаблоны
-и автоматические обновления запланированы отдельно.
-
-PDF сохраняется через системный диалог печати. Если встроенная печать
-недоступна, экспортируй HTML и распечатай его из браузера. Неполные данные
-помечаются как черновик; закрыть такой месяц нельзя.
-
-## Конфиденциальность
-
-Приложение не отправляет бухгалтерские данные на сервер. В репозитории
-только вымышленные примеры, исходный код и авторская графика. Рабочие базы,
-квитанции жильцов, сторонние установщики и ключи не публикуются.
+`website/openhau/` contains the landing page and web wiki prepared for the
+Oldschool Network website. The source being present does not establish deployment.
+See [website maintenance](website/README.md). Only fictional demonstrations and
+project-owned branding belong in public screenshots and examples.
 
 ## Oldschool Network
 

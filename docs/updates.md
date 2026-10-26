@@ -1,34 +1,34 @@
-# Выпуски и обновления
+# Releases and updates
 
 ## 26.1 Preview
 
-Обновление пока устанавливается вручную. Приложение не обращается к GitHub
-в фоне. Кнопка Releases открывает страницу выпуска в системном браузере.
+Updates are installed manually. The application does not poll GitHub in the
+background. Its releases link opens the release page in the system browser.
 
-В `.github/workflows/build.yml` предусмотрена сборка Windows и универсального macOS
-DMG. Ручной запуск workflow загружает результаты
-как артефакты GitHub Actions; он не публикует
-непроверенные сборки автоматически. Полноценный Mac-релиз требует проверки
-на Monterey 12.6, подписи Apple и нотариализации.
+Manual dispatch of `.github/workflows/build.yml` builds Windows and universal
+macOS artifacts. Artifact generation is separate from publishing a checked
+release. Mac distribution still needs complete target-system testing and Apple
+Developer ID signing/notarization.
 
-## Предусмотренная схема автообновления
+## Planned updater design
 
-1. Источник — GitHub Releases этого репозитория, манифест `latest.json`.
-2. Версии имеют SemVer: `26.1.0`, `26.1.1`; тестовые сборки используют
-   отдельный prerelease-канал и не подменяют стабильные.
-3. Tauri Updater проверяет цифровую подпись каждого пакета. Публичный ключ
-   входит в приложение; закрытый ключ хранится вне репозитория и в GitHub
-   Actions Secrets. Никаких токенов в приложении.
-4. Поиск обновлений — вручную либо по настройке пользователя; загрузка и
-   установка предлагаются явно. Офлайн-работа не зависит от сервиса.
-5. Перед установкой сохраняются изменения и согласованная копия SQLite.
-6. Обновление схемы базы — в транзакции с явной версией; неизвестную более
-   новую схему старая программа не открывает для записи.
-7. Программа и данные хранятся раздельно: перетаскивание новой .app
-   в Applications не заменяет каталог базы.
+1. Use this repository's GitHub Releases and a signed update manifest.
+2. Keep stable and preview channels distinct. Product versions begin with the two-digit year; technical package versions use compatible three-part version strings.
+3. Verify update package signatures with a public key shipped in the app. Keep private signing material out of source and application binaries.
+4. Make checks and installation user-controlled. Offline work must remain usable without the update service.
+5. Save changes and create a consistent database backup before installation or migration.
+6. Run explicit versioned schema migrations in transactions. Reject unsupported newer schemas without writing.
+7. Keep application installation separate from database storage.
 
-Ключ подписи Tauri Updater и сертификат Apple Developer ID — разные вещи.
-Без настроенной подписи обновлений не будет имитации «автообновления»
-через загрузку произвольного EXE/DMG.
+A Tauri updater signing key and an Apple Developer ID certificate have different
+purposes. The preview does not simulate a secure updater by downloading arbitrary
+unsigned executables.
 
-Официальная документация: https://v2.tauri.app/plugin/updater/
+## Database compatibility
+
+A newer release must retain a tested path from supported older databases.
+An older application may reject a newer schema; it must not overwrite it.
+Restoring the older application after migration requires restoring the matching
+pre-migration backup, not simply replacing the executable.
+
+[Tauri updater documentation](https://v2.tauri.app/plugin/updater/)
