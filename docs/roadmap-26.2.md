@@ -28,6 +28,15 @@ Include period filters, totals, printing and spreadsheet export.
 Validate column definitions and calculations against controlled examples before
 claiming any reporting compliance.
 
+Add distinct income/expense, bank-fee and reserve-fund workflows. Keep resident
+receivables separate from association cash/bank balances. Historical payroll and
+statutory forms need separate validation before becoming current templates.
+
+Plan opt-in automatic report exports with a selected folder, format and schedule
+or close-period trigger. Include CSV, XLSX/ODS and printable HTML/PDF as distinct
+formats; do not present reports as complete backups. Implementation status is
+tracked in [the capability matrix](capabilities-26.2.md).
+
 ## Legacy functional coverage
 
 Build a tested capability matrix for legacy billing workflows rather than assuming

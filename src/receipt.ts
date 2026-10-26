@@ -1,6 +1,7 @@
 import type { Project, Account } from "./model";
 import { unitLabel } from "./model";
 import { statement, monthNext, add, money } from "./engine";
+import { receiptReadings } from "./meters";
 export const esc = (s: unknown) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -34,12 +35,19 @@ export function receipt(p: Project, a: Account, period: string) {
   const due =
     monthNext(period) + "-" + String(settings.due_day).padStart(2, "0");
   const incomplete = s.warnings.length || s.gaps.length;
+  const meters = receiptReadings(p, a.id, period);
+  const meterTable = meters.length ? `<section class="r-meter-readings"><h2>${esc(tr("Показания счётчиков", "Indexurile contoarelor"))}</h2><table><thead><tr><th>${esc(tr("Прибор / услуга", "Contor / serviciu"))}</th><th class="num">${esc(tr("Предыдущие", "Precedent"))}</th><th>${esc(tr("Дата", "Data"))}</th><th class="num">${esc(tr("Последние", "Ultimul"))}</th><th>${esc(tr("Дата", "Data"))}</th><th class="num">${esc(tr("Расход", "Consum"))}</th></tr></thead><tbody>${meters.map((m) => {
+    const service = p.services.find((x) => x.id === m.service_id);
+    const label = m.aggregate && service ? text(service.name) : m.label;
+    return `<tr><td>${esc(label)}${m.serial_number ? `<br><small>${esc(m.serial_number)}</small>` : ""}${m.aggregate ? `<br><small>${esc(tr("По услуге", "Pe serviciu"))}</small>` : ""}</td><td class="num">${esc(m.previous ?? "—")}</td><td>${esc(m.previous_date ?? "—")}</td><td class="num">${esc(m.current ?? "—")}</td><td>${esc(m.reading_date ?? "—")}</td><td class="num">${esc(m.consumption ?? "—")} ${esc(unitLabel(m.unit, lang))}</td></tr>`;
+  }).join("")}</tbody></table><p class="r-footer">${esc(tr("Показания показаны отдельно от расчётного объёма. Дата отсутствует, если она не была записана.", "Indexurile sunt afișate separat de volumul facturat. Data lipsește dacă nu a fost înregistrată."))}</p></section>` : "";
   return `<article class="receipt ${settings.receipt_design}" style="--receipt-color:${esc(settings.receipt_color)};--receipt-size:${settings.font_size}pt">
   ${p.demo ? `<p class="r-demo">DEMO · ${esc(tr("Вымышленные данные", "Date fictive"))}</p>` : ""}
   ${incomplete ? `<p class="r-warning">${esc(tr("ЧЕРНОВИК: неполные показания, тарифы или история. Итог не окончательный.", "CIORNĂ: date incomplete. Totalul nu este final."))}</p>` : ""}
   <div class="r-top"><div><p class="r-caption">${esc(o.association_code)}</p><h1>${esc(o.name)}</h1><p>${esc(text(settings.receipt_title))}</p></div>${settings.organization_logo ? `<img class="r-logo" alt="Logo" src="${esc(settings.organization_logo)}"/>` : ""}<div><p class="r-caption">${esc(tr("Расчётный период", "Perioada de calcul"))}</p><h2>${esc(period)}</h2><p>${esc(tr("Оплатить до", "Achitați până la"))} ${esc(due)}</p></div></div>
   <div class="r-meta"><div><p class="r-caption">${esc(tr("Плательщик", "Plătitor"))}</p><strong>${esc(a.payer_name)}</strong><p>${esc(a.address)}${a.apartments.length ? ", " + esc(tr("кв.", "ap.")) + " " + esc(a.apartments.join(", ")) : ""}</p></div><div><p class="r-caption">${esc(tr("Лицевой счёт", "Cont personal"))}</p><p class="r-number">${esc(a.number)}</p></div></div>
   <table><thead><tr><th>${esc(tr("Услуга", "Serviciu"))}</th><th class="num">${esc(tr("Объём", "Volum"))}</th><th>${esc(tr("Ед.", "Unit."))}</th><th class="num">${esc(tr("Тариф", "Tarif"))}</th><th class="num">${esc(tr("Сумма", "Sumă"))}, MDL</th></tr></thead><tbody>${s.lines.map((l) => `<tr><td>${esc(text(l.name))}</td><td class="num">${esc(l.quantity)}</td><td>${esc(unitLabel(l.unit, lang))}</td><td class="num">${esc(l.rate.replace(".", ","))}</td><td class="num">${esc(n(l.amount))}</td></tr>`).join("")}</tbody></table>
+  ${meterTable}
   <div class="r-summary"><p><span>${esc(tr("Остаток на начало", "Sold inițial"))}</span><span>${esc(n(s.opening))}</span></p><p><span>${esc(tr("Начислено за услуги", "Calculat pentru servicii"))}</span><span>${esc(n(add(s.lines.map((l) => l.amount)).toFixed(2)))}</span></p><p><span>${esc(tr("Корректировка", "Ajustare"))}</span><span>${esc(n(s.adjustment))}</span></p><p><span>${esc(tr("Оплачено за месяц", "Achitat în luna curentă"))}</span><span>−${esc(n(s.paid))}</span></p><p class="r-total"><span>${esc(tr("Итого к оплате", "Total spre plată"))}</span><span>${esc(n(s.balance))} MDL</span></p></div>
   <div class="r-bank"><strong>${esc(o.name)}</strong><p>${esc(o.address)}</p><p>CF/IDNO: ${esc(o.fiscal_code || "—")} · ${esc(o.bank)}</p><p>IBAN: ${esc(o.iban || "—")}</p></div><p class="r-footer">${esc(text(settings.receipt_footer))}</p>
   ${settings.receipt_design === "classic" ? `<div class="r-stub"><div><strong>${esc(tr("Извещение", "Aviz de plată"))}</strong><p>${esc(a.payer_name)}</p><p>${esc(a.number)} · ${esc(period)}</p></div><div><strong>${esc(n(s.balance))} MDL</strong><p>${esc(tr("Дата / Подпись", "Data / Semnătura"))} __________________</p></div></div>` : ""}</article>`;

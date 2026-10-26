@@ -1,5 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import Reports from "./Reports.svelte";
+  import PhysicalMeters from "./PhysicalMeters.svelte";
+  import { physicalReadings } from "./meters";
   import {
     LayoutDashboard,
     Users,
@@ -32,6 +35,7 @@
     Building2,
     TriangleAlert,
     Archive,
+    ChartNoAxesCombined,
     CheckCheck,
   } from "@lucide/svelte";
   import {
@@ -104,6 +108,7 @@
     },
     { id: "readings", ru: "Показания", ro: "Indexuri", icon: Gauge },
     { id: "payments", ru: "Оплаты", ro: "Plăți", icon: Wallet },
+    { id: "reports", ru: "Отчёты", ro: "Rapoarte", icon: ChartNoAxesCombined },
     { id: "receipts", ru: "Квитанции", ro: "Facturi", icon: ReceiptText },
     { id: "settings", ru: "Настройки", ro: "Setări", icon: Settings },
   ];
@@ -198,10 +203,7 @@
             "Снимок сохранён; более новые изменения ещё не записаны.",
             "Copia a fost salvată; modificările mai noi nu sunt încă salvate.",
           )
-        : t(
-            "Сохранено. Предыдущая версия базы сохранена в backups.",
-            "Salvat. Copia precedentă este în backups.",
-          );
+        : t("Сохранено.", "Salvat.");
     } catch (e) {
       fail(e);
     } finally {
@@ -829,7 +831,7 @@
       </div>
       <button class="about-button" onclick={() => (modal = "about")}
         ><img src="/brand/icon.png" alt="" /><span
-          >OpenHaU <small>26.1 Preview</small></span
+          >OpenHaU <small>26.2 Development</small></span
         ><Info size={16} /></button
       >
     </div>
@@ -902,6 +904,8 @@
                           "Оплаты и корректировки с понятной историей.",
                           "Plăți și ajustări cu un istoric clar.",
                         )
+                      : page === "reports"
+                        ? t("Остатки и обороты за выбранный период.", "Solduri și rulaje pentru perioada selectată.")
                       : page === "receipts"
                         ? t(
                             "Красивые квитанции. На твоём языке.",
@@ -1302,6 +1306,7 @@
           </div>
         </article>
       {:else if page === "readings"}
+        <PhysicalMeters project={p} onapply={setProject} />
         <div class="toolbar">
           <p class="muted">
             {t(
@@ -1338,13 +1343,13 @@
                 ></thead
               ><tbody
                 >{#each active as a}{#each p.services.filter((s) => s.active && a.service_ids.includes(s.id)) as s}{@const r =
-                      getReading(a.id, s.id)}<tr
+                      getReading(a.id, s.id)}{@const physical = physicalReadings(p,a.id,s.id,period)}<tr
                       ><td
                         ><strong>{a.payer_name}</strong><small
                           >{a.number} · {s.name[lang]}</small
                         ></td
                       ><td
-                        >{#if s.calculation_type === "metered"}<input
+                        >{#if physical.length}<span class="muted">{t("По приборам выше", "Din contoarele de mai sus")}</span>{:else if s.calculation_type === "metered"}<input
                             class="table-input"
                             value={r.previous}
                             oninput={(e) =>
@@ -1362,7 +1367,7 @@
                             )}
                           />{:else}<span class="muted">—</span>{/if}</td
                       ><td
-                        >{#if s.calculation_type === "metered"}<input
+                        >{#if physical.length}<span class="muted">{t("По приборам выше", "Din contoarele de mai sus")}</span>{:else if s.calculation_type === "metered"}<input
                             class="table-input"
                             value={r.current}
                             oninput={(e) =>
@@ -1501,6 +1506,8 @@
             </table>
           </div>
         </article>
+      {:else if page === "reports"}
+        <Reports project={p} />
       {:else if page === "receipts"}
         <div class="receipts-layout">
           <aside class="receipt-controls panel">
@@ -1805,8 +1812,8 @@
               <h3>{t("Обновления", "Actualizări")}</h3>
               <p class="quiet-note">
                 {t(
-                  "26.1 Preview · пока ручная установка. Подписанные обновления через GitHub Releases — следующий этап.",
-                  "26.1 Preview · instalare manuală deocamdată. Actualizări semnate prin GitHub Releases — etapa următoare.",
+                  "26.2 Development · пока ручная установка. Подписанные обновления через GitHub Releases — следующий этап.",
+                  "26.2 Development · instalare manuală deocamdată. Actualizări semnate prin GitHub Releases — etapa următoare.",
                 )}
               </p>
               <a
@@ -1819,7 +1826,7 @@
         </div>
       {/if}
       <footer class="app-footer">
-        <span>OpenHaU · 26.1 Preview</span><span
+        <span>OpenHaU · 26.2 Development</span><span
           >{t(
             "Сделано с заботой о людях и их времени.",
             "Creat cu grijă pentru oameni și timpul lor.",
@@ -2109,7 +2116,7 @@
                 ><th>{t("После импорта", "După import")}</th></tr
               ></thead
             ><tbody
-              >{#each ["accounts", "services", "tariffs", "meter_readings", "payments", "adjustments", "snapshots"] as key}<tr
+              >{#each ["accounts", "services", "tariffs", "meters", "meter_values", "meter_readings", "payments", "adjustments", "snapshots"] as key}<tr
                   ><td>{key}</td><td>{(p as any)[key].length}</td><td
                     >{(imported as any)[key].length}</td
                   ></tr
@@ -2137,7 +2144,7 @@
         {:else if modal === "about"}<div class="about-content">
             <img src="/brand/icon.png" alt="OpenHaU" />
             <h1>OpenHaU</h1>
-            <p>House & Utilities · 26.1 Preview</p>
+            <p>House & Utilities · 26.2 Development</p>
             <p>
               {t(
                 "Локальная бухгалтерия для небольших ассоциаций жильцов. Сделано для бабушки, с вниманием к деталям.",

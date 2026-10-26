@@ -36,10 +36,7 @@ export async function exportText(
   const a = document.createElement("a"),
     url = URL.createObjectURL(
       new Blob([content], {
-        type:
-          extension === "csv"
-            ? "text/csv;charset=utf-8"
-            : "application/json;charset=utf-8",
+        type: ({ csv: "text/csv", html: "text/html", xml: "application/xml", json: "application/json" }[extension] || "text/plain") + ";charset=utf-8",
       }),
     );
   a.href = url;

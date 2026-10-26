@@ -11,6 +11,11 @@ identity. No mandatory account or cloud connection is required.
 **26.1 Preview is a preliminary release.** Start with fictional data and verify
 calculations alongside an established system before relying on them.
 
+This branch contains **26.2 development work**. The published 26.1 preview remains
+the current downloadable release. Development data uses format 2 and reads format 1;
+keep an independent backup before trying it. See the
+[development capability matrix](docs/capabilities-26.2.md) for implementation status.
+
 ![Overview in the light theme](docs/screenshots/overview-light.jpg)
 
 ## Features

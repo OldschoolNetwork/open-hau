@@ -1,0 +1,906 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "const": "openhau"
+    },
+    "schema_version": {
+      "type": "number",
+      "const": 2
+    },
+    "demo": {
+      "type": "boolean"
+    },
+    "currency": {
+      "type": "string",
+      "const": "MDL"
+    },
+    "organization": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "association_code": {
+          "type": "string"
+        },
+        "fiscal_code": {
+          "type": "string"
+        },
+        "bank": {
+          "type": "string"
+        },
+        "iban": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "association_code",
+        "fiscal_code",
+        "bank",
+        "iban",
+        "address",
+        "notes"
+      ],
+      "additionalProperties": false
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "enum": [
+            "ru",
+            "ro"
+          ]
+        },
+        "theme": {
+          "type": "string",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ]
+        },
+        "period": {
+          "type": "string",
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+        },
+        "receipt_language": {
+          "type": "string",
+          "enum": [
+            "ru",
+            "ro",
+            "both"
+          ]
+        },
+        "accent": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "receipt_title": {
+          "type": "object",
+          "properties": {
+            "ru": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ro": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "ru",
+            "ro"
+          ],
+          "additionalProperties": false
+        },
+        "receipt_footer": {
+          "type": "object",
+          "properties": {
+            "ru": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ro": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "ru",
+            "ro"
+          ],
+          "additionalProperties": false
+        },
+        "due_day": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 28
+        },
+        "font_size": {
+          "type": "number",
+          "minimum": 9,
+          "maximum": 16
+        },
+        "rounding": {
+          "type": "string",
+          "enum": [
+            "half_up",
+            "half_even"
+          ]
+        },
+        "receipt_css": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "receipt_design": {
+          "default": "studio",
+          "type": "string",
+          "enum": [
+            "studio",
+            "compact",
+            "classic"
+          ]
+        },
+        "receipt_color": {
+          "default": "#46566b",
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "organization_logo": {
+          "default": "",
+          "type": "string",
+          "maxLength": 3000000
+        },
+        "receipt_presets": {
+          "default": [],
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "design": {
+                "type": "string",
+                "enum": [
+                  "studio",
+                  "compact",
+                  "classic"
+                ]
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              "font_size": {
+                "type": "number",
+                "minimum": 9,
+                "maximum": 16
+              },
+              "logo": {
+                "type": "string",
+                "maxLength": 3000000
+              }
+            },
+            "required": [
+              "name",
+              "design",
+              "color",
+              "font_size",
+              "logo"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "language",
+        "theme",
+        "period",
+        "receipt_language",
+        "accent",
+        "receipt_title",
+        "receipt_footer",
+        "due_day",
+        "font_size",
+        "rounding",
+        "receipt_css",
+        "receipt_design",
+        "receipt_color",
+        "organization_logo",
+        "receipt_presets"
+      ],
+      "additionalProperties": false
+    },
+    "accounts": {
+      "maxItems": 10000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "number": {
+            "type": "string",
+            "minLength": 1
+          },
+          "payer_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string"
+          },
+          "apartments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total_area_m2": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "registered_residents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "waste_charge_persons": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "opening_balance": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "opening_period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "service_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "payer_name",
+          "address",
+          "apartments",
+          "total_area_m2",
+          "registered_residents",
+          "waste_charge_persons",
+          "opening_balance",
+          "opening_period",
+          "service_ids",
+          "active",
+          "notes",
+          "custom_fields"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "services": {
+      "maxItems": 1000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ro": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "ru",
+              "ro"
+            ],
+            "additionalProperties": false
+          },
+          "calculation_type": {
+            "type": "string",
+            "enum": [
+              "metered",
+              "person",
+              "fixed",
+              "area",
+              "manual"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "default_quantity": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "calculation_type",
+          "unit",
+          "active",
+          "default_quantity",
+          "notes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tariffs": {
+      "maxItems": 50000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "service_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "effective_from": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "rate": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          }
+        },
+        "required": [
+          "id",
+          "service_id",
+          "effective_from",
+          "rate"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "meter_readings": {
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "service_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "previous": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "current": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "service_id",
+          "period",
+          "previous",
+          "current"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "quantities": {
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "service_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "quantity": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "service_id",
+          "period",
+          "quantity"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "payments": {
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "payment_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "entered_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "amount": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "payment_date",
+          "entered_date",
+          "amount",
+          "note"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "adjustments": {
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "amount": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "period",
+          "amount",
+          "note"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "closed_periods": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+      }
+    },
+    "snapshots": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "service_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "name": {
+                  "type": "object",
+                  "properties": {
+                    "ru": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "ro": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "ru",
+                    "ro"
+                  ],
+                  "additionalProperties": false
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                },
+                "rate": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                },
+                "amount": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                }
+              },
+              "required": [
+                "service_id",
+                "name",
+                "unit",
+                "quantity",
+                "rate",
+                "amount"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "adjustment": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "total": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          }
+        },
+        "required": [
+          "account_id",
+          "period",
+          "lines",
+          "adjustment",
+          "total"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "template_manifest": {
+      "maxItems": 0,
+      "type": "array",
+      "items": {}
+    },
+    "meters": {
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "scope": {
+            "default": "individual",
+            "type": "string",
+            "enum": [
+              "individual",
+              "shared"
+            ]
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ]
+          },
+          "service_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "serial_number": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "installed_on": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retired_on": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "initial_value": {
+            "default": "0",
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "account_id",
+          "service_id",
+          "label",
+          "serial_number",
+          "unit",
+          "active",
+          "installed_on",
+          "retired_on",
+          "initial_value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "meter_values": {
+      "maxItems": 200000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "meter_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "reading_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "kind": {
+            "default": "regular",
+            "type": "string",
+            "enum": [
+              "initial",
+              "regular",
+              "final"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "meter_id",
+          "period",
+          "reading_date",
+          "value",
+          "kind",
+          "notes"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "format",
+    "schema_version",
+    "demo",
+    "currency",
+    "organization",
+    "settings",
+    "accounts",
+    "services",
+    "tariffs",
+    "meter_readings",
+    "quantities",
+    "payments",
+    "adjustments",
+    "closed_periods",
+    "snapshots",
+    "template_manifest",
+    "meters",
+    "meter_values"
+  ],
+  "additionalProperties": false
+}

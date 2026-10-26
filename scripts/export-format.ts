@@ -8,6 +8,6 @@ demo.settings.period='2026-10';
 for(const account of demo.accounts)account.opening_period='2026-10';
 for(const rate of demo.tariffs)rate.effective_from='2026-10-01';
 for(const r of demo.meter_readings)r.period='2026-10';
-await fs.writeFile('examples/demo.openhau.json',JSON.stringify(demo,null,2)+'\n');
-await fs.writeFile('docs/openhau.schema.json',JSON.stringify(z.toJSONSchema(projectSchema),null,2)+'\n');
+await fs.writeFile('examples/demo-v2.openhau.json',JSON.stringify(demo,null,2)+'\n');
+await fs.writeFile('docs/openhau-v2.schema.json',JSON.stringify(z.toJSONSchema(projectSchema,{io:'output'}),null,2)+'\n');
 console.log('Generated example and JSON Schema. Cross-record checks are implemented in src/model.ts.');

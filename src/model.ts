@@ -118,7 +118,7 @@ const snapshot = z.object({
   adjustment: decimal,
   total: decimal,
 });
-export const projectSchema = z
+export const legacyProjectSchema = z
   .object({
     format: z.literal("openhau"),
     schema_version: z.literal(1),
@@ -258,7 +258,85 @@ export const projectSchema = z
         "Полный JSON превышает 20 МБ; уменьшите логотипы или число конфигураций",
       );
   });
+const physicalMeter = z.object({
+  id,
+  scope: z.enum(["individual", "shared"]).default("individual"),
+  account_id: z.union([id, z.literal("")]),
+  service_id: id,
+  label: z.string().min(1),
+  serial_number: z.string(),
+  unit: z.string(),
+  active: z.boolean(),
+  installed_on: date.nullable().default(null),
+  retired_on: date.nullable().default(null),
+  initial_value: nonnegative.default("0"),
+});
+const physicalMeterValue = z.object({
+  id,
+  meter_id: id,
+  period,
+  reading_date: date,
+  value: nonnegative,
+  kind: z.enum(["initial", "regular", "final"]).default("regular"),
+  notes: z.string(),
+});
+const currentProjectSchema = z
+  .object({
+    ...legacyProjectSchema.shape,
+    schema_version: z.literal(2),
+    meters: z.array(physicalMeter).max(100000),
+    meter_values: z.array(physicalMeterValue).max(200000),
+  })
+  .strict()
+  .superRefine((p, ctx) => {
+    // Reuse all established v1 accounting checks without silently stripping fields.
+    const { meters, meter_values, ...common } = p;
+    const previous = legacyProjectSchema.safeParse({ ...common, schema_version: 1 });
+    if (!previous.success)
+      for (const issue of previous.error.issues)
+        ctx.addIssue({ code: "custom", path: issue.path, message: issue.message });
+    const fail = (message: string) => ctx.addIssue({ code: "custom", message });
+    const accounts = new Set(p.accounts.map((a) => a.id));
+    const services = new Set(p.services.map((s) => s.id));
+    const meterIds = new Set(meters.map((m) => m.id));
+    const meterById = new Map(meters.map((m) => [m.id, m]));
+    if (meterIds.size !== meters.length) fail("Duplicate physical meter identifiers");
+    if (new Set(meter_values.map((r) => r.id)).size !== meter_values.length)
+      fail("Duplicate physical reading identifiers");
+    for (const m of meters) {
+      if (!services.has(m.service_id)) fail("Physical meter references an unknown service");
+      if (m.scope === "individual" && !accounts.has(m.account_id))
+        fail("Individual meter references an unknown account");
+      if (m.scope === "shared" && m.account_id !== "")
+        fail("Shared meters must not belong to one individual account");
+      if (m.installed_on && m.retired_on && m.retired_on < m.installed_on)
+        fail("Meter retirement precedes installation");
+    }
+    if (new Set(meter_values.map((r) => `${r.meter_id}|${r.reading_date}`)).size !== meter_values.length)
+      fail("Duplicate meter readings on the same date");
+    for (const r of meter_values) {
+      const meter = meterById.get(r.meter_id);
+      if (!meter) fail("Reading references an unknown physical meter");
+      else if ((meter.installed_on && r.reading_date < meter.installed_on) ||
+        (meter.retired_on && r.reading_date > meter.retired_on))
+        fail("Reading date falls outside the meter installation lifetime");
+    }
+    if (new TextEncoder().encode(JSON.stringify(p, null, 2)).byteLength > 20 * 1024 * 1024)
+      fail("Full project JSON exceeds 20 MB");
+  });
+
+export const projectSchema = z.preprocess((input) => {
+  if (input && typeof input === "object" && "schema_version" in input && input.schema_version === 1) {
+    const previous = legacyProjectSchema.safeParse(input);
+    if (previous.success)
+      return { ...previous.data, schema_version: 2, meters: [], meter_values: [] };
+  }
+  return input;
+}, currentProjectSchema);
+
 export type Project = z.infer<typeof projectSchema>;
+export type PhysicalMeter = z.infer<typeof physicalMeter>;
+export type PhysicalMeterValue = z.infer<typeof physicalMeterValue>;
 export type Account = z.infer<typeof account>;
 export type Service = z.infer<typeof service>;
 export type Tariff = z.infer<typeof tariff>;
@@ -288,7 +366,7 @@ export function demoProject(): Project {
   const month = today().slice(0, 7);
   return {
     format: "openhau",
-    schema_version: 1,
+    schema_version: 2,
     demo: true,
     currency: "MDL",
     organization: {
@@ -435,6 +513,8 @@ export function demoProject(): Project {
         current: "1159",
       },
     ],
+    meters: [],
+    meter_values: [],
     quantities: [],
     payments: [],
     adjustments: [],

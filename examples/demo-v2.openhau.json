@@ -1,0 +1,210 @@
+{
+  "format": "openhau",
+  "schema_version": 2,
+  "demo": true,
+  "currency": "MDL",
+  "organization": {
+    "id": "org-demo",
+    "name": "Asociația Exemplu",
+    "association_code": "DEMO",
+    "fiscal_code": "",
+    "bank": "",
+    "iban": "",
+    "address": "Демонстрационный адрес",
+    "notes": ""
+  },
+  "settings": {
+    "language": "ru",
+    "theme": "system",
+    "period": "2026-10",
+    "receipt_language": "ro",
+    "accent": "#a36389",
+    "receipt_title": {
+      "ru": "Квитанция за коммунальные услуги",
+      "ro": "Factura pentru servicii comunale"
+    },
+    "receipt_footer": {
+      "ru": "Спасибо за своевременную оплату.",
+      "ro": "Vă mulțumim pentru achitarea la timp."
+    },
+    "due_day": 20,
+    "font_size": 11,
+    "rounding": "half_up",
+    "receipt_css": "",
+    "receipt_design": "studio",
+    "receipt_color": "#46566b",
+    "organization_logo": "",
+    "receipt_presets": []
+  },
+  "accounts": [
+    {
+      "id": "a1",
+      "number": "000001",
+      "payer_name": "Житель Пример / Locatar Exemplu",
+      "address": "Демонстрационная улица, дом 1",
+      "apartments": [
+        "2",
+        "6"
+      ],
+      "total_area_m2": "74.90",
+      "registered_residents": 1,
+      "waste_charge_persons": 1,
+      "opening_balance": "0.00",
+      "opening_period": "2026-10",
+      "service_ids": [
+        "water",
+        "electricity",
+        "waste",
+        "maintenance",
+        "bank"
+      ],
+      "active": true,
+      "notes": "Вымышленные данные для знакомства с программой.",
+      "custom_fields": {}
+    },
+    {
+      "id": "a2",
+      "number": "000002",
+      "payer_name": "Семья Пример / Familia Exemplu",
+      "address": "Демонстрационная улица, дом 1",
+      "apartments": [
+        "3"
+      ],
+      "total_area_m2": "52.00",
+      "registered_residents": 3,
+      "waste_charge_persons": 2,
+      "opening_balance": "125.50",
+      "opening_period": "2026-10",
+      "service_ids": [
+        "water",
+        "electricity",
+        "waste",
+        "maintenance",
+        "bank"
+      ],
+      "active": true,
+      "notes": "",
+      "custom_fields": {}
+    }
+  ],
+  "services": [
+    {
+      "id": "water",
+      "name": {
+        "ru": "Вода и канализация",
+        "ro": "Apă și canalizare"
+      },
+      "calculation_type": "metered",
+      "unit": "m³",
+      "active": true,
+      "default_quantity": "0",
+      "notes": ""
+    },
+    {
+      "id": "electricity",
+      "name": {
+        "ru": "Электроэнергия",
+        "ro": "Energie electrică"
+      },
+      "calculation_type": "metered",
+      "unit": "kWh",
+      "active": true,
+      "default_quantity": "0",
+      "notes": ""
+    },
+    {
+      "id": "waste",
+      "name": {
+        "ru": "Вывоз мусора",
+        "ro": "Evacuarea deșeurilor"
+      },
+      "calculation_type": "person",
+      "unit": "чел. / pers.",
+      "active": true,
+      "default_quantity": "1",
+      "notes": "Используется отдельное число людей для начисления за мусор."
+    },
+    {
+      "id": "maintenance",
+      "name": {
+        "ru": "Содержание дома",
+        "ro": "Deservirea blocului"
+      },
+      "calculation_type": "fixed",
+      "unit": "счёт / cont",
+      "active": true,
+      "default_quantity": "1",
+      "notes": ""
+    },
+    {
+      "id": "bank",
+      "name": {
+        "ru": "Банковские услуги",
+        "ro": "Servicii bancare"
+      },
+      "calculation_type": "fixed",
+      "unit": "счёт / cont",
+      "active": true,
+      "default_quantity": "1",
+      "notes": ""
+    }
+  ],
+  "tariffs": [
+    {
+      "id": "t-water",
+      "service_id": "water",
+      "rate": "20.66",
+      "effective_from": "2026-10-01"
+    },
+    {
+      "id": "t-electricity",
+      "service_id": "electricity",
+      "rate": "3.56",
+      "effective_from": "2026-10-01"
+    },
+    {
+      "id": "t-waste",
+      "service_id": "waste",
+      "rate": "17.50",
+      "effective_from": "2026-10-01"
+    },
+    {
+      "id": "t-maintenance",
+      "service_id": "maintenance",
+      "rate": "150.00",
+      "effective_from": "2026-10-01"
+    },
+    {
+      "id": "t-bank",
+      "service_id": "bank",
+      "rate": "4.00",
+      "effective_from": "2026-10-01"
+    }
+  ],
+  "meter_readings": [
+    {
+      "id": "r1",
+      "account_id": "a1",
+      "service_id": "water",
+      "period": "2026-10",
+      "previous": "100",
+      "current": "115"
+    },
+    {
+      "id": "r2",
+      "account_id": "a1",
+      "service_id": "electricity",
+      "period": "2026-10",
+      "previous": "1000",
+      "current": "1159"
+    }
+  ],
+  "meters": [],
+  "meter_values": [],
+  "quantities": [],
+  "payments": [],
+  "adjustments": [],
+  "closed_periods": [],
+  "snapshots": [],
+  "template_manifest": []
+}

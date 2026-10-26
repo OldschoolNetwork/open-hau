@@ -1,7 +1,24 @@
-# Exchange format, version 1
+# Exchange formats
+
+The published 26.1 preview uses version 1. The 26.2 development branch uses
+version 2 and accepts validated version 1 files through an explicit migration.
+Migration preserves existing accounting sections and adds empty `meters` and
+`meter_values` arrays; it does not invent physical readings from billed quantities.
+Loading does not rewrite the source exchange file. Native saving backs up an
+existing working database before storing the migrated project.
+
+Version 2 adds individual/shared meter identities, serial numbers, installation
+and retirement dates, initial values, and dated initial/regular/final readings.
+Shared-meter allocation is not implemented yet. Several individual meters may
+contribute to one service; incomplete or decreasing readings produce a warning.
+An explicit billed-quantity override remains separate from physical consumption.
+
+The descriptions below document the common version 1 sections. The fictional
+`examples/demo.openhau.json` remains a version 1 compatibility fixture.
 
 `*.openhau.json` is indented UTF-8 JSON. The machine-readable schema is
-`openhau.schema.json`; additional relational checks are implemented in
+`openhau.schema.json` for version 1 and `openhau-v2.schema.json` for version 2;
+additional relational checks are implemented in
 `src/model.ts`. `examples/demo.openhau.json` contains only fictional records.
 
 ## Sections

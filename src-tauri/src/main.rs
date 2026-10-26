@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde_json::{Map, Value};
 use std::{
     fs,
@@ -29,7 +29,10 @@ fn connection(root: &PathBuf) -> Result<Connection, String> {
 
 fn validate(value: &Value) -> Result<(), String> {
     if value.get("format").and_then(Value::as_str) != Some("openhau")
-        || value.get("schema_version").and_then(Value::as_u64) != Some(1)
+        || !matches!(
+            value.get("schema_version").and_then(Value::as_u64),
+            Some(1 | 2)
+        )
     {
         return Err("Неподдерживаемый формат или версия данных OpenHaU".into());
     }
@@ -74,6 +77,24 @@ fn save_project(value: Value, storage: tauri::State<Storage>) -> Result<String, 
 fn save_value(value: Value, root: &PathBuf) -> Result<String, String> {
     validate(&value)?;
     let mut conn = connection(root)?;
+    let stored_version: Option<String> = conn
+        .query_row(
+            "SELECT json FROM project_sections WHERE name='schema_version'",
+            [],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+    if let Some(stored) = stored_version {
+        let version: u64 = serde_json::from_str(&stored).map_err(|e| e.to_string())?;
+        if version
+            > value["schema_version"]
+                .as_u64()
+                .ok_or("Invalid schema version")?
+        {
+            return Err("Нельзя перезаписать базу более нового формата".into());
+        }
+    }
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?
@@ -192,8 +213,24 @@ mod tests {
         );
         drop(conn);
         let mut second = first;
+        second["schema_version"] = serde_json::json!(2);
+        second["meters"] = serde_json::json!([]);
+        second["meter_values"] = serde_json::json!([]);
         second["organization"]["name"] = serde_json::json!("Demo 2");
-        save_value(second, &root).unwrap();
+        save_value(second.clone(), &root).unwrap();
+        let mut downgrade = second;
+        downgrade["schema_version"] = serde_json::json!(1);
+        assert!(save_value(downgrade, &root).is_err());
+        let current = connection(&root).unwrap();
+        let stored_version: String = current
+            .query_row(
+                "SELECT json FROM project_sections WHERE name='schema_version'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored_version, "2");
+        drop(current);
         let backup = fs::read_dir(root.join("backups"))
             .unwrap()
             .next()
@@ -201,6 +238,14 @@ mod tests {
             .unwrap()
             .path();
         let old = Connection::open(&backup).unwrap();
+        let old_version: String = old
+            .query_row(
+                "SELECT json FROM project_sections WHERE name='schema_version'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(old_version, "1");
         let old_text: String = old
             .query_row(
                 "SELECT json FROM project_sections WHERE name='organization'",

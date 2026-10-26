@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
 import type { Project, Account } from "./model";
+import { physicalReadings } from "./meters";
 Decimal.set({ precision: 40 });
 export const D = (v: string | number) => new Decimal(v);
 export const add = (xs: string[]) => xs.reduce((a, b) => a.plus(b), D(0));
@@ -60,6 +61,14 @@ export function charges(
     let quantity = override?.quantity;
     if (quantity === undefined) {
       if (s.calculation_type === "metered") {
+        const meters = physicalReadings(p, a.id, s.id, period);
+        if (meters.length) {
+          if (meters.some((m) => m.warning)) {
+            warnings.push(s.name[p.settings.language] + ": incomplete or decreasing physical meter readings");
+            continue;
+          }
+          quantity = add(meters.map((m) => m.consumption!)).toFixed();
+        } else {
         const r = p.meter_readings.find(
           (x) =>
             x.account_id === a.id &&
@@ -71,6 +80,7 @@ export function charges(
           continue;
         }
         quantity = D(r.current).minus(r.previous).toFixed();
+        }
       } else if (s.calculation_type === "person")
         quantity = String(a.waste_charge_persons);
       else if (s.calculation_type === "area") quantity = a.total_area_m2;
