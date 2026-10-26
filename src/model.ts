@@ -25,7 +25,11 @@ const date = z
     const d = new Date(s + "T00:00:00Z");
     return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
   }, "Некорректная дата");
-const names = z.object({ ru: z.string().min(1), ro: z.string().min(1) });
+const names = z.object({
+  ru: z.string().min(1),
+  ro: z.string().min(1),
+  en: z.string().optional(),
+});
 const logo = z
   .string()
   .max(3000000)
@@ -280,31 +284,229 @@ const physicalMeterValue = z.object({
   kind: z.enum(["initial", "regular", "final"]).default("regular"),
   notes: z.string(),
 });
+const monthlyOccupancy = z.object({
+  id,
+  account_id: id,
+  apartment: z.string(),
+  period,
+  mode: z.enum(["direct", "cumulative"]),
+  previous: z.number().int().min(0).max(1000000000),
+  current: z.number().int().min(0).max(1000000000),
+  notes: z.string(),
+});
+const sharedGroup = z.object({
+  id,
+  name: z.string().min(1),
+  shared_meter_id: id,
+  individual_meter_ids: z.array(id).min(1).max(100000),
+  effective_from: period,
+  effective_to: period.nullable(),
+  precision: z.number().int().min(0).max(6),
+  allow_negative: z.boolean().default(false),
+  exclusions: z.array(
+    z.object({ period, account_ids: z.array(id), notes: z.string() }),
+  ),
+});
+export const receiptDesigns = [
+  "studio",
+  "compact",
+  "classic",
+  "ribbon",
+  "botanical",
+  "heritage",
+  "custom",
+] as const;
+const customReceipt = z.object({
+  font: z.enum(["sans", "serif", "mono"]),
+  decoration: z.enum(["none", "stripes", "dots"]),
+  border: z.enum(["none", "line", "double"]),
+  heading: z.enum(["left", "center"]),
+  economy: z.boolean(),
+});
+export const defaultCustomReceipt = {
+  font: "sans",
+  decoration: "none",
+  border: "line",
+  heading: "left",
+  economy: false,
+} as const;
 const currentProjectSchema = z
   .object({
     ...legacyProjectSchema.shape,
     schema_version: z.literal(2),
+    settings: legacyProjectSchema.shape.settings.extend({
+      receipt_language: z.enum(["ru", "ro", "both", "en"]),
+      receipt_design: z.enum(receiptDesigns).default("studio"),
+      custom_receipt: customReceipt.optional(),
+      receipt_presets: z
+        .array(
+          z.object({
+            name: z.string().min(1),
+            design: z.enum(receiptDesigns),
+            color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+            font_size: z.number().min(9).max(16),
+            logo,
+            custom: customReceipt.optional(),
+          }),
+        )
+        .max(20)
+        .default([]),
+    }),
     meters: z.array(physicalMeter).max(100000),
     meter_values: z.array(physicalMeterValue).max(200000),
+    monthly_occupancy: z.array(monthlyOccupancy).max(200000).default([]),
+    shared_groups: z.array(sharedGroup).max(10000).default([]),
+    payment_deadlines: z
+      .array(z.object({ period, due_date: date }))
+      .max(12000)
+      .default([]),
   })
   .strict()
   .superRefine((p, ctx) => {
     // Reuse all established v1 accounting checks without silently stripping fields.
-    const { meters, meter_values, ...common } = p;
-    const previous = legacyProjectSchema.safeParse({ ...common, schema_version: 1 });
+    const {
+      meters,
+      meter_values,
+      monthly_occupancy,
+      shared_groups,
+      payment_deadlines,
+      ...common
+    } = p;
+    const previous = legacyProjectSchema.safeParse({
+      ...common,
+      schema_version: 1,
+      settings: {
+        ...p.settings,
+        receipt_language:
+          p.settings.receipt_language === "en"
+            ? "ro"
+            : p.settings.receipt_language,
+        receipt_design: "studio",
+        receipt_presets: p.settings.receipt_presets.map((preset) => ({
+          ...preset,
+          design: "studio",
+        })),
+      },
+    });
     if (!previous.success)
       for (const issue of previous.error.issues)
-        ctx.addIssue({ code: "custom", path: issue.path, message: issue.message });
+        ctx.addIssue({
+          code: "custom",
+          path: issue.path,
+          message: issue.message,
+        });
     const fail = (message: string) => ctx.addIssue({ code: "custom", message });
+    if (
+      new Set(payment_deadlines.map((d) => d.period)).size !==
+      payment_deadlines.length
+    )
+      fail("Duplicate payment deadline months");
+    if (payment_deadlines.some((d) => d.due_date < d.period + "-01"))
+      fail("Payment deadline precedes billing month");
     const accounts = new Set(p.accounts.map((a) => a.id));
+    if (
+      new Set(monthly_occupancy.map((r) => r.id)).size !==
+      monthly_occupancy.length
+    )
+      fail("Duplicate monthly occupancy identifiers");
+    if (
+      new Set(
+        monthly_occupancy.map(
+          (r) => `${r.account_id}|${r.apartment}|${r.period}`,
+        ),
+      ).size !== monthly_occupancy.length
+    )
+      fail("Duplicate monthly occupancy entries");
+    const occupancyGroups = new Map<
+      string,
+      { aggregate: boolean; detail: boolean }
+    >();
+    for (const r of monthly_occupancy) {
+      const account = p.accounts.find((a) => a.id === r.account_id);
+      if (!account) fail("Monthly occupancy references an unknown account");
+      else if (r.apartment && !account.apartments.includes(r.apartment))
+        fail("Monthly occupancy references an unknown apartment");
+      if (r.mode === "direct" && r.previous !== 0)
+        fail("Direct monthly occupancy must have a zero baseline");
+      if (r.current < r.previous) fail("Cumulative occupancy cannot decrease");
+      const key = `${r.account_id}|${r.period}`,
+        group = occupancyGroups.get(key) || { aggregate: false, detail: false };
+      if (r.apartment) group.detail = true;
+      else group.aggregate = true;
+      occupancyGroups.set(key, group);
+    }
+    if ([...occupancyGroups.values()].some((g) => g.aggregate && g.detail))
+      fail(
+        "Account totals and apartment occupancy cannot be mixed for the same month",
+      );
     const services = new Set(p.services.map((s) => s.id));
     const meterIds = new Set(meters.map((m) => m.id));
     const meterById = new Map(meters.map((m) => [m.id, m]));
-    if (meterIds.size !== meters.length) fail("Duplicate physical meter identifiers");
+    if (new Set(shared_groups.map((g) => g.id)).size !== shared_groups.length)
+      fail("Duplicate shared group identifiers");
+    for (const g of shared_groups) {
+      const master = meterById.get(g.shared_meter_id);
+      if (!master || master.scope !== "shared")
+        fail("Group requires a shared meter");
+      if (g.effective_to && g.effective_to < g.effective_from)
+        fail("Shared group end precedes start");
+      if (
+        new Set(g.individual_meter_ids).size !== g.individual_meter_ids.length
+      )
+        fail("Duplicate linked individual meters");
+      const linkedAccounts = new Set<string>();
+      for (const mid of g.individual_meter_ids) {
+        const meter = meterById.get(mid);
+        if (
+          !meter ||
+          meter.scope !== "individual" ||
+          meter.service_id !== master?.service_id
+        )
+          fail("Linked meters must be individual meters for the same service");
+        if (meter) linkedAccounts.add(meter.account_id);
+        if (
+          meter &&
+          !p.accounts
+            .find((a) => a.id === meter.account_id)
+            ?.service_ids.includes(meter.service_id)
+        )
+          fail("Linked account must use the shared meter service");
+      }
+      if (
+        new Set(g.exclusions.map((e) => e.period)).size !== g.exclusions.length
+      )
+        fail("Duplicate exception months");
+      for (const e of g.exclusions) {
+        if (
+          new Set(e.account_ids).size !== e.account_ids.length ||
+          e.account_ids.some((id) => !linkedAccounts.has(id))
+        )
+          fail("Invalid excluded accounts");
+      }
+    }
+    for (let i = 0; i < shared_groups.length; i++)
+      for (let j = i + 1; j < shared_groups.length; j++) {
+        const a = shared_groups[i],
+          b = shared_groups[j];
+        const overlap =
+          a.effective_from <= (b.effective_to || "9999-12") &&
+          b.effective_from <= (a.effective_to || "9999-12");
+        if (
+          overlap &&
+          (a.shared_meter_id === b.shared_meter_id ||
+            a.individual_meter_ids.some((id) =>
+              b.individual_meter_ids.includes(id),
+            ))
+        )
+          fail("Meter groups overlap in time");
+      }
+    if (meterIds.size !== meters.length)
+      fail("Duplicate physical meter identifiers");
     if (new Set(meter_values.map((r) => r.id)).size !== meter_values.length)
       fail("Duplicate physical reading identifiers");
     for (const m of meters) {
-      if (!services.has(m.service_id)) fail("Physical meter references an unknown service");
+      if (!services.has(m.service_id))
+        fail("Physical meter references an unknown service");
       if (m.scope === "individual" && !accounts.has(m.account_id))
         fail("Individual meter references an unknown account");
       if (m.scope === "shared" && m.account_id !== "")
@@ -312,24 +514,42 @@ const currentProjectSchema = z
       if (m.installed_on && m.retired_on && m.retired_on < m.installed_on)
         fail("Meter retirement precedes installation");
     }
-    if (new Set(meter_values.map((r) => `${r.meter_id}|${r.reading_date}`)).size !== meter_values.length)
+    if (
+      new Set(meter_values.map((r) => `${r.meter_id}|${r.reading_date}`))
+        .size !== meter_values.length
+    )
       fail("Duplicate meter readings on the same date");
     for (const r of meter_values) {
       const meter = meterById.get(r.meter_id);
       if (!meter) fail("Reading references an unknown physical meter");
-      else if ((meter.installed_on && r.reading_date < meter.installed_on) ||
-        (meter.retired_on && r.reading_date > meter.retired_on))
+      else if (
+        (meter.installed_on && r.reading_date < meter.installed_on) ||
+        (meter.retired_on && r.reading_date > meter.retired_on)
+      )
         fail("Reading date falls outside the meter installation lifetime");
     }
-    if (new TextEncoder().encode(JSON.stringify(p, null, 2)).byteLength > 20 * 1024 * 1024)
+    if (
+      new TextEncoder().encode(JSON.stringify(p, null, 2)).byteLength >
+      20 * 1024 * 1024
+    )
       fail("Full project JSON exceeds 20 MB");
   });
 
 export const projectSchema = z.preprocess((input) => {
-  if (input && typeof input === "object" && "schema_version" in input && input.schema_version === 1) {
+  if (
+    input &&
+    typeof input === "object" &&
+    "schema_version" in input &&
+    input.schema_version === 1
+  ) {
     const previous = legacyProjectSchema.safeParse(input);
     if (previous.success)
-      return { ...previous.data, schema_version: 2, meters: [], meter_values: [] };
+      return {
+        ...previous.data,
+        schema_version: 2,
+        meters: [],
+        meter_values: [],
+      };
   }
   return input;
 }, currentProjectSchema);
@@ -337,25 +557,27 @@ export const projectSchema = z.preprocess((input) => {
 export type Project = z.infer<typeof projectSchema>;
 export type PhysicalMeter = z.infer<typeof physicalMeter>;
 export type PhysicalMeterValue = z.infer<typeof physicalMeterValue>;
+export type MonthlyOccupancy = z.infer<typeof monthlyOccupancy>;
+export type SharedGroup = z.infer<typeof sharedGroup>;
 export type Account = z.infer<typeof account>;
 export type Service = z.infer<typeof service>;
 export type Tariff = z.infer<typeof tariff>;
 export type Payment = z.infer<typeof payment>;
 export type Adjustment = z.infer<typeof adjustment>;
 export const uid = () => crypto.randomUUID();
-export function unitLabel(unit: string, lang: "ru" | "ro" | "both") {
-  const labels: Record<string, [string, string]> = {
-    person: ["чел.", "pers."],
-    "чел. / pers.": ["чел.", "pers."],
-    account: ["счёт", "cont"],
-    "счёт / cont": ["счёт", "cont"],
+export function unitLabel(unit: string, lang: "ru" | "ro" | "both" | "en") {
+  const labels: Record<string, [string, string, string]> = {
+    person: ["чел.", "pers.", "persons"],
+    "чел. / pers.": ["чел.", "pers.", "persons"],
+    account: ["счёт", "cont", "account"],
+    "счёт / cont": ["счёт", "cont", "account"],
   };
   const pair = labels[unit];
   return !pair
     ? unit
     : lang === "both"
-      ? pair.join(" / ")
-      : pair[lang === "ru" ? 0 : 1];
+      ? pair.slice(0, 2).join(" / ")
+      : pair[lang === "ru" ? 0 : lang === "en" ? 2 : 1];
 }
 export const today = () => {
   const d = new Date();
@@ -515,6 +737,9 @@ export function demoProject(): Project {
     ],
     meters: [],
     meter_values: [],
+    monthly_occupancy: [],
+    shared_groups: [],
+    payment_deadlines: [],
     quantities: [],
     payments: [],
     adjustments: [],

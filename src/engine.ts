@@ -1,6 +1,8 @@
 import Decimal from "decimal.js";
 import type { Project, Account } from "./model";
 import { physicalReadings } from "./meters";
+import { monthlyPersons } from "./occupancy";
+import { applicableGroups, sharedDistribution } from "./shared-consumption";
 Decimal.set({ precision: 40 });
 export const D = (v: string | number) => new Decimal(v);
 export const add = (xs: string[]) => xs.reduce((a, b) => a.plus(b), D(0));
@@ -20,7 +22,7 @@ export function monthNext(period: string) {
 }
 export type Line = {
   service_id: string;
-  name: { ru: string; ro: string };
+  name: { ru: string; ro: string; en?:string };
   unit: string;
   quantity: string;
   rate: string;
@@ -40,7 +42,7 @@ export function charges(
       lines: [],
       adjustment: "0.00",
       total: "0.00",
-      warnings: ["Счёт ещё не открыт в выбранном периоде"],
+      warnings: [p.settings.language==="ru"?"Счёт ещё не открыт в выбранном периоде":"Contul nu era încă deschis în perioada selectată"],
     };
   const lines: Line[] = [],
     warnings: string[] = [];
@@ -51,7 +53,7 @@ export function charges(
       .filter((t) => t.service_id === sid && t.effective_from <= period + "-01")
       .sort((x, y) => y.effective_from.localeCompare(x.effective_from))[0];
     if (!tariff) {
-      warnings.push(s.name[p.settings.language] + ": нет тарифа");
+      warnings.push(s.name[p.settings.language] + (p.settings.language==="ru"?": нет тарифа":": tariful lipsește"));
       continue;
     }
     const override = p.quantities.find(
@@ -81,16 +83,26 @@ export function charges(
               x.period === period,
           );
           if (!r) {
-            warnings.push(s.name[p.settings.language] + ": нет показаний");
+            warnings.push(s.name[p.settings.language] + (p.settings.language==="ru"?": нет показаний":": indexurile lipsesc"));
             continue;
           }
           quantity = D(r.current).minus(r.previous).toFixed();
         }
-      } else if (s.calculation_type === "person")
-        quantity = String(a.waste_charge_persons);
-      else if (s.calculation_type === "area") quantity = a.total_area_m2;
+      } else if (s.calculation_type === "person") {
+        const occupancy = monthlyPersons(p, a, period);
+        if (occupancy.persons === null) {
+          warnings.push(
+            s.name[p.settings.language] +
+              (p.settings.language === "ru"
+                ? ": заполните количество проживающих во всех квартирах"
+                : ": completați numărul de locatari pentru toate apartamentele"),
+          );
+          continue;
+        }
+        quantity = String(occupancy.persons);
+      } else if (s.calculation_type === "area") quantity = a.total_area_m2;
       else if (s.calculation_type === "manual") {
-        warnings.push(s.name[p.settings.language] + ": не введён объём");
+        warnings.push(s.name[p.settings.language] + (p.settings.language==="ru"?": не введён объём":": volumul nu a fost introdus"));
         continue;
       } else quantity = s.default_quantity;
     }
@@ -102,6 +114,47 @@ export function charges(
       rate: tariff.rate,
       amount: money(D(quantity).times(tariff.rate), p),
     });
+    for (const group of applicableGroups(p, period).filter(
+      (g) =>
+        p.meters.find((m) => m.id === g.shared_meter_id)?.service_id === sid,
+    )) {
+      if (
+        !group.individual_meter_ids.some(
+          (mid) => p.meters.find((m) => m.id === mid)?.account_id === a.id,
+        )
+      )
+        continue;
+      const distribution = sharedDistribution(p, group, period);
+      if (!distribution.ready) {
+        warnings.push(
+          ...distribution.warnings.map((w) => group.name + ": " + w),
+        );
+        continue;
+      }
+      if (override) {
+        warnings.push(
+          group.name +
+            (p.settings.language === "ru"
+              ? ": удалите ручной объём или пересмотрите распределение"
+              : ": eliminați volumul manual sau revizuiți repartizarea"),
+        );
+        continue;
+      }
+      const share = distribution.rows.find((r) => r.account_id === a.id)?.share;
+      if (share !== undefined && !D(share).isZero())
+        lines.push({
+          service_id: s.id,
+          name: {
+            ru: s.name.ru + " · общая разница",
+            ro: s.name.ro + " · diferență comună",
+            en:s.name.en?s.name.en+" · shared difference":undefined,
+          },
+          unit: s.unit,
+          quantity: share,
+          rate: tariff.rate,
+          amount: money(D(share).times(tariff.rate), p),
+        });
+    }
   }
   const adjustment = money(
     add(
@@ -162,13 +215,13 @@ export function statement(p: Project, a: Account, period: string) {
   };
 }
 export function closePeriod(p: Project, period: string): Project {
-  if (p.closed_periods.includes(period)) throw Error("Период уже закрыт");
+  if (p.closed_periods.includes(period)) throw Error(p.settings.language==="ru"?"Период уже закрыт":"Perioada este deja închisă");
   const accounts = p.accounts.filter(
     (a) => a.active && a.opening_period <= period,
   );
   const rows = accounts.map((a) => ({ a, s: statement(p, a, period) }));
   if (rows.some((x) => x.s.warnings.length || x.s.gaps.length))
-    throw Error("Заполни показания, тарифы и закрой предыдущие периоды");
+    throw Error(p.settings.language==="ru"?"Заполните показания, тарифы и закройте предыдущие периоды":"Completați indexurile și tarifele și închideți perioadele anterioare");
   return {
     ...p,
     closed_periods: [...p.closed_periods, period],
@@ -186,7 +239,7 @@ export function closePeriod(p: Project, period: string): Project {
 }
 export function reopenPeriod(p: Project, period: string): Project {
   if (p.closed_periods.some((x) => x > period))
-    throw Error("Сначала открой более поздние закрытые периоды");
+    throw Error(p.settings.language==="ru"?"Сначала откройте более поздние закрытые периоды":"Redeschideți mai întâi perioadele ulterioare închise");
   return {
     ...p,
     closed_periods: p.closed_periods.filter((x) => x !== period),

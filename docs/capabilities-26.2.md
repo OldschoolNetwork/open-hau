@@ -9,7 +9,8 @@ The published 26.1 preview is unchanged.
 | Account, service and tariff editing | Existing preview implementation | Dated resident/status changes and richer property relationships |
 | Physical meter identities and readings | Format 2 model, meter/reading editor, history and calculation/receipt functions | Replacement workflow, imported history and broader usability checks |
 | Previous/current readings on receipts | Individual meters printed separately, dates retained; legacy aggregate fallback | Full meter-entry workflow and print acceptance on both platforms |
-| Shared meters | Data model distinguishes shared from individual readings | Explicit allocation rules, preview, reconciliation and controls |
+| Shared meters | Dated meter groups, equal per-account allocation, month-specific exemptions, rounding conservation and preview | Broader native acceptance and imported meter-network mapping |
+| Monthly waste counts | Whole-account or per-apartment direct/cumulative monthly entry and missing-data checks | Broader native acceptance and spreadsheet mapping |
 | Closed financial history | Preserved snapshots and decimal calculations | Extended correction workflows and service-level reconciliation |
 | Account turnover/balance report | Period filters, totals, inactive accounts, missing-history warnings | Accounting review, service statements and account ledgers |
 | Report exports | CSV, SpreadsheetML XML and printable HTML | XLSX/ODS, dedicated export settings, destination and scheduling |
@@ -21,8 +22,8 @@ The published 26.1 preview is unchanged.
 | Payroll and statutory forms | Analysis only | Separate scope, validated jurisdiction/date-specific rules and approved templates |
 | Legacy database import | Source-profile design; a one-off migration is not a general importer | Read-only source inspection, mapping preview, provenance, archives and control totals |
 | Spreadsheet import | Analysis only | Explicit column mapping, dates/units, duplicates, organisation boundaries and cached-value checks |
-| Windows/macOS interface | Existing shared preview layout | Windows 10 / Metro and macOS-oriented presentation, professional wording |
-| Decorative receipt designs | Existing Studio/Compact/Classic | Distinct decoration, economical printing and monochrome verification |
+| Windows/macOS interface | Separate Windows 10 22H2-inspired and macOS-oriented presentation; translated calculation/validation messages | Native visual acceptance and remaining wording review |
+| Receipt designs and languages | Seven designs, custom appearance presets, logos, English receipt labels and monthly payment dates | Native print acceptance and broader long-bill checks |
 
 ## Export contracts
 

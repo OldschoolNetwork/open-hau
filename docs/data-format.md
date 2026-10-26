@@ -20,6 +20,13 @@ still requires its final reading so replacement does not omit its consumption.
 The descriptions below document the common version 1 sections. The fictional
 `examples/demo.openhau.json` remains a version 1 compatibility fixture.
 
+Version 2 development also includes optional-at-import `monthly_occupancy`,
+`shared_groups` and `payment_deadlines` arrays, normalized to empty arrays for
+older projects. They record dated resident counts, shared meter connections and
+monthly exceptions, and due-date overrides. Receipt settings include additional
+designs, custom appearance controls and English labels. English names are optional.
+The version 2 machine-readable schema describes normalized exported documents.
+
 `*.openhau.json` is indented UTF-8 JSON. The machine-readable schema is
 `openhau.schema.json` for version 1 and `openhau-v2.schema.json` for version 2;
 additional relational checks are implemented in

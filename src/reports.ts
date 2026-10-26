@@ -45,13 +45,15 @@ export function accountBalanceReport(p: Project, from: string, to: string) {
             warnings.add(`${month}: ${warning}`);
         } else if (month < p.settings.period) {
           warnings.add(
-            `${month}: inactive account has no preserved charge snapshot`,
+            `${month}: ${p.settings.language === "ru" ? "у закрытого счёта нет сохранённого начисления" : "contul închis nu are un calcul păstrat"}`,
           );
         }
         adjustments = adjustments.plus(s.adjustment);
         paid = paid.plus(s.paid);
         if (s.gaps.length)
-          warnings.add(`${month}: missing closed history ${s.gaps.join(", ")}`);
+          warnings.add(
+            `${month}: ${p.settings.language === "ru" ? "пропущена закрытая история" : "istoricul închis lipsește"} ${s.gaps.join(", ")}`,
+          );
       }
       return {
         account_id: a.id,

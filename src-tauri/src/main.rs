@@ -208,6 +208,11 @@ fn storage_path(storage: tauri::State<Storage>) -> String {
     storage.root.display().to_string()
 }
 
+#[tauri::command]
+fn runtime_platform() -> String {
+    std::env::consts::OS.to_string()
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -234,6 +239,7 @@ fn main() {
             read_json_file,
             write_text_file,
             storage_path,
+            runtime_platform,
             backup_settings,
             configure_backups,
             backup_now,

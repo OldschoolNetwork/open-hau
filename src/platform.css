@@ -1,0 +1,28 @@
+:root[data-platform="windows"]{font-family:"Segoe UI",Tahoma,sans-serif;--shadow:none;--border:#d5d5d5;--sidebar:#f0f0f0;--bg:#fafafa;--muted:#646464}
+:root[data-platform="windows"][data-theme="dark"]{--bg:#1f1f1f;--sidebar:#252525;--surface:#2b2b2b;--border:#4a4a4a;--input:#333;--text:#f2f2f2;--muted:#bdbdbd;--hover:#383838;--soft:#363036}
+:root[data-platform="windows"] :is(.panel,.workspace,.org-symbol,.period-picker,.button,.icon-button,.demo-banner,.stat-card,.quick-icon,.theme-options button,.modal,.alert,input,select,textarea){border-radius:0;box-shadow:none}
+:root[data-platform="windows"] .sidebar{padding-left:0;padding-right:0;border-right:1px solid var(--border)}
+:root[data-platform="windows"] .sidebar :is(.workspace,.sidebar-bottom){margin-left:12px;margin-right:12px}
+:root[data-platform="windows"] .sidebar nav{gap:0}
+:root[data-platform="windows"] .sidebar nav button{border-radius:0;border-left:4px solid transparent;padding-left:24px;min-height:46px;font-weight:400}
+:root[data-platform="windows"] .sidebar nav button.active{border-left-color:var(--accent);background:var(--soft);font-weight:600}
+:root[data-platform="windows"] .topbar{height:64px;border-bottom:1px solid var(--border)}
+:root[data-platform="windows"] .content{padding-top:26px}
+:root[data-platform="windows"] .page-heading h1{font-weight:350;letter-spacing:0;font-size:30px}
+:root[data-platform="windows"] .button{border:1px solid transparent;min-height:34px;font-weight:500;padding:8px 16px}
+:root[data-platform="windows"] .button.secondary{border-color:var(--border);background:var(--surface)}
+:root[data-platform="windows"] .button.secondary:hover{border-color:var(--text);background:var(--hover)}
+:root[data-platform="windows"] :is(input,select,textarea){border-color:var(--border)}
+:root[data-platform="windows"] :is(input,select,textarea):focus{outline:2px solid var(--accent);outline-offset:-2px}
+:root[data-platform="windows"] .stat-card{border-top:3px solid var(--accent)}
+:root[data-platform="windows"] .panel-heading{border-bottom:1px solid var(--border)}
+:root[data-platform="windows"] table th{font-weight:600}
+:root[data-platform="windows"] .theme-options button{border:1px solid var(--border)}
+:root[data-platform="macos"]{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;--bg:#f3f3f5;--sidebar:#ededf0;--border:#d9d9dd;--shadow:0 1px 3px #00000008}
+:root[data-platform="macos"][data-theme="dark"]{--bg:#202023;--sidebar:#29292d;--surface:#2c2c30;--input:#343438;--border:#45454a;--text:#f3f3f5;--muted:#b1b1b8;--hover:#39393e;--soft:#393139;--shadow:none}
+:root[data-platform="macos"] .sidebar nav button{border-radius:7px;padding-top:9px;padding-bottom:9px}
+:root[data-platform="macos"] .page-heading h1{font-weight:650;letter-spacing:-.5px}
+:root[data-platform="macos"] .button{border-radius:6px;padding-top:8px;padding-bottom:8px}
+:root[data-platform="macos"] :is(input,select,textarea){border-radius:5px}
+:root[data-platform="macos"] .panel{border-radius:10px;box-shadow:var(--shadow)}
+@media print{:root[data-platform] .receipt{font-family:Arial,sans-serif}}

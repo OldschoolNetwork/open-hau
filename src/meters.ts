@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import type { Project } from "./model";
+import type { Project, PhysicalMeter } from "./model";
 
 export type MeterDisplay = {
   meter_id: string;
@@ -45,52 +45,56 @@ export function physicalReadings(
         m.retired_on?.slice(0, 7) === period ||
         p.meter_values.some((r) => r.meter_id === m.id && r.period === period),
     )
-    .map((m) => {
-      const values = p.meter_values
-        .filter((r) => r.meter_id === m.id)
-        .sort((a, b) => a.reading_date.localeCompare(b.reading_date));
-      const current = values
-        .filter((r) => r.period === period && r.kind !== "initial")
-        .at(-1);
-      const previous = values
-        .filter(
-          (r) =>
-            (r.period < period ||
-              (r.kind === "initial" && r.period <= period)) &&
-            (!current || r.reading_date <= current.reading_date),
-        )
-        .at(-1);
-      const prior =
-        previous?.value ?? (m.installed_on ? m.initial_value : null);
-      const delta =
-        current && prior !== null
-          ? new Decimal(current.value).minus(prior)
-          : null;
-      const decreasing = delta?.isNegative() ?? false;
-      const service = p.services.find((s) => s.id === serviceId);
-      const incompatibleUnit =
-        !!service && canonicalUnit(service.unit) !== canonicalUnit(m.unit);
-      return {
-        meter_id: m.id,
-        service_id: serviceId,
-        label: m.label,
-        serial_number: m.serial_number,
-        unit: m.unit,
-        previous: prior,
-        current: current?.value ?? null,
-        previous_date: previous?.reading_date ?? m.installed_on,
-        reading_date: current?.reading_date ?? null,
-        consumption: delta && !decreasing && !incompatibleUnit ? delta.toFixed() : null,
-        aggregate: false,
-        warning: incompatibleUnit
-          ? "unit"
-          : !current || prior === null
-            ? "missing"
-            : decreasing
-              ? "decreasing"
-              : null,
-      };
-    });
+    .map((m) => meterReading(p, m, period));
+}
+
+export function meterReading(
+  p: Project,
+  m: PhysicalMeter,
+  period: string,
+): MeterDisplay {
+  const serviceId = m.service_id;
+  const values = p.meter_values
+    .filter((r) => r.meter_id === m.id)
+    .sort((a, b) => a.reading_date.localeCompare(b.reading_date));
+  const current = values
+    .filter((r) => r.period === period && r.kind !== "initial")
+    .at(-1);
+  const previous = values
+    .filter(
+      (r) =>
+        (r.period < period || (r.kind === "initial" && r.period <= period)) &&
+        (!current || r.reading_date <= current.reading_date),
+    )
+    .at(-1);
+  const prior = previous?.value ?? (m.installed_on ? m.initial_value : null);
+  const delta =
+    current && prior !== null ? new Decimal(current.value).minus(prior) : null;
+  const decreasing = delta?.isNegative() ?? false;
+  const service = p.services.find((s) => s.id === serviceId);
+  const incompatibleUnit =
+    !!service && canonicalUnit(service.unit) !== canonicalUnit(m.unit);
+  return {
+    meter_id: m.id,
+    service_id: serviceId,
+    label: m.label,
+    serial_number: m.serial_number,
+    unit: m.unit,
+    previous: prior,
+    current: current?.value ?? null,
+    previous_date: previous?.reading_date ?? m.installed_on,
+    reading_date: current?.reading_date ?? null,
+    consumption:
+      delta && !decreasing && !incompatibleUnit ? delta.toFixed() : null,
+    aggregate: false,
+    warning: incompatibleUnit
+      ? "unit"
+      : !current || prior === null
+        ? "missing"
+        : decreasing
+          ? "decreasing"
+          : null,
+  };
 }
 
 export function receiptReadings(

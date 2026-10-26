@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { issueText } from "./validation-language";
   import {
     projectSchema,
     uid,
@@ -79,7 +80,7 @@
         throw Error(
           result.error.issues
             .slice(0, 3)
-            .map((i) => i.message)
+            .map((i) => issueText(i, project.settings.language))
             .join("; "),
         );
       onapply(result.data);

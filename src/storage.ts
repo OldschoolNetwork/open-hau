@@ -4,6 +4,12 @@ import { projectSchema, type Project } from "./model";
 import { accountReportCSV } from "./reports";
 import { accountReportHTML, accountReportXML } from "./report-exports";
 export const native = isTauri();
+export async function runtimePlatform(){
+  if(native)return await invoke<string>("runtime_platform");
+  const preview=new URL(window.location.href).searchParams.get("platform");
+  if(preview==="windows"||preview==="macos")return preview;
+  return /Mac/.test(navigator.platform)?"macos":"windows";
+}
 export function displayPath(path: string | null) {
   if (!path) return "";
   const prefix = "\\\\?\\";

@@ -2,6 +2,12 @@
   import { onMount } from "svelte";
   import Reports from "./Reports.svelte";
   import PhysicalMeters from "./PhysicalMeters.svelte";
+  import MonthlyResidents from "./MonthlyResidents.svelte";
+  import SharedMeters from "./SharedMeters.svelte";
+  import ReceiptDesigner from "./ReceiptDesigner.svelte";
+  import {paymentDeadline} from "./payment-deadlines";
+  import {validationText,issueText} from "./validation-language";
+  import {receiptDesignCSS} from "./receipt-designs";
   import BackupSettings from "./BackupSettings.svelte";
   import ExportSettings from "./ExportSettings.svelte";
   import { physicalReadings } from "./meters";
@@ -68,6 +74,7 @@
     importJson,
     storagePath,
     native,
+    runtimePlatform,
   } from "./storage";
   import { receipt, receiptBaseCSS, receiptDocument } from "./receipt";
   import { loadLogo } from "./logo";
@@ -156,8 +163,16 @@
     dirty = true;
     notice = "";
   }
+  function setPaymentDeadline(value:string){
+    try{
+      const next=structuredClone(p);
+      next.payment_deadlines=next.payment_deadlines.filter(d=>d.period!==period);
+      if(value)next.payment_deadlines.push({period,due_date:value});
+      setProject(next);
+    }catch(e){fail(e);}
+  }
   function fail(e: unknown) {
-    error = e instanceof Error ? e.message : String(e);
+    error = validationText(e instanceof Error ? e.message : String(e),p.settings.language);
   }
   function valid(candidate: unknown): Project {
     const parsed = projectSchema.safeParse(candidate);
@@ -165,7 +180,7 @@
       throw Error(
         parsed.error.issues
           .slice(0, 5)
-          .map((i) => `${i.path.join(".")}: ${i.message}`)
+          .map((i) => `${i.path.join(".")}: ${issueText(i,p.settings.language)}`)
           .join("\n"),
       );
     return parsed.data;
@@ -187,7 +202,7 @@
     if (Object.keys(readingEdits).length) {
       error = t(
         "Сначала нажми «Применить показания».",
-        "Apasă mai întâi „Aplică indexurile”.",
+        "Aplicați mai întâi indexurile introduse.",
       );
       return;
     }
@@ -307,7 +322,7 @@
             throw Error(
               t(
                 "Для изменения начального остатка сначала открой закрытые месяцы этого счёта.",
-                "Redeschide lunile închise înainte de modificarea soldului inițial.",
+                "Redeschideți lunile închise înainte de modificarea soldului inițial.",
               ),
             );
         }
@@ -380,12 +395,12 @@
           closed ||
           next.closed_periods.includes(row.payment_date.slice(0, 7))
         )
-          throw Error("Сначала открой закрытый период");
+          throw Error(t("Сначала откройте закрытый период","Redeschideți mai întâi perioada închisă"));
         next.payments = next.payments.filter((x) => x.id !== id);
       } else if (kind === "adjustments") {
         const row = next.adjustments.find((x) => x.id === id)!;
         if (next.closed_periods.includes(row.period))
-          throw Error("Сначала открой закрытый период");
+          throw Error(t("Сначала откройте закрытый период","Redeschideți mai întâi perioada închisă"));
         next.adjustments = next.adjustments.filter((x) => x.id !== id);
       } else if (kind === "tariffs") {
         const row = next.tariffs.find((x) => x.id === id)!;
@@ -393,7 +408,7 @@
           next.closed_periods.some((x) => x >= row.effective_from.slice(0, 7))
         )
           throw Error(
-            "Тариф использовался в закрытом периоде: сначала открой его",
+            t("Тариф использовался в закрытом периоде: сначала откройте его","Tariful a fost utilizat într-o perioadă închisă: redeschideți perioada"),
           );
         next.tariffs = next.tariffs.filter((x) => x.id !== id);
       }
@@ -433,7 +448,7 @@
   }
   function applyReadings() {
     try {
-      if (closed) throw Error("Период закрыт");
+      if (closed) throw Error(t("Период закрыт","Perioada este închisă"));
       const next = structuredClone(p);
       for (const [key, r] of Object.entries(readingEdits)) {
         const [account_id, service_id] = key.split("|");
@@ -491,8 +506,8 @@
       setProject(next);
       readingEdits = {};
       notice = t(
-        "Показания применены. Нажми «Сохранить», чтобы записать базу.",
-        "Indexurile au fost aplicate. Apasă „Salvează” pentru a scrie baza.",
+        "Показания применены. Нажмите «Сохранить», чтобы записать базу.",
+        "Indexurile au fost aplicate. Apăsați „Salvează” pentru a scrie baza.",
       );
     } catch (e) {
       fail(e);
@@ -512,7 +527,7 @@
   async function toggleClosed() {
     try {
       if (Object.keys(readingEdits).length)
-        throw Error("Сначала примени показания");
+        throw Error(t("Сначала примените показания","Aplicați mai întâi indexurile"));
       if (
         !(await ask(
           closed
@@ -537,7 +552,7 @@
   async function exportJson() {
     try {
       if (Object.keys(readingEdits).length)
-        throw Error("Сначала примени показания");
+        throw Error(t("Сначала примените показания","Aplicați mai întâi indexurile"));
       if (
         await exportText(
           "OpenHaU-" + period + ".openhau.json",
@@ -565,7 +580,7 @@
     try {
       if (!imported) return;
       if (Object.keys(readingEdits).length)
-        throw Error("Сначала примени показания");
+        throw Error(t("Сначала примените показания","Aplicați mai întâi indexurile"));
       await persist(valid(p));
       p = imported;
       imported = null;
@@ -579,7 +594,7 @@
   }
   function openJSON() {
     if (Object.keys(readingEdits).length) {
-      error = "Сначала примени показания";
+      error = t("Сначала примените показания","Aplicați mai întâi indexurile");
       return;
     }
     jsonTitle = t("Открытый JSON · все данные", "JSON deschis · toate datele");
@@ -623,7 +638,7 @@
   async function exportHTML() {
     try {
       if (!receiptAccounts.length)
-        throw Error(t("Выбери счета для печати.", "Selectează conturile."));
+        throw Error(t("Выберите счета для печати.", "Selectați conturile pentru imprimare."));
       await exportText(
         "OpenHaU-facturi-" + period + ".html",
         receiptDocument(p, receiptAccounts, period),
@@ -635,7 +650,7 @@
   }
   function printReceipts() {
     if (!receiptAccounts.length) {
-      error = t("Выбери счета.", "Selectează conturile.");
+      error = t("Выберите счета.", "Selectați conturile.");
       return;
     }
     window.print();
@@ -668,7 +683,7 @@
       p.settings.receipt_presets.length >= 20 &&
       !p.settings.receipt_presets.some((x) => x.name === presetName.trim())
     ) {
-      error = "Максимум 20 конфигураций";
+      error = t("Допускается до 20 конфигураций","Sunt permise cel mult 20 de configurații");
       return;
     }
     p.settings.receipt_presets = [
@@ -679,6 +694,7 @@
         color: p.settings.receipt_color,
         font_size: p.settings.font_size,
         logo: p.settings.organization_logo,
+        custom:p.settings.custom_receipt?{...p.settings.custom_receipt}:undefined,
       },
     ];
     presetName = "";
@@ -691,6 +707,7 @@
       p.settings.receipt_color = preset.color;
       p.settings.font_size = preset.font_size;
       p.settings.organization_logo = preset.logo;
+      p.settings.custom_receipt=preset.custom?{...preset.custom}:undefined;
       changed();
     }
   }
@@ -782,6 +799,7 @@
         .catch(fail);
     (async () => {
       try {
+        document.documentElement.dataset.platform=await runtimePlatform();
         const saved = await load();
         if (saved) p = saved;
         dbPath = await storagePath();
@@ -889,7 +907,7 @@
             {page === "overview"
               ? t(
                   "Всё, что нужно для спокойного расчётного месяца.",
-                  "Tot ce îți trebuie pentru o lună de calcul liniștită.",
+                  "Tot ce este necesar pentru o lună de calcul bine organizată.",
                 )
               : page === "accounts"
                 ? t(
@@ -915,12 +933,12 @@
                         ? t("Остатки и обороты за выбранный период.", "Solduri și rulaje pentru perioada selectată.")
                       : page === "receipts"
                         ? t(
-                            "Красивые квитанции. На твоём языке.",
-                            "Facturi bine gândite. În limba ta.",
+                            "Квитанции с настраиваемым оформлением и языком.",
+                            "Facturi cu aspect și limbă configurabile.",
                           )
                         : t(
-                            "Программа, которая подстраивается под тебя.",
-                            "Programul care se adaptează la tine.",
+                            "Параметры организации, расчётов и оформления.",
+                            "Setările asociației, calculelor și aspectului.",
                           )}
           </p>
         </div>
@@ -953,8 +971,8 @@
             <div>
               <strong
                 >{t(
-                  "Это твоя площадка для знакомства",
-                  "Spațiul tău de explorare",
+                  "Демонстрационная база",
+                  "Bază demonstrativă",
                 )}</strong
               >
               <p>
@@ -965,7 +983,7 @@
               </p>
             </div>
             <button class="text-button" onclick={freshProject}
-              >{t("Создать свою базу", "Creează baza ta")}
+              >{t("Создать рабочую базу", "Creați o bază de lucru")}
               <ArrowUpRight size={16} /></button
             >
           </div>{/if}
@@ -1118,8 +1136,8 @@
               <CheckCheck size={16} />
               <p>
                 {t(
-                  "Твои данные остаются на твоём компьютере.",
-                  "Datele tale rămân pe calculatorul tău.",
+                  "Данные сохраняются на этом компьютере.",
+                  "Datele se păstrează pe acest calculator.",
                 )}
               </p>
             </div>
@@ -1251,7 +1269,6 @@
                 >
               </div>
               <h2>{s.name[lang]}</h2>
-              <p>{s.name[lang === "ru" ? "ro" : "ru"]}</p>
               <div class="service-properties">
                 <span class="badge"
                   >{s.calculation_type === "metered"
@@ -1314,6 +1331,8 @@
         </article>
       {:else if page === "readings"}
         <PhysicalMeters project={p} onapply={setProject} />
+        <SharedMeters project={p} onapply={setProject} />
+        <MonthlyResidents project={p} onapply={setProject} />
         <div class="toolbar">
           <p class="muted">
             {t(
@@ -1532,6 +1551,10 @@
                     >Compact · {t("Экономный", "Economic")}</option
                   ><option value="classic"
                     >Classic · {t("С корешком", "Cu aviz")}</option
+                  ><option value="ribbon">Ribbon · {t("Геометрия", "Geometric")}</option
+                  ><option value="botanical">Botanical · {t("Узор", "Ornament")}</option
+                  ><option value="heritage">Heritage · {t("Привычный бланк", "Formular familiar")}</option
+                  ><option value="custom">{t("Своё оформление", "Aspect personalizat")}</option
                   ></select
                 ></label
               ><label
@@ -1540,9 +1563,11 @@
                   onchange={changed}
                   ><option value="ru">Русский</option><option value="ro"
                     >Română</option
-                  ><option value="both">Русский + Română</option></select
+                  ><option value="both">Русский + Română</option><option value="en">English</option></select
                 ></label
               >
+              <label>{t("Оплатить до · текущий месяц", "Achitați până la · luna curentă")}<input type="date" value={paymentDeadline(p,period)} onchange={(e)=>setPaymentDeadline(e.currentTarget.value)}/></label>
+              {#if p.payment_deadlines.some(d=>d.period===period)}<button class="text-button" onclick={()=>setPaymentDeadline("")}>{t("Вернуть общий срок оплаты", "Restabilește termenul general de plată")}</button>{/if}
               <div class="two-fields">
                 <label
                   >{t("Цвет", "Culoare")}<input
@@ -1633,6 +1658,7 @@
                   "Salvează HTML",
                 )}</button
               >
+              {#if p.settings.receipt_design==="custom"}<ReceiptDesigner project={p} onapply={setProject}/>{/if}
               <p class="quiet-note">
                 {t(
                   "В PDF сохраняет системный диалог печати. Если он недоступен, открой сохранённый HTML в браузере.",
@@ -1644,11 +1670,11 @@
           <div class="receipt-preview">
             <div class="preview-label">
               <span
-                >{t("ПРЕДПРОСМОТР", "PREVIZUALIZARE")} · {receiptAccounts.length}</span
+                >{t("КВИТАНЦИЙ", "FACTURI")} · {receiptAccounts.length}</span
               ><span>A4</span>
             </div>
             <div class="paper-stack">
-              {@html `<style>${receiptBaseCSS}\n${p.settings.receipt_css.replace(/<\/style/gi, "")}</style>`}{#each receiptAccounts as a}{@html receipt(
+              {@html `<style>${receiptBaseCSS}\n${receiptDesignCSS}\n${p.settings.receipt_css.replace(/<\/style/gi, "")}</style>`}{#each receiptAccounts as a}{@html receipt(
                   p,
                   a,
                   period,
@@ -1668,8 +1694,8 @@
                 <h2>{t("Внешний вид", "Aspect")}</h2>
                 <p>
                   {t(
-                    "Твоя программа — твои предпочтения.",
-                    "Programul tău — preferințele tale.",
+                    "Тема, цвета и язык интерфейса.",
+                    "Tema, culorile și limba interfeței.",
                   )}
                 </p>
               </div>
@@ -1766,6 +1792,7 @@
                   bind:value={p.settings.receipt_title.ro}
                   oninput={changed}
                 /></label
+              ><label>{t("Заголовок квитанции · EN", "Titlul facturii · EN")}<input bind:value={p.settings.receipt_title.en} oninput={changed}/></label
               ><label
                 >{t("Подпись внизу · RU", "Text de subsol · RU")}<textarea
                   bind:value={p.settings.receipt_footer.ru}
@@ -1774,6 +1801,7 @@
                 >{t("Подпись внизу · RO", "Text de subsol · RO")}<textarea
                   bind:value={p.settings.receipt_footer.ro}
                   oninput={changed}></textarea></label
+              ><label>{t("Подпись внизу · EN", "Text de subsol · EN")}<textarea bind:value={p.settings.receipt_footer.en} oninput={changed}></textarea></label
               >
             </div>
           </article>
@@ -1982,6 +2010,7 @@
             >{t("Название на румынском", "Denumire în română")}<input
               bind:value={draft.name.ro}
             /></label
+          ><label>{t("Название на английском", "Denumire în engleză")}<input bind:value={draft.name.en}/></label
           ><label
             >{t("Тип расчёта", "Tip de calcul")}<select
               bind:value={draft.calculation_type}

@@ -1,0 +1,6 @@
+{
+  "identifier": "app.openhau.preview26-2",
+  "productName": "OpenHaU Preview",
+  "bundle": {"active": false},
+  "app": {"windows": [{"label":"main","create":false,"title":"OpenHaU · 26.2 Preview","width":1280,"height":840,"minWidth":980,"minHeight":680}]}
+}
