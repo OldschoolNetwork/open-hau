@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import Reports from "./Reports.svelte";
   import PhysicalMeters from "./PhysicalMeters.svelte";
+  import BackupSettings from "./BackupSettings.svelte";
   import { physicalReadings } from "./meters";
   import {
     LayoutDashboard,
@@ -194,7 +195,8 @@
     try {
       const snapshot = valid(p),
         serialized = JSON.stringify(snapshot);
-      dbPath = await persist(snapshot);
+      const result = await persist(snapshot);
+      dbPath = result.path;
       dirty =
         Object.keys(readingEdits).length > 0 ||
         JSON.stringify(p) !== serialized;
@@ -204,6 +206,7 @@
             "Copia a fost salvată; modificările mai noi nu sunt încă salvate.",
           )
         : t("Сохранено.", "Salvat.");
+      if (result.backup_warning) error = t("База сохранена, но внешняя резервная копия не создана: ","Baza a fost salvată, dar copia externă nu a fost creată: ") + result.backup_warning;
     } catch (e) {
       fail(e);
     } finally {
@@ -1652,6 +1655,7 @@
           </div>
         </div>
       {:else if page === "settings"}
+        <BackupSettings language={lang} unsaved={dirty || !!Object.keys(readingEdits).length} />
         <div class="settings-grid">
           <article class="panel">
             <div class="panel-heading">

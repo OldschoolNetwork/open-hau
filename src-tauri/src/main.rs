@@ -9,6 +9,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use tauri::Manager;
+mod backups;
 
 struct Storage {
     root: PathBuf,
@@ -69,9 +70,38 @@ fn load_project(storage: tauri::State<Storage>) -> Result<Option<Value>, String>
 }
 
 #[tauri::command]
-fn save_project(value: Value, storage: tauri::State<Storage>) -> Result<String, String> {
+fn save_project(value: Value, storage: tauri::State<Storage>) -> Result<Value, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
-    save_value(value, &storage.root)
+    save_with_copy(value, &storage.root)
+}
+
+fn save_with_copy(value: Value, root: &PathBuf) -> Result<Value, String> {
+    let path = save_value(value, root)?;
+    // The transaction has committed. An external-copy failure must not claim the save failed.
+    let (backup_path, backup_warning) = match backups::copy(root) {
+        Ok(path) => (path, None),
+        Err(error) => (None, Some(error)),
+    };
+    Ok(serde_json::json!({"path":path,"backup_path":backup_path,"backup_warning":backup_warning}))
+}
+
+#[tauri::command]
+fn backup_settings(storage: tauri::State<Storage>) -> Result<Value, String> {
+    let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
+    backups::settings(&storage.root)
+}
+#[tauri::command]
+fn configure_backups(
+    directory: Option<String>,
+    storage: tauri::State<Storage>,
+) -> Result<Value, String> {
+    let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
+    backups::configure(&storage.root, directory)
+}
+#[tauri::command]
+fn backup_now(storage: tauri::State<Storage>) -> Result<Option<String>, String> {
+    let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
+    backups::copy(&storage.root)
 }
 
 fn save_value(value: Value, root: &PathBuf) -> Result<String, String> {
@@ -179,7 +209,10 @@ fn main() {
             save_project,
             read_json_file,
             write_text_file,
-            storage_path
+            storage_path,
+            backup_settings,
+            configure_backups,
+            backup_now
         ])
         .run(tauri::generate_context!())
         .expect("Не удалось запустить OpenHaU");
@@ -262,5 +295,77 @@ mod tests {
     #[test]
     fn rejects_newer_schema_before_opening_database() {
         assert!(validate(&serde_json::json!({"format":"openhau","schema_version":99})).is_err());
+    }
+
+    fn backup_test_root() -> PathBuf {
+        let root = std::env::temp_dir().join(format!(
+            "openhau-external-backup-test-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    #[test]
+    fn external_backup_is_opt_in_and_restore_retains_sections() {
+        let root = backup_test_root();
+        let project = serde_json::json!({"format":"openhau","schema_version":2,"accounts":[],"organization":{"name":"Fictional association"},"meters":[],"meter_values":[]});
+        let result = save_with_copy(project.clone(), &root).unwrap();
+        assert!(result["backup_path"].is_null());
+        let destination = root.join("external");
+        fs::create_dir(&destination).unwrap();
+        backups::configure(&root, Some(destination.display().to_string())).unwrap();
+        let first = save_with_copy(project.clone(), &root).unwrap();
+        assert!(first["backup_warning"].is_null());
+        let copied = PathBuf::from(first["backup_path"].as_str().unwrap());
+        let old_bytes = fs::read(&copied).unwrap();
+        let second = save_with_copy(project, &root).unwrap();
+        assert_ne!(first["backup_path"], second["backup_path"]);
+        assert_eq!(fs::read(&copied).unwrap(), old_bytes);
+        let restored = root.join("restored");
+        fs::create_dir(&restored).unwrap();
+        fs::copy(copied, restored.join("openhau.sqlite")).unwrap();
+        let conn = connection(&restored).unwrap();
+        let org: String = conn
+            .query_row(
+                "SELECT json FROM project_sections WHERE name='organization'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            serde_json::from_str::<Value>(&org).unwrap()["name"],
+            "Fictional association"
+        );
+        backups::configure(&root, None).unwrap();
+        assert!(backups::copy(&root).unwrap().is_none());
+    }
+
+    #[test]
+    fn unavailable_backup_destination_does_not_undo_a_successful_save() {
+        let root = backup_test_root();
+        let destination = root.join("external");
+        fs::create_dir(&destination).unwrap();
+        backups::configure(&root, Some(destination.display().to_string())).unwrap();
+        // Remove only the empty directory owned by this isolated test.
+        fs::remove_dir(&destination).unwrap();
+        let result=save_with_copy(serde_json::json!({"format":"openhau","schema_version":2,"accounts":[],"organization":{"name":"Still saved"}}),&root).unwrap();
+        assert!(result["backup_warning"].is_string());
+        assert!(!destination.exists());
+        let conn = connection(&root).unwrap();
+        let org: String = conn
+            .query_row(
+                "SELECT json FROM project_sections WHERE name='organization'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            serde_json::from_str::<Value>(&org).unwrap()["name"],
+            "Still saved"
+        );
     }
 }

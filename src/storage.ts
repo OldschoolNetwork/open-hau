@@ -11,9 +11,26 @@ export async function load() {
 }
 export async function persist(p: Project) {
   const data = projectSchema.parse(p);
-  if (native) return await invoke<string>("save_project", { value: data });
+  if (native)
+    return await invoke<{
+      path: string;
+      backup_path: string | null;
+      backup_warning: string | null;
+    }>("save_project", { value: data });
   localStorage.setItem(key, JSON.stringify(data));
-  return "Browser preview · localStorage";
+  return {
+    path: "Browser preview · localStorage",
+    backup_path: null,
+    backup_warning: null,
+  };
+}
+export const backupSettings = () =>
+  invoke<{ directory: string | null }>("backup_settings");
+export const configureBackups = (directory: string | null) =>
+  invoke<{ directory: string | null }>("configure_backups", { directory });
+export const backupNow = () => invoke<string | null>("backup_now");
+export async function chooseBackupDirectory() {
+  return await open({ directory: true, multiple: false, title: "OpenHaU" });
 }
 export async function ask(message: string) {
   return native
@@ -36,7 +53,13 @@ export async function exportText(
   const a = document.createElement("a"),
     url = URL.createObjectURL(
       new Blob([content], {
-        type: ({ csv: "text/csv", html: "text/html", xml: "application/xml", json: "application/json" }[extension] || "text/plain") + ";charset=utf-8",
+        type:
+          ({
+            csv: "text/csv",
+            html: "text/html",
+            xml: "application/xml",
+            json: "application/json",
+          }[extension] || "text/plain") + ";charset=utf-8",
       }),
     );
   a.href = url;
