@@ -13,7 +13,7 @@ export type AccountReportRow = {
   closing: string;
   warnings: string[];
 };
-export function accountBalanceReport(p: Project, from: string, to: string,attentionOnly=false) {
+export function accountBalanceReport(p: Project, from: string, to: string,attentionOnly=false,postedOnly=false) {
   if (
     !/^\d{4}-(0[1-9]|1[0-2])$/.test(from) ||
     !/^\d{4}-(0[1-9]|1[0-2])$/.test(to) ||
@@ -39,11 +39,11 @@ export function accountBalanceReport(p: Project, from: string, to: string,attent
         const preserved = p.snapshots.some(
           (x) => x.account_id === a.id && x.period === month,
         );
-        if (a.active || preserved) {
+        if ((a.active || preserved)&&(!postedOnly||preserved)) {
           charges = charges.plus(add(s.lines.map((l) => l.amount)));
           for (const warning of s.warnings)
             warnings.add(`${month}: ${warning}`);
-        } else if (month < p.settings.period) {
+        } else if (month < p.settings.period&&!postedOnly) {
           warnings.add(
             `${month}: ${p.settings.language === "ru" ? "у закрытого счёта нет сохранённого начисления" : "contul închis nu are un calcul păstrat"}`,
           );

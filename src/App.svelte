@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {invoke} from "@tauri-apps/api/core";
   import { translator } from "./i18n";
   import { onMount } from "svelte";
   import DesktopMenu from "./DesktopMenu.svelte";
@@ -10,6 +11,11 @@
   import type {ReferenceKind} from "./catalog-definitions";
   import { ZodError } from "zod";
   import Reports from "./Reports.svelte";
+  import Documentation from "./Documentation.svelte";
+  import DesktopWidgets from "./DesktopWidgets.svelte";
+  import MarkedDeletion from "./MarkedDeletion.svelte";
+  import ReportSettings from "./ReportSettings.svelte";
+  import type {ReportSettingsRequest} from "./report-settings";
   import Notifications from "./Notifications.svelte";
   import NotificationSettings from "./NotificationSettings.svelte";
   import SettingsHome from "./SettingsHome.svelte";
@@ -131,6 +137,8 @@
   let loadFailed = false;
   type WorkspaceView={id:string;page:string;visible:boolean;minimized:boolean;position:{x:number;y:number;width:number;height:number}};
   let desktopViews:WorkspaceView[]=[],activeDesktop="",desktopArea:HTMLElement;
+  let reportSettingsRequests:Record<string,ReportSettingsRequest>={};
+  let workspaceLocked=false;
   function openDesktop(id:string){
     const existing=desktopViews.find(v=>v.id===id);
     if(existing){existing.visible=true;existing.minimized=false;focusDesktop(id);return;}
@@ -149,6 +157,8 @@
     activeDesktop=[...desktopViews].reverse().find(v=>v.visible&&!v.minimized)?.id||"";
   }
   function desktopTitle(id:string,language:"ru"|"ro"){
+    if(id==='purge')return language==='ru'?'Удаление помеченных объектов':'Eliminare obiecte marcate';
+    if(id.startsWith("reportsettings:"))return language==='ru'?'Настройка отчёта':'Configurare raport';
     if(id.startsWith("catalog:")||id.startsWith("catalogedit:")){const [,kind]=id.split(":"),entry=catalogs.find(c=>c.id===kind);return (entry?.[language]||kind)+(id.startsWith("catalogedit:")?(language==="ru"?" · запись":" · înregistrare"):"");}
     const titles:Record<string,[string,string]>={reports:["Оборотно-сальдовая ведомость","Balanță de verificare"],receipts:["Квитанция","Factură"],tariffs:["Изменение тарифов на услуги","Modificare tarife servicii"],settings:["Общие настройки","Setări generale"]};
     if(titles[id])return titles[id][language==="ru"?0:1];
@@ -158,7 +168,8 @@
     const entry=pages.find(x=>x.id===id);return entry?.[language]||id;
   }
   function desktopCommand(action:string){
-    if(action.startsWith("file:")){if(action==="file:save")void save();else if(action==="file:export")void exportJson();else if(action==="file:open")void importDatabase();else {showDatabaseHome=true;void refreshCatalog();}return;}
+    if(action==='temporary-lock'){workspaceLocked=true;return;}
+    if(action.startsWith("file:")){if(action==="file:save")void save();else if(action==="file:export")void exportJson();else if(action==="file:open")void importDatabase();else void requestDatabaseHome();return;}
     if(action.startsWith("edit:")){void editText(action.slice(5));return;}
     showDatabaseHome=false;
     if(action==="about"){modal="about";return;}
@@ -278,18 +289,26 @@
   function rememberText(e:FocusEvent){if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)lastTextField=e.target;}
   async function editText(command:string){try{const field=lastTextField;if(!field||!field.isConnected)throw Error(t("Выберите текстовое поле для редактирования.","Selectați un câmp de text pentru editare."));field.focus();if(command==="paste"){const text=await navigator.clipboard.readText();field.setRangeText(text,field.selectionStart??field.value.length,field.selectionEnd??field.value.length,"end");field.dispatchEvent(new Event("input",{bubbles:true}));}else if(!document.execCommand(command))throw Error(t("Операция недоступна для выбранного поля. Используйте сочетание клавиш.","Operațiunea nu este disponibilă pentru câmpul selectat. Utilizați combinația de taste."));}catch(e){fail(e);}}
   async function refreshCatalog(){try{catalog=await databaseCatalog();}catch(e){fail(e);}}
+  let databaseOpened=false;
+  async function prepareDatabaseChange(){
+    if(modal||Object.keys(readingEdits).length){fail(t("Завершите редактирование и примените введённые показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));return false;}
+    if(!databaseOpened)return true;
+    if(!(await ask(t("Сохранить текущую базу и продолжить? Сначала примените изменения в открытых документах.","Salvați baza curentă și continuați? Aplicați mai întâi modificările din documentele deschise."))))return false;
+    await save();return !dirty&&!error;
+  }
+  async function requestDatabaseHome(){if(!(await prepareDatabaseChange()))return;showDatabaseHome=true;databaseOpened=false;await refreshCatalog();}
+  $: if(native&&!loading)void invoke("set_workspace_mode",{welcome:showDatabaseHome}).catch(fail);
   function blankDatabase(name:string):Project {const empty=demoProject();empty.demo=false;empty.organization={id:uid(),name,association_code:"",fiscal_code:"",bank:"",iban:"",address:"",notes:""};empty.settings={...empty.settings,language:p.settings.language,theme:p.settings.theme,date_format:p.settings.date_format,period_format:p.settings.period_format};empty.accounts=[];empty.services=[];empty.tariffs=[];empty.payments=[];empty.adjustments=[];empty.quantities=[];empty.snapshots=[];empty.closed_periods=[];empty.meter_readings=[];empty.meters=[];empty.meter_values=[];return valid(empty);}
-  async function switchDatabase(id:string,initial=false){
-    if(id===activeDatabaseId&&!initial){showDatabaseHome=false;return;}
+  async function switchDatabase(id:string,initial=false,prepared=false){
+    if(id===activeDatabaseId&&!initial){showDatabaseHome=false;databaseOpened=true;return;}
     const raw=await readDatabase(id),entry=catalog.databases.find(d=>d.id===id),candidate=raw?valid(raw):(id==="default"?p:blankDatabase(entry?.name||"OpenHaU"));
     if(!initial&&(modal||Object.keys(readingEdits).length))throw Error(t("Завершите открытое редактирование и примените показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));
-    if(!initial&&desktopViews.some(v=>v.visible)&&!(await ask(t("Переключить базу? Открытые окна будут закрыты; сохраните черновики документов перед продолжением.","Schimbați baza? Ferestrele se vor închide; salvați ciornele documentelor înainte de continuare."))))return;
-    if(!initial&&dirty){await save();if(dirty)return;}
-    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;dirty=false;loadFailed=false;desktopViews=[];activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;catalog=await databaseCatalog();
+    if(!initial&&!prepared&&!(await prepareDatabaseChange()))return;
+    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;dirty=false;loadFailed=false;desktopViews=[];activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
   }
   async function openDatabase(id:string){try{await switchDatabase(id);}catch(e){fail(e);}}
-  async function newDatabase(name:string){try{if(dirty){await save();if(dirty)return;}const id=await createDatabase(name);await refreshCatalog();await switchDatabase(id);if(activeDatabaseId===id){p=blankDatabase(name);dirty=true;await save();}}catch(e){fail(e);}}
-  async function importDatabase(){try{const raw=await importJson();if(!raw)return;const candidate=valid(raw);if(dirty){await save();if(dirty)return;}const id=await createDatabase(candidate.organization.name);await refreshCatalog();await switchDatabase(id);if(activeDatabaseId===id){p=candidate;dirty=true;await save();}}catch(e){fail(e);}}
+  async function newDatabase(name:string){try{if(!(await prepareDatabaseChange()))return;const id=await createDatabase(name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=blankDatabase(name);dirty=true;await save();}}catch(e){fail(e);}}
+  async function importDatabase(){try{const raw=await importJson();if(!raw)return;const candidate=valid(raw);if(!(await prepareDatabaseChange()))return;const id=await createDatabase(candidate.organization.name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=candidate;dirty=true;await save();}}catch(e){fail(e);}}
   async function configureAutoDatabase(id:string|null){try{await setDatabaseAuto(id);await refreshCatalog();}catch(e){fail(e);}}
   async function save(reason:"save"|"close"="save") {
     if (busy) return;
@@ -895,6 +914,8 @@
     }
   }
   onMount(() => {
+    const showReportSettings=(event:Event)=>{const request=(event as CustomEvent<ReportSettingsRequest>).detail;const id='reportsettings:'+request.id;reportSettingsRequests={...reportSettingsRequests,[id]:request};desktopViews=desktopViews.filter(v=>v.id!==id);openDesktop(id);};
+    window.addEventListener('openhau:report-settings',showReportSettings);
     const external = (e: MouseEvent) => {
       const a = (e.target as Element)?.closest?.("a");
       if (native && a?.href.startsWith("https://")) {
@@ -916,6 +937,7 @@
     };
     window.addEventListener("beforeunload", beforeUnload);
     const keydown = (e: KeyboardEvent) => {
+      if(workspaceLocked||showDatabaseHome)return;
       if (
         (e.ctrlKey || e.metaKey) &&
         (e.code === "KeyS" || e.key.toLowerCase() === "s")
@@ -959,6 +981,7 @@
       }
     })();
     return () => {
+      window.removeEventListener('openhau:report-settings',showReportSettings);
       unlistenClose?.();
       document.removeEventListener("click", external);
       themeMedia.removeEventListener("change", themeChange);
@@ -1812,7 +1835,7 @@
               >
             </div>
           </article>{/if}
-        {#if settingsCategory==="data"}<article class="panel"><label>{t("Автоматически открывать базу","Deschidere automată a bazei")}<select value={catalog.auto||""} onchange={e=>configureAutoDatabase(e.currentTarget.value||null)}><option value="">{t("Показывать выбор базы","Afișează alegerea bazei")}</option>{#each catalog.databases as db}<option value={db.id}>{db.name}</option>{/each}</select></label><button class="button secondary" onclick={()=>{showDatabaseHome=true;void refreshCatalog();}}><FolderOpen size={17}/>{t("Каталог баз данных","Catalogul bazelor de date")}</button>
+        {#if settingsCategory==="data"}<article class="panel"><label>{t("Автоматически открывать базу","Deschidere automată a bazei")}<select value={catalog.auto||""} onchange={e=>configureAutoDatabase(e.currentTarget.value||null)}><option value="">{t("Показывать выбор базы","Afișează alegerea bazei")}</option>{#each catalog.databases as db}<option value={db.id}>{db.name}</option>{/each}</select></label><button class="button secondary" onclick={()=>void requestDatabaseHome()}><FolderOpen size={17}/>{t("Каталог баз данных","Catalogul bazelor de date")}</button>
             <div class="panel-heading">
               <h2>
                 {t("Данные и резервные копии", "Date și copii de rezervă")}
@@ -1860,32 +1883,36 @@
 
     </section>
 {/snippet}
-<div class="desktop-shell no-print">
+<div class="desktop-shell no-print" class:welcome-shell={showDatabaseHome}>
   <Notifications {notice} {error} language={lang} onnotice={()=>notice=""}/>
-  <header class="desktop-chrome">
+  {#if !showDatabaseHome}<header class="desktop-chrome">
     <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><span>{t("Период: ","Perioadă: ")}{displayPeriod(period,p)}</span><div class="desktop-state">{dirty?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
     <DesktopMenu menus={desktopMenus} language={lang} oncommand={desktopCommand}/>
     <div class="desktop-commandbar"><button class="desktop-save" onclick={()=>save()} disabled={busy||loading}><Save size={17}/>{t("Сохранить","Salvare")}</button></div>
-  </header>
+  </header>{/if}
   <main class="desktop-area" bind:this={desktopArea}>
-    {#if showDatabaseHome}<DatabaseHome {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={importDatabase} onauto={configureAutoDatabase} onresume={()=>showDatabaseHome=false}/>{:else}
+    {#if showDatabaseHome}<DatabaseHome {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={importDatabase} onauto={configureAutoDatabase}/>{:else}
     {#if !desktopViews.some(v=>v.visible&&!v.minimized)}<div class="desktop-empty"><img src="/brand/logo-full.svg" alt="OpenHaU OPEN"/></div>{/if}
+    <DesktopWidgets language={lang} databaseId={activeDatabaseId} period={displayPeriod(period,p)} charges={totalCharges} paid={totalPaid} balance={totalBalance} attention={missing} onopen={desktopCommand}/>
     {#each desktopViews as view (view.id)}
-      <DesktopWindow id={view.id} title={desktopTitle(view.id,lang)} language={lang} active={activeDesktop===view.id} hidden={!view.visible||view.minimized} index={desktopViews.indexOf(view)} bind:position={view.position} onfocus={()=>focusDesktop(view.id)} onclose={()=>hideDesktop(view.id)} onminimize={()=>hideDesktop(view.id,true)}>
-        {#if view.id.startsWith("catalogedit:")}{@const parts=view.id.split(":")}<ReferenceRecordEditor project={p} kind={parts[1] as ReferenceKind} recordId={parts.slice(2).join(":")} onapply={setProject} onclose={()=>hideDesktop(view.id)}/>
+      <DesktopWindow id={view.id} title={desktopTitle(view.id,lang)} language={lang} active={activeDesktop===view.id} hidden={!view.visible||view.minimized} minimized={view.minimized} index={desktopViews.indexOf(view)} bind:position={view.position} onfocus={()=>focusDesktop(view.id)} onclose={()=>hideDesktop(view.id)} onminimize={()=>hideDesktop(view.id,true)}>
+        {#if view.id.startsWith('reportsettings:')&&reportSettingsRequests[view.id]}<ReportSettings request={reportSettingsRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith("catalogedit:")}{@const parts=view.id.split(":")}<ReferenceRecordEditor project={p} kind={parts[1] as ReferenceKind} recordId={parts.slice(2).join(":")} onapply={setProject} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id==='purge'}<MarkedDeletion project={p} onapply={setProject}/>
         {:else if view.id.startsWith("catalog:")}<ReferenceCatalog project={p} kind={view.id.slice(8) as ReferenceKind} onapply={setProject} onedit={id=>openDesktop("catalogedit:"+view.id.slice(8)+":"+(id==="new"?uid():id))}/>
         {:else if view.id.startsWith("chooser:")}<DesktopChooser group={view.id.slice(8)} language={lang} oncommand={action=>{hideDesktop(view.id);desktopCommand(action);}}/>
         {:else if view.id==="period"}<div class="desktop-simple-form"><label>{t("Расчетный период","Perioada de calcul")}<input type="month" value={period} onchange={e=>changePeriod(e.currentTarget.value)}/></label><button class="button secondary" onclick={()=>hideDesktop(view.id)}>{t("Закрыть","Închidere")}</button></div>
-        {:else if view.id==="manual"}<div class="desktop-simple-form"><h2>{t("Работа с базой","Lucrul cu baza")}</h2><p>{t("Справочники и документы открываются через верхнее меню. Открытые окна можно перемещать, сворачивать и переключать через нижнюю панель или меню «Окно».","Cataloagele și documentele se deschid din meniul de sus. Ferestrele pot fi mutate, minimizate și selectate din bara de jos sau meniul «Fereastră».")}</p><p>{t("После применения изменений используйте «Сохранить». Резервные копии, импорт и экспорт доступны в общих настройках.","După aplicarea modificărilor utilizați «Salvare». Copiile de siguranță, importul și exportul sunt disponibile în setările generale.")}</p></div>
+        {:else if view.id==="manual"}<Documentation language={lang} onopen={desktopCommand}/>
         {:else}{@render workspaceContent(view.page)}{/if}
       </DesktopWindow>
     {/each}
     {/if}
   </main>
-  <footer class="desktop-dock" aria-label={t("Панель окон","Bara ferestrelor")}>
-    <div class="desktop-open-windows">{#each desktopViews.filter(v=>v.visible) as view}{@const WindowIcon=pages.find(item=>item.id===view.id)?.icon||FolderOpen}<button title={desktopTitle(view.id,lang)} aria-pressed={activeDesktop===view.id&&!view.minimized} class:active={activeDesktop===view.id&&!view.minimized} onclick={()=>focusDesktop(view.id)}><WindowIcon size={18}/><span>{desktopTitle(view.id,lang)}</span></button>{/each}</div>
-  </footer>
+  {#if !showDatabaseHome}<footer class="desktop-dock" aria-label={t("Панель окон","Bara ferestrelor")}>
+    <div class="desktop-open-windows">{#each desktopViews.filter(v=>v.visible) as view}{@const WindowIcon=pages.find(item=>item.id===view.id)?.icon||FolderOpen}<button data-window-id={view.id} title={desktopTitle(view.id,lang)} aria-pressed={activeDesktop===view.id&&!view.minimized} class:active={activeDesktop===view.id&&!view.minimized} onclick={()=>focusDesktop(view.id)}><WindowIcon size={18}/><span>{desktopTitle(view.id,lang)}</span></button>{/each}</div>
+  </footer>{/if}
 </div>
+{#if workspaceLocked}<div class="workspace-lock" role="dialog" aria-modal="true" aria-label={t('Временная блокировка','Blocare temporară')} tabindex="-1"><div><h2>{t('Временная блокировка','Blocare temporară')}</h2><p>{t('Ввод временно приостановлен. Это защита от случайных нажатий, без проверки личности.','Introducerea este suspendată. Protecție împotriva apăsărilor accidentale, fără verificarea identității.')}</p><button class="button" onclick={()=>workspaceLocked=false}>{t('Продолжить работу','Continuă lucrul')}</button></div></div>{/if}
 <div class="print-only">
   {#each receiptAccounts as a}{@html receipt(p, a, period)}{/each}
 </div>
@@ -2241,3 +2268,8 @@
     </div>
   </div>
 {/if}
+
+
+
+
+

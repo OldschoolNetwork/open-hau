@@ -21,6 +21,28 @@ struct Storage {
     active: Mutex<String>,
     lock: Mutex<()>,
 }
+#[derive(Default)]
+struct WorkspaceSize(Mutex<Option<(tauri::PhysicalSize<u32>,bool)>>);
+
+#[tauri::command]
+fn set_workspace_mode(app:tauri::AppHandle,state:tauri::State<WorkspaceSize>,welcome:bool)->Result<(),String>{
+    let window=app.get_webview_window("main").ok_or("Main window unavailable")?;
+    let mut saved=state.0.lock().map_err(|e|e.to_string())?;
+    if welcome&&saved.is_none(){
+        let size=window.inner_size().map_err(|e|e.to_string())?;
+        let maximized=window.is_maximized().map_err(|e|e.to_string())?;
+        let logical=size.to_logical::<f64>(window.scale_factor().map_err(|e|e.to_string())?);
+        *saved=Some((size,maximized));
+        if maximized{window.unmaximize().map_err(|e|e.to_string())?;}
+        window.set_min_size(Some(tauri::LogicalSize::new(600.0,400.0))).map_err(|e|e.to_string())?;
+        window.set_size(tauri::LogicalSize::new((logical.width/2.0).clamp(600.0,900.0),(logical.height/2.0).clamp(420.0,600.0))).map_err(|e|e.to_string())?;
+        window.center().map_err(|e|e.to_string())?;
+    }else if !welcome{
+        window.set_min_size(Some(tauri::LogicalSize::new(980.0,680.0))).map_err(|e|e.to_string())?;
+        if let Some((size,maximized))=saved.take(){window.set_size(size).map_err(|e|e.to_string())?;window.center().map_err(|e|e.to_string())?;if maximized{window.maximize().map_err(|e|e.to_string())?;}}
+    }
+    Ok(())
+}
 
 fn connection(root: &PathBuf) -> Result<Connection, String> {
     fs::create_dir_all(root).map_err(|e| e.to_string())?;
@@ -266,6 +288,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            app.manage(WorkspaceSize::default());
             let root = std::env::var_os("OPENHAU_DATA_DIR")
                 .map(PathBuf::from)
                 .unwrap_or(app.path().app_data_dir()?);
@@ -303,6 +326,7 @@ fn main() {
             write_binary_file,
             storage_path,
             runtime_platform,
+            set_workspace_mode,
             notification_sound,
             export_pdf,
             databases::database_catalog,

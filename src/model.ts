@@ -43,6 +43,7 @@ const logo = z
   );
 const account = z.object({
   id,
+  marked_for_deletion:z.boolean().optional(),
   number: z.string().min(1),
   payer_name: z.string().min(1),
   address: z.string(),
@@ -59,6 +60,7 @@ const account = z.object({
 });
 const service = z.object({
   id,
+  marked_for_deletion:z.boolean().optional(),
   name: names,
   calculation_type: z.enum(["metered", "person", "fixed", "area", "manual"]),
   unit: z.string(),
@@ -354,7 +356,7 @@ const currentProjectSchema = z
     schema_version: z.literal(2),
       payments:z.array(payment.extend({allocation_basis:period.optional(),allocation_balancing_service_id:id.optional(),allocation_manual_amount:ledgerMoney.optional()})).max(100000),
       services:z.array(service.extend({provider:z.string().optional(),service_type:z.string().optional(),report_order:z.number().int().min(0).max(10000).optional(),meter_types:z.array(z.string().min(1)).max(100).optional()})).max(10000),
-      reference_catalogs:z.partialRecord(z.enum(referenceKinds),z.array(z.object({id,code:z.string(),name:z.string().trim().min(1),active:z.boolean(),notes:z.string(),attributes:z.record(z.string(),z.string()).default({})})).max(100000)).default({}),
+      reference_catalogs:z.partialRecord(z.enum(referenceKinds),z.array(z.object({id,code:z.string(),name:z.string().trim().min(1),active:z.boolean(),marked_for_deletion:z.boolean().default(false),notes:z.string(),attributes:z.record(z.string(),z.string()).default({})})).max(100000)).default({}),
     service_accounting: z.object({
       opening:z.array(z.object({account_id:id,service_id:id,amount:ledgerMoney})).max(100000),
       payments:z.array(z.object({payment_id:id,service_id:id,amount:ledgerMoney})).max(300000),

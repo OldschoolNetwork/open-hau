@@ -2,12 +2,14 @@ import type {Project} from './model';
 import {D,money,csv} from './engine';
 import {accountBalanceReport} from './reports';
 import {serviceBalanceReport,UNALLOCATED_SERVICE} from './service-reports';
+import {matchesReportSelection} from './report-filter-data';
 
-export type BalanceFilter={field:'account'|'service'|'type'|'provider';enabled:boolean;operator:'eq'|'ne'|'in'|'not-in';values:string[]};
-export type BalanceOptions={grouping?:'service'|'type'|'type-service';expandAccounts?:boolean;showAddress?:boolean;accountFilter?:string;typeFilter?:string;providerFilter?:string;sort?:{column:number;descending:boolean}[];filters?:BalanceFilter[]};
+export type BalanceFilter={field:'account'|'property'|'property-type'|'service'|'type'|'provider';enabled:boolean;operator:'eq'|'ne'|'in'|'not-in';values:string[]};
+export type BalanceOptions={grouping?:'service'|'type'|'type-service';expandAccounts?:boolean;showAddress?:boolean;accountFilter?:string;typeFilter?:string;providerFilter?:string;sort?:{column:number;descending:boolean}[];filters?:BalanceFilter[];postedOnly?:boolean;legacyLayout?:boolean};
 export function balanceTable(p:Project,from:string,to:string,mode:'account'|'service'='account',serviceFilter='',attentionOnly=false,options:BalanceOptions={}){
  const ru=p.settings.language==='ru',expanded=mode==='account'||!!options.expandAccounts;
- const source=mode==='service'?serviceBalanceReport(p,from,to,serviceFilter,attentionOnly):accountBalanceReport(p,from,to,attentionOnly);
+ const needsServices=mode==='service'||!!options.filters?.some(f=>f.enabled&&f.values.length&&['service','type','provider'].includes(f.field));
+ const source=needsServices?serviceBalanceReport(p,from,to,serviceFilter,attentionOnly,options.postedOnly):accountBalanceReport(p,from,to,attentionOnly,options.postedOnly);
  const fields=['opening','charges','adjustments','paid','closing'] as const;
  const rows=new Map<string,{labels:string[];values:ReturnType<typeof D>[];warnings:Set<string>;order:number}>();
  for(const row of source.rows){
@@ -17,7 +19,7 @@ export function balanceTable(p:Project,from:string,to:string,mode:'account'|'ser
   if(options.providerFilter&&service?.provider!==options.providerFilter)continue;
   const type=service?.service_type|| (sid===UNALLOCATED_SERVICE?(ru?'Нераспределено':'Nerepartizat'):(ru?'Без вида услуги':'Fără tip de serviciu'));
   if(mode==='service'&&options.typeFilter&&type!==options.typeFilter)continue;
-  if(options.filters?.some(f=>{if(!f.enabled||!f.values.length)return false;const value=f.field==='account'?row.account_id:f.field==='service'?String(sid):f.field==='type'?type:service?.provider||'';const found=f.operator==='eq'||f.operator==='ne'?f.values[0]===value:f.values.includes(value);return f.operator==='ne'||f.operator==='not-in'?found:!found;}))continue;
+  if(!matchesReportSelection(p,row.account_id,String(sid),options.filters||[]))continue;
   const serviceName='service'in row?String(row.service):'';
   const grouping=options.grouping||'service';
   const labels=mode==='account'?[]:grouping==='type'?[type]:grouping==='type-service'?[type,serviceName]:[serviceName];
@@ -37,6 +39,14 @@ export function balanceTable(p:Project,from:string,to:string,mode:'account'|'ser
  if(options.sort?.length){const indexes=ordered.map((_,i)=>i);indexes.sort((a,b)=>{for(const rule of options.sort!){const col=rule.column;const cmp=col>=numericStart&&col<numericStart+5?D(values[a][col]).comparedTo(values[b][col]):(values[a][col]||'').localeCompare(values[b][col]||'',p.settings.language,{numeric:true});if(cmp)return rule.descending?-cmp:cmp;}return 0;});const copy=values.slice(),orderCopy=ordered.slice();indexes.forEach((index,i)=>{values[i]=copy[index];ordered[i]=orderCopy[index];});}
  const totals=fields.map((_,i)=>money(ordered.reduce((v,r)=>v.plus(r.values[i]),D(0)),p));
  values.push([ru?'Итого, MDL':'Total, MDL',...Array(Math.max(0,numericStart-1)).fill(''),...totals,...(expanded?['']:[])]);
- return {headers,rows:values,numericStart,incomplete:ordered.some(r=>r.warnings.size>0),title:mode==='service'?(ru?'Оборотно-сальдовая ведомость по услугам':'Balanță de verificare pe servicii'):(ru?'Оборотно-сальдовая ведомость':'Balanță de verificare'),status:ordered.some(r=>r.warnings.size>0)?(ru?'Предварительный отчёт: имеются неполные данные.':'Raport provizoriu: date incomplete.'):'',attention:ordered.map(r=>r.warnings.size>0)};
+ let outputHeaders=headers,outputRows=values,outputNumericStart=numericStart,numericCount=5;
+ if(options.legacyLayout){
+  const selectedFields=[0,...(ordered.some(r=>!r.values[1].isZero())?[1]:[]),...(ordered.some(r=>!r.values[2].isZero())?[2]:[]),3,4];
+  const names=ru?['Задолженность на начало','Начислено','Корректировки','Оплата','Задолженность на конец']:['Sold inițial','Calculat','Ajustări','Achitat','Sold final'];
+  outputHeaders=[...(mode==='account'?[ru?'№ п/п':'Nr.']:[]),...headers.slice(0,numericStart),...selectedFields.map(i=>names[i])];
+  outputRows=values.map((row,i)=>[...(mode==='account'?[i===values.length-1?'':String(i+1)]:[]),...row.slice(0,numericStart),...selectedFields.map(j=>row[numericStart+j])]);
+  outputNumericStart=numericStart+(mode==='account'?1:0);numericCount=selectedFields.length;
+ }
+ return {headers:outputHeaders,rows:outputRows,numericStart:outputNumericStart,numericCount,incomplete:ordered.some(r=>r.warnings.size>0),title:mode==='service'?(ru?'Оборотно-сальдовая ведомость по услугам':'Balanță de verificare pe servicii'):(ru?'Оборотно-сальдовая ведомость':'Balanță de verificare'),status:ordered.some(r=>r.warnings.size>0)?(ru?'Предварительный отчёт: имеются неполные данные.':'Raport provizoriu: date incomplete.'):'',attention:ordered.map(r=>r.warnings.size>0)};
 }
 export const balanceCSV=(...args:Parameters<typeof balanceTable>)=>{const t=balanceTable(...args);return csv([t.headers,...t.rows]);};

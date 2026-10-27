@@ -444,3 +444,7 @@
 .desktop-area{background:var(--bg)}.desktop-window{background:transparent;border-color:var(--border)}.desktop-window-content{background:var(--surface)}.desktop-dropdown,.desktop-dock,.desktop-window-title{background:var(--surface)}.modal-backdrop{z-index:10000}
 @supports(background:color-mix(in srgb,white 85%,transparent)){.desktop-dropdown,.desktop-window-title{background:color-mix(in srgb,var(--surface) 88%,transparent)}.desktop-dock{background:color-mix(in srgb,var(--sidebar) 88%,transparent)}}
 :root[data-platform="macos"] .desktop-window-actions{order:-1;margin-left:0;margin-right:10px;align-items:center;gap:8px}:root[data-platform="macos"] .desktop-window-actions button{width:13px;height:13px;border-radius:50%;background:#f5bd4f}:root[data-platform="macos"] .desktop-window-actions button:nth-child(2){background:#61c554}:root[data-platform="macos"] .desktop-window-actions .window-close{order:-1;background:#ed6a5e}:root[data-platform="macos"] .desktop-window-actions svg{opacity:0;width:10px;height:10px;color:#222}:root[data-platform="macos"] .desktop-window-actions:hover svg{opacity:1}:root[data-platform="macos"] .desktop-window-symbol{display:none}
+.desktop-shell.welcome-shell{grid-template-rows:minmax(0,1fr)}
+.welcome-shell .desktop-area{padding:0;overflow:auto}
+.workspace-lock{position:fixed;inset:0;z-index:60000;display:grid;place-items:center;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(25px)}
+.workspace-lock>div{max-width:480px;padding:32px}.workspace-lock p{line-height:1.6}

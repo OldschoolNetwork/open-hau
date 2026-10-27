@@ -1,13 +1,14 @@
 <script lang="ts">
   import {Minus,Square,X} from "@lucide/svelte";
   import {commandIcon} from "./desktop-icons";
-  import {onMount} from "svelte";
+  import {onMount,tick} from "svelte";
   import {fitWindow} from "./window-bounds";
   export let id: string,
     title: string,
     language: "ru" | "ro",
     active = false,
     hidden = false,
+    minimized = false,
     index = 0;
   export let onfocus: () => void, onclose: () => void, onminimize: () => void;
   export let position = { x: 16, y: 16, width: 1000, height: 660 };
@@ -20,8 +21,18 @@
       y: number;
       origin: typeof position;
     } | null = null;
+  let renderHidden=hidden,lastHidden=hidden,lastMinimized=minimized,animation:Animation|undefined,motionSequence=0;
+  const reducedMotion=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function dockFrame(){const dock=[...document.querySelectorAll<HTMLElement>('[data-window-id]')].find(element=>element.dataset.windowId===id),a=frame.getBoundingClientRect(),b=dock?.getBoundingClientRect();return b?{transform:`translate(${b.left-a.left}px,${b.top-a.top}px) scale(${Math.max(.05,b.width/a.width)},${Math.max(.05,b.height/a.height)})`,opacity:0}:{transform:'translateY(35px) scale(.9)',opacity:0};}
+  async function changeVisibility(nextHidden:boolean,wasMinimized:boolean){const sequence=++motionSequence;animation?.cancel();
+    if(reducedMotion()){renderHidden=nextHidden;return;}
+    if(nextHidden){const end=minimized?dockFrame():{transform:'scale(.96)',opacity:0};animation=frame.animate([{transform:'none',opacity:1},end],{duration:minimized?190:130,easing:'cubic-bezier(.55,0,.85,.4)',fill:'forwards'});await animation.finished.catch(()=>{});if(sequence===motionSequence){renderHidden=true;animation.cancel();}}
+    else{renderHidden=false;await tick();if(sequence!==motionSequence)return;const start=wasMinimized?dockFrame():{transform:'scale(.96)',opacity:0};animation=frame.animate([start,{transform:'none',opacity:1}],{duration:wasMinimized?210:150,easing:'cubic-bezier(.1,.9,.2,1)'});}
+  }
+  $: if(frame&&hidden!==lastHidden){const wasMinimized=lastMinimized;lastHidden=hidden;lastMinimized=minimized;void changeVisibility(hidden,wasMinimized);}
+  async function toggleMaximize(){const before=frame.getBoundingClientRect();maximized=!maximized;await tick();const after=frame.getBoundingClientRect();if(!reducedMotion())frame.animate([{transform:`translate(${before.left-after.left}px,${before.top-after.top}px) scale(${before.width/after.width},${before.height/after.height})`},{transform:'none'}],{duration:180,easing:'cubic-bezier(.1,.9,.2,1)'});}
   function constrain(){if(frame?.parentElement&&!maximized){const parent=frame.parentElement;position=fitWindow(position,parent.clientWidth,parent.clientHeight);}}
-  onMount(()=>{const observer=new ResizeObserver(constrain);observer.observe(frame.parentElement!);constrain();return()=>observer.disconnect();});
+  onMount(()=>{const observer=new ResizeObserver(constrain);observer.observe(frame.parentElement!);constrain();return()=>{observer.disconnect();animation?.cancel();};});
   function start(e: PointerEvent, kind: "move" | "resize") {
     if (
       e.button !== 0 ||
@@ -79,7 +90,8 @@
   class="desktop-window"
   class:active
   class:maximized
-  class:window-hidden={hidden}
+  class:window-hidden={renderHidden}
+  style:transform-origin="top left"
   style:left={maximized ? "8px" : position.x + "px"}
   style:top={maximized ? "8px" : position.y + "px"}
   style:width={maximized ? "calc(100% - 16px)" : position.width + "px"}
@@ -110,7 +122,7 @@
         aria-label={language === "ru"
           ? "Развернуть / восстановить окно"
           : "Maximizare / restaurare fereastră"}
-        onclick={() => (maximized = !maximized)}><Square size={13}/></button
+        onclick={toggleMaximize}><Square size={13}/></button
       ><button
         class="window-close"
         aria-label={language === "ru" ? "Закрыть окно" : "Închidere fereastră"}
@@ -166,3 +178,4 @@
     }}
   ></button>
 </div>
+

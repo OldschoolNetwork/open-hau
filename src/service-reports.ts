@@ -3,8 +3,8 @@ import {D,charges,money,monthNext,csv} from "./engine";
 import {accountBalanceReport} from "./reports";
 export const UNALLOCATED_SERVICE="@unallocated";
 type Column="opening"|"charges"|"adjustments"|"paid";
-export function serviceBalanceReport(p:Project,from:string,to:string,serviceFilter="",attentionOnly=false){
-  const base=accountBalanceReport(p,from,to),ru=p.settings.language==="ru";
+export function serviceBalanceReport(p:Project,from:string,to:string,serviceFilter="",attentionOnly=false,postedOnly=false){
+  const base=accountBalanceReport(p,from,to,false,postedOnly),ru=p.settings.language==="ru";
   const rows:{account_id:string;service_id:string;service:string;number:string;payer:string;active:boolean;opening:string;charges:string;adjustments:string;paid:string;closing:string;warnings:string[]}[]=[];
   const group=<T>(items:T[],key:(item:T)=>string)=>{const result=new Map<string,T[]>();for(const item of items){const k=key(item);result.set(k,[...(result.get(k)||[]),item]);}return result;};
   const snapshots=group(p.snapshots,s=>s.account_id),payments=group(p.payments,pay=>pay.account_id),initial=group(p.service_accounting.opening,r=>r.account_id),paymentShares=group(p.service_accounting.payments,r=>r.payment_id),adjustmentShares=group(p.service_accounting.adjustments,r=>r.account_id+"|"+r.period);
@@ -28,7 +28,7 @@ export function serviceBalanceReport(p:Project,from:string,to:string,serviceFilt
     for(let month=from;month<=to;month=monthNext(month)){
       if(month<account.opening_period)continue;
       const saved=byMonth.get(month),calculated=saved||charges(p,account,month);
-      if(account.active||saved)for(const line of calculated.lines)put(line.service_id,"charges",line.amount);
+      if((account.active||saved)&&(!postedOnly||saved))for(const line of calculated.lines)put(line.service_id,"charges",line.amount);
       distribute(adjustmentShares.get(account.id+"|"+month)||[],calculated.adjustment,"adjustments");
     }
     for(const sid of account.service_ids)if(!amounts.has(sid))put(sid,"charges","0");

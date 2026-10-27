@@ -308,7 +308,27 @@ export const chooserGroups: Record<
   },
 };
 export const desktopMenus: DesktopCommand[] = [
-  {id:"file",ru:"Файл",ro:"Fișier",children:[item("database-home","Базы данных…","Baze de date…","file:catalog"),item("database-new","Создать базу…","Creează bază…","file:new"),item("database-open","Открыть JSON как базу…","Deschide JSON ca bază…","file:open"),item("save","Сохранить","Salvează","file:save"),item("export-json","Экспорт JSON…","Export JSON…","file:export")]},
+  {id:"file",ru:"Файл",ro:"Fișier",children:[item("database-home","Базы данных…","Baze de date…","file:catalog"),item("database-new","Создать базу…","Creează bază…","file:new"),item("database-open","Открыть JSON как базу…","Deschide JSON ca bază…","file:open"),item("save","Сохранить","Salvează","file:save"),item("export-json","Экспорт JSON…","Export JSON…","file:export"),{
+        id: "workspace-tools",
+        ru: "Рабочие инструменты OpenHaU",
+        ro: "Instrumente OpenHaU",
+        children: [
+          item("overview", "Обзор", "Prezentare", "overview"),
+          item(
+            "readings",
+            "Показания и распределение",
+            "Indexuri și repartizare",
+            "readings",
+          ),
+          item(
+            "payments",
+            "Оплаты и корректировки",
+            "Plăți și ajustări",
+            "payments",
+          ),
+          item("treasury", "Банк и касса", "Bancă și casă", "treasury"),
+        ],
+      }]},
   {id:"edit",ru:"Правка",ro:"Editare",children:[item("undo","Отменить","Anulează","edit:undo"),item("redo","Повторить","Refă","edit:redo"),item("cut","Вырезать","Decupează","edit:cut"),item("copy","Копировать","Copiază","edit:copy"),item("paste","Вставить","Lipește","edit:paste"),item("select-all","Выделить всё","Selectează tot","edit:selectAll")]},
   {
     id: "operations",
@@ -477,29 +497,10 @@ export const desktopMenus: DesktopCommand[] = [
         "purge",
         "Удаление помеченных объектов",
         "Eliminare obiecte marcate",
+        "purge",
       ),
-      item("temporary-lock", "Временная блокировка", "Blocare temporară"),
-      {
-        id: "workspace-tools",
-        ru: "Рабочие инструменты OpenHaU",
-        ro: "Instrumente OpenHaU",
-        children: [
-          item("overview", "Обзор", "Prezentare", "overview"),
-          item(
-            "readings",
-            "Показания и распределение",
-            "Indexuri și repartizare",
-            "readings",
-          ),
-          item(
-            "payments",
-            "Оплаты и корректировки",
-            "Plăți și ajustări",
-            "payments",
-          ),
-          item("treasury", "Банк и касса", "Bancă și casă", "treasury"),
-        ],
-      },
+      item("temporary-lock", "Временная блокировка", "Blocare temporară","temporary-lock"),
+
     ],
   },
   {
