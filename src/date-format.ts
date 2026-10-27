@@ -1,6 +1,6 @@
 import type {Project} from "./model";
 export const dateFormats=["iso","dmy-dot","dmy-slash","mdy-slash","dmy-short","long","short-month","weekday","roman-month"] as const;
-export const periodFormats=["iso","month-dot","month-slash","long","short-month","roman-month"] as const;
+export const periodFormats=["auto","iso","month-dot","month-slash","long","short-month","roman-month"] as const;
 type Language="ru"|"ro"|"en"|"both";
 const locales={ru:"ru-RU",ro:"ro-RO",en:"en-GB"};
 const roman=["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
@@ -24,7 +24,8 @@ export function displayDate(value:string|null|undefined,p:Project,language:Langu
 }
 export function displayPeriod(value:string,p:Project,language:Language=p.settings.language):string{
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(value))return value;
-  const [y,m]=value.split("-"),style=p.settings.period_format;
+  const [y,m]=value.split("-");
+  const style=p.settings.period_format==="auto"?({iso:"iso","dmy-dot":"month-dot","dmy-slash":"month-slash","mdy-slash":"month-slash","dmy-short":"month-dot",long:"long","short-month":"short-month",weekday:"long","roman-month":"roman-month"} as const)[p.settings.date_format]:p.settings.period_format;
   if(style==="iso")return value;
   if(style==="month-dot")return `${m}.${y}`;
   if(style==="month-slash")return `${m}/${y}`;

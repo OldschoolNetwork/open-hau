@@ -1,3 +1,4 @@
+import {referenceKinds} from "./catalog-definitions";
 export type DesktopCommand = {
   id: string;
   ru: string;
@@ -74,6 +75,8 @@ export const catalogs: DesktopCommand[] = [
   item("streets", "Улицы", "Străzi"),
   item("services", "Услуги", "Servicii", "services"),
 ];
+for(const entry of catalogs)if(!entry.action&&referenceKinds.includes(entry.id as typeof referenceKinds[number]))entry.action="catalog:"+entry.id;
+for(const entry of catalogs)if(entry.id==="individual-meters"||entry.id==="shared-meters")entry.action=entry.id;
 const catalog = (id: string) => catalogs.find((x) => x.id === id)!;
 export const documents: DesktopCommand[] = [
   item(
@@ -185,7 +188,7 @@ export const reportCommands: DesktopCommand[] = [
     "Balanță pe servicii",
     "service-reports",
   ),
-  item("payment-report", "Отчет по оплате", "Raport de plăți"),
+  item("payment-report", "Отчет по оплате", "Raport de plăți", "payment-report"),
   item("account-ledger", "Карточка расчетов", "Fișă de calcul"),
   item("beneficiaries", "Список льготников", "Lista beneficiarilor"),
   item("beneficiary-register", "Реестр льготников", "Registrul beneficiarilor"),
@@ -305,6 +308,8 @@ export const chooserGroups: Record<
   },
 };
 export const desktopMenus: DesktopCommand[] = [
+  {id:"file",ru:"Файл",ro:"Fișier",children:[item("database-home","Базы данных…","Baze de date…","file:catalog"),item("database-new","Создать базу…","Creează bază…","file:new"),item("database-open","Открыть JSON как базу…","Deschide JSON ca bază…","file:open"),item("save","Сохранить","Salvează","file:save"),item("export-json","Экспорт JSON…","Export JSON…","file:export")]},
+  {id:"edit",ru:"Правка",ro:"Editare",children:[item("undo","Отменить","Anulează","edit:undo"),item("redo","Повторить","Refă","edit:redo"),item("cut","Вырезать","Decupează","edit:cut"),item("copy","Копировать","Copiază","edit:copy"),item("paste","Вставить","Lipește","edit:paste"),item("select-all","Выделить всё","Selectează tot","edit:selectAll")]},
   {
     id: "operations",
     ru: "Операции",

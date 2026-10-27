@@ -12,6 +12,7 @@
   } from "./model";
   export let project: Project;
   export let onapply: (next: Project) => void;
+  export let scopeFilter:"all"|"individual"|"shared"="all";
   let meter: PhysicalMeter | null = null,
     reading: PhysicalMeterValue | null = null,
     error = "";
@@ -19,8 +20,8 @@
   function newMeter() {
     meter = {
       id: uid(),
-      scope: "individual",
-      account_id: project.accounts.find((a) => a.active)?.id || "",
+      scope: scopeFilter==="shared"?"shared":"individual",
+      account_id: scopeFilter==="shared"?"":project.accounts.find((a) => a.active)?.id || "",
       service_id: project.services[0]?.id || "",
       label: "",
       serial_number: "",
@@ -260,7 +261,7 @@
         "Nu au fost adăugate contoare fizice. Indexurile agregate din formatul vechi sunt disponibile mai jos.",
       )}
     </p>{/if}
-  {#each project.meters as m}
+  {#each project.meters.filter(m=>scopeFilter==="all"||m.scope===scopeFilter) as m}
     <section class="meter-card">
       <div class="meter-heading">
         <div>

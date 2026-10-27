@@ -5,7 +5,16 @@
   export let language: "ru" | "ro";
   export let oncommand: (action: string) => void;
   let root: HTMLElement;
+  let activeMenu:string|null=null;
+  function close(){activeMenu=null;root?.querySelectorAll('.desktop-submenu[open]').forEach(d=>(d as HTMLDetailsElement).open=false);}
+  function outside(e:PointerEvent){if(root&&!root.contains(e.target as Node))close();}
+  function topKey(e:KeyboardEvent,id:string){
+    if(e.key==="ArrowLeft"||e.key==="ArrowRight"){e.preventDefault();const index=menus.findIndex(m=>m.id===id),next=menus[(index+(e.key==="ArrowRight"?1:menus.length-1))%menus.length];activeMenu=next.id;requestAnimationFrame(()=>root.querySelector<HTMLDetailsElement>(`details[data-menu="${next.id}"]`)?.querySelector<HTMLElement>("summary")?.focus());}
+    else if(e.key==="ArrowDown"){e.preventDefault();activeMenu=id;requestAnimationFrame(()=>root.querySelector<HTMLElement>(`details[data-menu="${id}"] button:not(:disabled)`)?.focus());}
+    else key(e);
+  }
   function run(action: string) {
+    close();
     root
       .querySelectorAll("details[open]")
       .forEach((d) => ((d as HTMLDetailsElement).open = false));
@@ -13,6 +22,7 @@
   }
   function key(e: KeyboardEvent) {
     if (e.key === "Escape") {
+      close();
       const opened = [
         ...root.querySelectorAll("details[open]"),
       ].reverse()[0] as HTMLDetailsElement | undefined;
@@ -24,11 +34,12 @@
     }
   }
 </script>
+<svelte:window onpointerdown={outside} onblur={close}/>
 
 {#snippet entries(items: DesktopCommand[])}
   {#each items as item}
     {@const Icon=commandIcon(item)}
-    {#if item.children}<details class="desktop-submenu">
+    {#if item.children}<details class="desktop-submenu" onpointerenter={e=>{if(e.pointerType!=="touch"&&activeMenu){for(const sibling of e.currentTarget.parentElement?.children||[])if(sibling!==e.currentTarget&&sibling instanceof HTMLDetailsElement)sibling.open=false;e.currentTarget.open=true;}}}>
         <summary onkeydown={key}><Icon size={16}/><span class="desktop-menu-label">{item[language]}</span><span>›</span></summary>
         <div class="desktop-dropdown">{@render entries(item.children)}</div>
       </details>
@@ -51,17 +62,10 @@
 >
   {#each menus as menu}{@const Icon=commandIcon(menu)}<details
       class="desktop-menu"
-      ontoggle={(e) => {
-        if (e.currentTarget.open)
-          for (const sibling of root.children)
-            if (
-              sibling !== e.currentTarget &&
-              (sibling as HTMLDetailsElement).open
-            )
-              (sibling as HTMLDetailsElement).open = false;
-      }}
+      data-menu={menu.id}
+      open={activeMenu===menu.id}
     >
-      <summary onkeydown={key}><Icon size={15}/><span>{menu[language]}</span></summary>
+      <summary onclick={e=>{e.preventDefault();activeMenu=activeMenu===menu.id?null:menu.id;}} onpointerenter={e=>{if(e.pointerType!=="touch"&&activeMenu!==null)activeMenu=menu.id;}} onkeydown={e=>topKey(e,menu.id)}><Icon size={15}/><span>{menu[language]}</span></summary>
       <div class="desktop-dropdown">{@render entries(menu.children || [])}</div>
     </details>{/each}
 </nav>

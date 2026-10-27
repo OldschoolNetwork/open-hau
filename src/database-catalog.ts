@@ -1,0 +1,8 @@
+import {invoke} from "@tauri-apps/api/core";import {native,browserStorageKey,setBrowserDatabase} from "./storage";import {uid} from "./model";
+export type DatabaseCatalog={databases:{id:string;name:string}[];auto:string|null;last:string};
+const key="openhau-database-catalog";
+export async function databaseCatalog():Promise<DatabaseCatalog>{if(native)return invoke("database_catalog");const raw=localStorage.getItem(key);return raw?JSON.parse(raw):{databases:[{id:"default",name:"OpenHaU"}],auto:null,last:"default"};}
+export async function createDatabase(name:string):Promise<string>{name=name.trim();if(!name||name.length>120)throw Error("Invalid database name");if(native)return invoke("create_database",{name});const catalog=await databaseCatalog(),id="db-"+uid();catalog.databases.push({id,name});localStorage.setItem(key,JSON.stringify(catalog));return id;}
+export async function readDatabase(id:string):Promise<unknown>{if(native)return invoke("read_database",{id});const c=await databaseCatalog();if(!c.databases.some(d=>d.id===id))throw Error("Database not found");return JSON.parse(localStorage.getItem(browserStorageKey(id))||"null");}
+export async function activateDatabase(id:string):Promise<string>{if(native)return invoke("activate_database",{id});const c=await databaseCatalog();if(!c.databases.some(d=>d.id===id))throw Error("Database not found");c.last=id;localStorage.setItem(key,JSON.stringify(c));setBrowserDatabase(id);return "Browser preview · "+c.databases.find(d=>d.id===id)!.name;}
+export async function setDatabaseAuto(id:string|null){if(native)return invoke("set_database_auto",{id});const c=await databaseCatalog();if(id&&!c.databases.some(d=>d.id===id))throw Error("Database not found");c.auto=id;localStorage.setItem(key,JSON.stringify(c));}

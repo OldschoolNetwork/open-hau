@@ -1,6 +1,7 @@
 # Date display
 
-General settings provide nine date styles and six billing-month styles. Numeric,
+General settings provide nine date styles, six explicit billing-month styles and
+an automatic month style derived from the date style. Numeric,
 short-year, abbreviated-month, long-month, weekday and Roman-month variants are
 available. Examples use the interface language. Receipts use their own selected
 language, including English and bilingual Russian/Romanian.
@@ -12,5 +13,6 @@ system's calendar presentation. JSON exchange, filenames and machine-readable
 ledger exports retain ISO dates. Choosing a display style never reparses stored
 dates or changes rates, periods, ordering or financial calculations.
 
-Older projects default to ISO presentation. No timezone conversion is applied to
+Missing month preferences use automatic presentation; an explicitly selected
+month format is retained. No timezone conversion is applied to
 calendar-only dates. Invalid or absent source dates are never silently repaired.

@@ -4,9 +4,20 @@
   import DesktopMenu from "./DesktopMenu.svelte";
   import DesktopWindow from "./DesktopWindow.svelte";
   import DesktopChooser from "./DesktopChooser.svelte";
-  import {desktopMenus,chooserGroups} from "./desktop-menu";
+  import {desktopMenus,chooserGroups,catalogs} from "./desktop-menu";
+  import ReferenceCatalog from "./ReferenceCatalog.svelte";
+  import ReferenceRecordEditor from "./ReferenceRecordEditor.svelte";
+  import type {ReferenceKind} from "./catalog-definitions";
   import { ZodError } from "zod";
   import Reports from "./Reports.svelte";
+  import Notifications from "./Notifications.svelte";
+  import NotificationSettings from "./NotificationSettings.svelte";
+  import SettingsHome from "./SettingsHome.svelte";
+  import DatabaseHome from "./DatabaseHome.svelte";
+  import {databaseCatalog,readDatabase,activateDatabase,createDatabase,setDatabaseAuto,type DatabaseCatalog} from "./database-catalog";
+  import ServiceCatalog from "./ServiceCatalog.svelte";
+  import ServiceEditor from "./ServiceEditor.svelte";
+  import PaymentReport from "./PaymentReport.svelte";
   import PaymentAllocation from "./PaymentAllocation.svelte";
   import PaymentBatches from "./PaymentBatches.svelte";
   import {displayDate,displayPeriod,dateFormats,periodFormats} from "./date-format";
@@ -91,6 +102,7 @@
     runtimePlatform,
   } from "./storage";
   import { receipt, receiptBaseCSS, receiptDocument } from "./receipt";
+  import {exportPDF} from "./storage";
   import { loadLogo } from "./logo";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -137,6 +149,7 @@
     activeDesktop=[...desktopViews].reverse().find(v=>v.visible&&!v.minimized)?.id||"";
   }
   function desktopTitle(id:string,language:"ru"|"ro"){
+    if(id.startsWith("catalog:")||id.startsWith("catalogedit:")){const [,kind]=id.split(":"),entry=catalogs.find(c=>c.id===kind);return (entry?.[language]||kind)+(id.startsWith("catalogedit:")?(language==="ru"?" · запись":" · înregistrare"):"");}
     const titles:Record<string,[string,string]>={reports:["Оборотно-сальдовая ведомость","Balanță de verificare"],receipts:["Квитанция","Factură"],tariffs:["Изменение тарифов на услуги","Modificare tarife servicii"],settings:["Общие настройки","Setări generale"]};
     if(titles[id])return titles[id][language==="ru"?0:1];
     if(id.startsWith("chooser:")){const group=chooserGroups[id.slice(8)];return t("Выбор объекта: ","Selectare obiect: ")+(group?.[language]||"");}
@@ -145,6 +158,9 @@
     const entry=pages.find(x=>x.id===id);return entry?.[language]||id;
   }
   function desktopCommand(action:string){
+    if(action.startsWith("file:")){if(action==="file:save")void save();else if(action==="file:export")void exportJson();else if(action==="file:open")void importDatabase();else {showDatabaseHome=true;void refreshCatalog();}return;}
+    if(action.startsWith("edit:")){void editText(action.slice(5));return;}
+    showDatabaseHome=false;
     if(action==="about"){modal="about";return;}
     if(action.startsWith("window:")){
       const visible=desktopViews.filter(v=>v.visible),index=visible.findIndex(v=>v.id===activeDesktop);
@@ -178,7 +194,10 @@
     { id: "tariffs", ru: "Тарифы", ro: "Tarife", icon: ReceiptText },
     { id: "readings", ru: "Показания", ro: "Indexuri", icon: Gauge },
     { id: "payments", ru: "Оплаты", ro: "Plăți", icon: Wallet },
+    {id:"individual-meters",ru:"Индивидуальные приборы учёта",ro:"Contoare individuale",icon:Gauge},
+    {id:"shared-meters",ru:"Коллективные приборы учёта",ro:"Contoare comune",icon:Gauge},
     { id: "payment-batches",ru:"Групповой ввод оплаты",ro:"Introducere plăți în grup",icon:Wallet },
+    { id:"payment-report",ru:"Отчёт по оплатам",ro:"Raport de plăți",icon:ChartNoAxesCombined },
     { id: "treasury", ru: "Банк и касса", ro: "Bancă și casă", icon: Building2 },
     { id: "reports", ru: "Отчёты", ro: "Rapoarte", icon: ChartNoAxesCombined },
     { id:"service-reports",ru:"Оборотно-сальдовая ведомость по услугам",ro:"Balanță de verificare pe servicii",icon:ChartNoAxesCombined },
@@ -255,8 +274,26 @@
     dirty = true;
     error = "";
   }
+  let catalog:DatabaseCatalog={databases:[{id:"default",name:"OpenHaU"}],auto:null,last:"default"},activeDatabaseId="default",showDatabaseHome=true,lastTextField:HTMLInputElement|HTMLTextAreaElement|null=null;
+  function rememberText(e:FocusEvent){if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)lastTextField=e.target;}
+  async function editText(command:string){try{const field=lastTextField;if(!field||!field.isConnected)throw Error(t("Выберите текстовое поле для редактирования.","Selectați un câmp de text pentru editare."));field.focus();if(command==="paste"){const text=await navigator.clipboard.readText();field.setRangeText(text,field.selectionStart??field.value.length,field.selectionEnd??field.value.length,"end");field.dispatchEvent(new Event("input",{bubbles:true}));}else if(!document.execCommand(command))throw Error(t("Операция недоступна для выбранного поля. Используйте сочетание клавиш.","Operațiunea nu este disponibilă pentru câmpul selectat. Utilizați combinația de taste."));}catch(e){fail(e);}}
+  async function refreshCatalog(){try{catalog=await databaseCatalog();}catch(e){fail(e);}}
+  function blankDatabase(name:string):Project {const empty=demoProject();empty.demo=false;empty.organization={id:uid(),name,association_code:"",fiscal_code:"",bank:"",iban:"",address:"",notes:""};empty.settings={...empty.settings,language:p.settings.language,theme:p.settings.theme,date_format:p.settings.date_format,period_format:p.settings.period_format};empty.accounts=[];empty.services=[];empty.tariffs=[];empty.payments=[];empty.adjustments=[];empty.quantities=[];empty.snapshots=[];empty.closed_periods=[];empty.meter_readings=[];empty.meters=[];empty.meter_values=[];return valid(empty);}
+  async function switchDatabase(id:string,initial=false){
+    if(id===activeDatabaseId&&!initial){showDatabaseHome=false;return;}
+    const raw=await readDatabase(id),entry=catalog.databases.find(d=>d.id===id),candidate=raw?valid(raw):(id==="default"?p:blankDatabase(entry?.name||"OpenHaU"));
+    if(!initial&&(modal||Object.keys(readingEdits).length))throw Error(t("Завершите открытое редактирование и примените показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));
+    if(!initial&&desktopViews.some(v=>v.visible)&&!(await ask(t("Переключить базу? Открытые окна будут закрыты; сохраните черновики документов перед продолжением.","Schimbați baza? Ferestrele se vor închide; salvați ciornele documentelor înainte de continuare."))))return;
+    if(!initial&&dirty){await save();if(dirty)return;}
+    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;dirty=false;loadFailed=false;desktopViews=[];activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;catalog=await databaseCatalog();
+  }
+  async function openDatabase(id:string){try{await switchDatabase(id);}catch(e){fail(e);}}
+  async function newDatabase(name:string){try{if(dirty){await save();if(dirty)return;}const id=await createDatabase(name);await refreshCatalog();await switchDatabase(id);if(activeDatabaseId===id){p=blankDatabase(name);dirty=true;await save();}}catch(e){fail(e);}}
+  async function importDatabase(){try{const raw=await importJson();if(!raw)return;const candidate=valid(raw);if(dirty){await save();if(dirty)return;}const id=await createDatabase(candidate.organization.name);await refreshCatalog();await switchDatabase(id);if(activeDatabaseId===id){p=candidate;dirty=true;await save();}}catch(e){fail(e);}}
+  async function configureAutoDatabase(id:string|null){try{await setDatabaseAuto(id);await refreshCatalog();}catch(e){fail(e);}}
   async function save(reason:"save"|"close"="save") {
     if (busy) return;
+    notice="";
     if (loadFailed) {
       error = t(
         "База не прочитана. Сохранение заблокировано, чтобы не затереть данные.",
@@ -296,7 +333,9 @@
       busy = false;
     }
   }
+  let settingsCategory="home";
   function navigate(id: string) {
+    if(id==="settings")settingsCategory="home";
     page = id;
     openDesktop(id);
     query = "";
@@ -427,7 +466,7 @@
           )
             throw Error(
               t(
-                "Для изменения начального остатка сначала открой закрытые месяцы этого счёта.",
+                "Для изменения начального остатка сначала откройте закрытые месяцы этого счёта.",
                 "Redeschideți lunile închise înainte de modificarea soldului inițial.",
               ),
             );
@@ -449,7 +488,7 @@
         )
           throw Error(
             t(
-              "Период закрыт. Сначала открой его.",
+              "Период закрыт. Сначала откройте его.",
               "Perioada este închisă. Redeschide-o mai întâi.",
             ),
           );
@@ -895,8 +934,8 @@
           if (
             await ask(
               t(
-                "Сохранить изменения перед выходом? Если показания не применены, сначала примени их.",
-                "Salvezi modificările înainte de ieșire? Aplică mai întâi indexurile introduse.",
+                "Сохранить изменения перед выходом? Если показания не применены, сначала примените их.",
+                "Salvați modificările înainte de ieșire? Aplicați mai întâi indexurile introduse.",
               ),
             )
           ) {
@@ -909,10 +948,9 @@
     (async () => {
       try {
         document.documentElement.dataset.platform=await runtimePlatform();
-        const saved = await load();
-        if (saved) p = saved;
-        dbPath = await storagePath();
-        selected = p.accounts.filter((a) => a.active).map((a) => a.id);
+        catalog=await databaseCatalog();
+        if(catalog.auto)await switchDatabase(catalog.auto,true);
+        else {const saved=await load();if(saved)p=saved;dbPath=await storagePath();selected=p.accounts.filter(a=>a.active).map(a=>a.id);}
       } catch (e) {
         loadFailed = true;
         fail(e);
@@ -931,23 +969,9 @@
 </script>
 
 <svelte:head><title>OpenHaU · {period}</title></svelte:head>
-<svelte:window onpointermove={reveal}/>
+<svelte:window onpointermove={reveal} onfocusin={rememberText}/>
 {#snippet workspaceContent(page:string)}
     <section class="content">
-      {#if error && activeDesktop===page}<div class="alert error" role="alert">
-          <TriangleAlert size={18} /><span>{error}</span><button
-            class="icon-button"
-            onclick={() => (error = "")}
-            aria-label="Close"><X size={16} /></button
-          >
-        </div>{/if}
-      {#if notice && activeDesktop===page}<div class="alert success" role="status">
-          <Check size={18} /><span>{notice}</span><button
-            class="icon-button"
-            onclick={() => (notice = "")}
-            aria-label="Close"><X size={16} /></button
-          >
-        </div>{/if}
       {#if loading}<div class="empty-state">
           {t("Открываем базу…", "Deschidem baza…")}
         </div>
@@ -1245,48 +1269,7 @@
           </div>
         </article>
       {:else if page === "services"}
-        <div class="toolbar">
-          <p class="muted">
-            {t(
-              "У каждой услуги своя история тарифов и подключённые приборы учёта.",
-              "Fiecare serviciu are propriul istoric al tarifelor și contoare asociate.",
-            )}
-          </p>
-          <button class="button" onclick={() => openEditor("service")}
-            ><Plus size={17} />{t("Новая услуга", "Serviciu nou")}</button
-          >
-        </div>
-        <div class="services-grid">
-          {#each p.services as s}<article class="panel service-card">
-              <div class="service-card-top">
-                <span class="quick-icon"><Layers3 size={20} /></span><button
-                  class="icon-button"
-                  onclick={() => openEditor("service", s)}
-                  aria-label="Edit"><Pencil size={16} /></button
-                >
-              </div>
-              <h2>{s.name[lang]}</h2>
-              <div class="service-properties">
-                <span class="badge"
-                  >{s.calculation_type === "metered"
-                    ? t("По счётчику", "Contor")
-                    : s.calculation_type === "person"
-                      ? t("За человека", "Pe persoană")
-                      : s.calculation_type === "area"
-                        ? t("По площади", "Pe suprafață")
-                        : s.calculation_type === "manual"
-                          ? t("Ручной объём", "Volum manual")
-                          : t("За счёт", "Pe cont")}</span
-                ><span>{unitLabel(s.unit, lang)}</span><span
-                  >{s.active ? "●" : "○"}</span
-                >
-              </div>
-              <button class="button secondary small" onclick={() => { tariffServiceFilter = s.id; navigate("tariffs"); }}>
-                {t("Тарифы услуги", "Tarifele serviciului")}
-              </button>
-              <p class="quiet-note">{t("Приборов учёта", "Contoare")}: {p.meters.filter(m => m.service_id === s.id).length}</p>
-            </article>{/each}
-        </div>
+        <ServiceCatalog project={p} onedit={service=>openEditor("service",service)} ontariffs={id=>{tariffServiceFilter=id;navigate("tariffs");}}/>
       {:else if page === "tariffs"}
         <TariffDocuments project={p} onapply={setProject}/>
         <label>{t("Услуга", "Serviciu")}<select bind:value={tariffServiceFilter}>
@@ -1543,6 +1526,10 @@
         <Treasury project={p} onapply={setProject}/>
       {:else if page === "reports"}
         <Reports project={p} />
+      {:else if page === "individual-meters" || page === "shared-meters"}
+        <PhysicalMeters project={p} onapply={setProject} scopeFilter={page==="individual-meters"?"individual":"shared"}/>
+      {:else if page === "payment-report"}
+        <PaymentReport project={p}/>
       {:else if page === "payment-batches"}
         <PaymentBatches project={p} onapply={setProject}/>
       {:else if page === "service-reports"}
@@ -1559,15 +1546,15 @@
                   bind:value={p.settings.receipt_design}
                   onchange={changed}
                   ><option value="studio"
-                    >Studio · {t("Современный", "Modern")}</option
+                    >Studio</option
                   ><option value="compact"
-                    >Compact · {t("Экономный", "Economic")}</option
+                    >Compact</option
                   ><option value="classic"
-                    >Classic · {t("С корешком", "Cu aviz")}</option
-                  ><option value="ribbon">Ribbon · {t("Геометрия", "Geometric")}</option
-                  ><option value="botanical">Botanical · {t("Узор", "Ornament")}</option
-                  ><option value="heritage">Heritage · {t("Привычный бланк", "Formular familiar")}</option
-                  ><option value="aero">Aero · {t("Банковская классика 2000-х", "Stil bancar din anii 2000")}</option
+                    >Classic</option
+                  ><option value="ribbon">Ribbon</option
+                  ><option value="botanical">Botanical</option
+                  ><option value="heritage">Heritage</option
+                  ><option value="aero">Aero</option
                   ><option value="custom">{t("Своё оформление", "Aspect personalizat")}</option
                   ></select
                 ></label
@@ -1586,8 +1573,8 @@
                 <label
                   >{t("Цвет", "Culoare")}<input
                     type="color"
-                    bind:value={p.settings.receipt_color}
-                    onchange={changed}
+                    value={p.settings.receipt_color}
+                    onchange={e=>{p.settings.receipt_color=e.currentTarget.value;changed();}}
                   /></label
                 ><label
                   >{t("Шрифт, pt", "Font, pt")}<input
@@ -1663,9 +1650,10 @@
               </div>
               <button class="button" onclick={printReceipts}
                 ><Printer size={16} />{t(
-                  "Печать / PDF",
-                  "Tipărire / PDF",
+                  "Печать",
+                  "Tipărire",
                 )}</button
+              ><button class="button secondary" disabled={!native||!receiptAccounts.length} onclick={async()=>{try{await exportPDF(`OpenHaU-receipts-${period}.pdf`,receiptDocument(p,receiptAccounts,period));}catch(e){fail(e);}}}><Download size={16}/>{t("Сохранить PDF","Salvează PDF")}</button
               ><button class="button secondary" onclick={exportHTML}
                 ><Download size={16} />{t(
                   "Сохранить HTML",
@@ -1675,8 +1663,8 @@
               {#if p.settings.receipt_design==="custom"}<ReceiptDesigner project={p} onapply={setProject}/>{/if}
               <p class="quiet-note">
                 {t(
-                  "В PDF сохраняет системный диалог печати. Если он недоступен, открой сохранённый HTML в браузере.",
-                  "PDF se salvează din dialogul de imprimare. Dacă nu este disponibil, deschide HTML-ul în browser.",
+                  "Для сохранения PDF выберите соответствующее назначение в диалоге печати.",
+                  "Pentru salvarea PDF selectați destinația corespunzătoare din dialogul de imprimare.",
                 )}
               </p>
             </div>
@@ -1699,10 +1687,11 @@
           </div>
         </div>
       {:else if page === "settings"}
-        <BackupSettings language={lang} unsaved={dirty || !!Object.keys(readingEdits).length} />
-        <ExportSettings project={p} unsaved={dirty || !!Object.keys(readingEdits).length} />
-        <div class="settings-grid">
-          <article class="panel">
+        <div class="settings-screen">{#if settingsCategory==="home"}<SettingsHome language={lang} onselect={id=>settingsCategory=id}/>{:else}<button class="button secondary settings-back" onclick={()=>settingsCategory="home"}><ChevronRight size={16} style="transform:rotate(180deg)"/>{t("Все параметры","Toate setările")}</button>
+        {#if settingsCategory==="backups"}<BackupSettings language={lang} unsaved={dirty || !!Object.keys(readingEdits).length}/>{/if}
+        {#if settingsCategory==="exports"}<ExportSettings project={p} unsaved={dirty || !!Object.keys(readingEdits).length}/>{/if}
+        {#if settingsCategory==="notifications"}<NotificationSettings language={lang}/>{/if}
+        {#if settingsCategory==="appearance"}<article class="panel">
             <div class="panel-heading">
               <div>
                 <h2>{t("Внешний вид", "Aspect")}</h2>
@@ -1733,8 +1722,8 @@
                 <label
                   >{t("Акцентный цвет", "Culoare accent")}<input
                     type="color"
-                    bind:value={p.settings.accent}
-                    onchange={changed}
+                    value={p.settings.accent}
+                    onchange={e=>{p.settings.accent=e.currentTarget.value;changed();}}
                   /></label
                 ><label
                   >{t("Язык интерфейса", "Limba interfeței")}<select
@@ -1747,12 +1736,12 @@
                 >
               </div>
               <div class="two-fields">
-                <label>{t("Формат даты","Formatul datei")}<select bind:value={p.settings.date_format} onchange={changed}>{#each dateFormats as style}<option value={style}>{displayDate("2026-10-26",{...p,settings:{...p.settings,date_format:style}})}</option>{/each}</select></label>
-                <label>{t("Формат расчётного месяца","Formatul lunii de calcul")}<select bind:value={p.settings.period_format} onchange={changed}>{#each periodFormats as style}<option value={style}>{displayPeriod("2026-10",{...p,settings:{...p.settings,period_format:style}})}</option>{/each}</select></label>
+                <label>{t("Формат даты","Formatul datei")}<select bind:value={p.settings.date_format} onchange={()=>{if(p.settings.period_format==="iso")p.settings.period_format="auto";changed();}}>{#each dateFormats as style}<option value={style}>{displayDate("2026-10-26",{...p,settings:{...p.settings,date_format:style}})}</option>{/each}</select></label>
+                <label>{t("Формат расчётного месяца","Formatul lunii de calcul")}<select bind:value={p.settings.period_format} onchange={changed}>{#each periodFormats as style}<option value={style}>{style==="auto"?t("Как формат даты · ","Ca formatul datei · "):""}{displayPeriod("2026-10",{...p,settings:{...p.settings,period_format:style}})}</option>{/each}</select></label>
               </div>
             </div>
-          </article>
-          <article class="panel">
+          </article>{/if}
+        {#if settingsCategory==="organization"}<article class="panel">
             <div class="panel-heading">
               <h2>{t("Организация", "Organizație")}</h2>
               <button
@@ -1768,8 +1757,8 @@
               <p>IBAN: {p.organization.iban || "—"}</p>
               <small>{p.organization.bank}</small>
             </div>
-          </article>
-          <article class="panel">
+          </article>{/if}
+        {#if settingsCategory==="calculations"}<article class="panel">
             <div class="panel-heading">
               <h2>{t("Расчёты и квитанции", "Calcule și facturi")}</h2>
             </div>
@@ -1785,7 +1774,7 @@
               >
               <p class="quiet-note">
                 {t(
-                  "Правило по умолчанию — half up. Перед рабочими начислениями согласуй его с бухгалтером. Закрытые месяцы не пересчитываются.",
+                  "Правило по умолчанию — half up. Перед рабочими начислениями согласуйте его с бухгалтером. Закрытые месяцы не пересчитываются.",
                   "Regula implicită este half up. Confirm-o cu contabilul înainte de utilizare. Lunile închise nu se recalculează.",
                 )}
               </p>
@@ -1822,8 +1811,8 @@
               ><label>{t("Подпись внизу · EN", "Text de subsol · EN")}<textarea bind:value={p.settings.receipt_footer.en} oninput={changed}></textarea></label
               >
             </div>
-          </article>
-          <article class="panel">
+          </article>{/if}
+        {#if settingsCategory==="data"}<article class="panel"><label>{t("Автоматически открывать базу","Deschidere automată a bazei")}<select value={catalog.auto||""} onchange={e=>configureAutoDatabase(e.currentTarget.value||null)}><option value="">{t("Показывать выбор базы","Afișează alegerea bazei")}</option>{#each catalog.databases as db}<option value={db.id}>{db.name}</option>{/each}</select></label><button class="button secondary" onclick={()=>{showDatabaseHome=true;void refreshCatalog();}}><FolderOpen size={17}/>{t("Каталог баз данных","Catalogul bazelor de date")}</button>
             <div class="panel-heading">
               <h2>
                 {t("Данные и резервные копии", "Date și copii de rezervă")}
@@ -1863,42 +1852,35 @@
                   size={15}
                 /></button
               >
-              <hr />
-              <h3>{t("Обновления", "Actualizări")}</h3>
-              <p class="quiet-note">
-                {t(
-                  "26.2 Development · пока ручная установка. Подписанные обновления через GitHub Releases — следующий этап.",
-                  "26.2 Development · instalare manuală deocamdată. Actualizări semnate prin GitHub Releases — etapa următoare.",
-                )}
-              </p>
-              <a
-                href="https://github.com/OldschoolNetwork/open-hau/releases"
-                target="_blank"
-                rel="noreferrer">GitHub Releases ↗</a
-              >
-            </div>
-          </article>
-        </div>
+              </div>
+          </article>{/if}
+        {#if settingsCategory==="updates"}<article class="panel"><h2>{t("Обновления","Actualizări")}</h2><p>{t("Установка обновлений вручную.","Instalarea manuală a actualizărilor.")}</p><a href="https://github.com/OldschoolNetwork/open-hau/releases" target="_blank" rel="noreferrer">GitHub Releases</a></article>{/if}
+        {/if}</div>
       {/if}
 
     </section>
 {/snippet}
 <div class="desktop-shell no-print">
+  <Notifications {notice} {error} language={lang} onnotice={()=>notice=""}/>
   <header class="desktop-chrome">
     <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><span>{t("Период: ","Perioadă: ")}{displayPeriod(period,p)}</span><div class="desktop-state">{dirty?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
     <DesktopMenu menus={desktopMenus} language={lang} oncommand={desktopCommand}/>
     <div class="desktop-commandbar"><button class="desktop-save" onclick={()=>save()} disabled={busy||loading}><Save size={17}/>{t("Сохранить","Salvare")}</button></div>
   </header>
   <main class="desktop-area" bind:this={desktopArea}>
+    {#if showDatabaseHome}<DatabaseHome {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={importDatabase} onauto={configureAutoDatabase} onresume={()=>showDatabaseHome=false}/>{:else}
     {#if !desktopViews.some(v=>v.visible&&!v.minimized)}<div class="desktop-empty"><img src="/brand/logo-full.svg" alt="OpenHaU OPEN"/></div>{/if}
     {#each desktopViews as view (view.id)}
       <DesktopWindow id={view.id} title={desktopTitle(view.id,lang)} language={lang} active={activeDesktop===view.id} hidden={!view.visible||view.minimized} index={desktopViews.indexOf(view)} bind:position={view.position} onfocus={()=>focusDesktop(view.id)} onclose={()=>hideDesktop(view.id)} onminimize={()=>hideDesktop(view.id,true)}>
-        {#if view.id.startsWith("chooser:")}<DesktopChooser group={view.id.slice(8)} language={lang} oncommand={action=>{hideDesktop(view.id);desktopCommand(action);}} onclose={()=>hideDesktop(view.id)}/>
+        {#if view.id.startsWith("catalogedit:")}{@const parts=view.id.split(":")}<ReferenceRecordEditor project={p} kind={parts[1] as ReferenceKind} recordId={parts.slice(2).join(":")} onapply={setProject} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith("catalog:")}<ReferenceCatalog project={p} kind={view.id.slice(8) as ReferenceKind} onapply={setProject} onedit={id=>openDesktop("catalogedit:"+view.id.slice(8)+":"+(id==="new"?uid():id))}/>
+        {:else if view.id.startsWith("chooser:")}<DesktopChooser group={view.id.slice(8)} language={lang} oncommand={action=>{hideDesktop(view.id);desktopCommand(action);}}/>
         {:else if view.id==="period"}<div class="desktop-simple-form"><label>{t("Расчетный период","Perioada de calcul")}<input type="month" value={period} onchange={e=>changePeriod(e.currentTarget.value)}/></label><button class="button secondary" onclick={()=>hideDesktop(view.id)}>{t("Закрыть","Închidere")}</button></div>
         {:else if view.id==="manual"}<div class="desktop-simple-form"><h2>{t("Работа с базой","Lucrul cu baza")}</h2><p>{t("Справочники и документы открываются через верхнее меню. Открытые окна можно перемещать, сворачивать и переключать через нижнюю панель или меню «Окно».","Cataloagele și documentele se deschid din meniul de sus. Ferestrele pot fi mutate, minimizate și selectate din bara de jos sau meniul «Fereastră».")}</p><p>{t("После применения изменений используйте «Сохранить». Резервные копии, импорт и экспорт доступны в общих настройках.","După aplicarea modificărilor utilizați «Salvare». Copiile de siguranță, importul și exportul sunt disponibile în setările generale.")}</p></div>
         {:else}{@render workspaceContent(view.page)}{/if}
       </DesktopWindow>
     {/each}
+    {/if}
   </main>
   <footer class="desktop-dock" aria-label={t("Панель окон","Bara ferestrelor")}>
     <div class="desktop-open-windows">{#each desktopViews.filter(v=>v.visible) as view}{@const WindowIcon=pages.find(item=>item.id===view.id)?.icon||FolderOpen}<button title={desktopTitle(view.id,lang)} aria-pressed={activeDesktop===view.id&&!view.minimized} class:active={activeDesktop===view.id&&!view.minimized} onclick={()=>focusDesktop(view.id)}><WindowIcon size={18}/><span>{desktopTitle(view.id,lang)}</span></button>{/each}</div>
@@ -1912,7 +1894,7 @@
   <div class="modal-backdrop no-print" role="presentation">
     <div
       class="modal"
-      class:wide={modal === "json" || modal === "import" || modal === "payment"}
+      class:wide={modal === "json" || modal === "import" || modal === "payment" || modal === "service"}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-heading"
@@ -2038,70 +2020,7 @@
             )}
           </p>
         {:else if modal === "service"}
-          <label
-            >{t("Название на русском", "Denumire în rusă")}<input
-              bind:value={draft.name.ru}
-            /></label
-          ><label
-            >{t("Название на румынском", "Denumire în română")}<input
-              bind:value={draft.name.ro}
-            /></label
-          ><label>{t("Название на английском", "Denumire în engleză")}<input bind:value={draft.name.en}/></label
-          ><label
-            >{t("Тип расчёта", "Tip de calcul")}<select
-              bind:value={draft.calculation_type}
-              ><option value="metered"
-                >{t(
-                  "Разница показаний счётчика",
-                  "Diferența indexurilor",
-                )}</option
-              ><option value="person"
-                >{t(
-                  "За человека (поле для мусора)",
-                  "Pe persoană (câmpul pentru deșeuri)",
-                )}</option
-              ><option value="area"
-                >{t("По общей площади", "Pe suprafața totală")}</option
-              ><option value="fixed"
-                >{t("Фиксированный объём на счёт", "Volum fix pe cont")}</option
-              ><option value="manual"
-                >{t("Ручной объём каждый месяц", "Volum manual lunar")}</option
-              ></select
-            ></label
-          >
-          <div class="two-fields">
-            <label
-              >{t("Единица измерения", "Unitate de măsură")}<input
-                bind:value={draft.unit}
-              /></label
-            ><label
-              >{t(
-                "Объём по умолчанию для фиксированной платы",
-                "Volum implicit pentru taxa fixă",
-              )}<input bind:value={draft.default_quantity} /></label
-            >
-          </div>
-          <label class="check-row"
-            ><input type="checkbox" bind:checked={draft.active} />{t(
-              "Услуга активна",
-              "Serviciu activ",
-            )}</label
-          ><label
-            >{t("Примечание", "Notă")}<textarea bind:value={draft.notes}
-            ></textarea></label
-          >
-          <h3>{t("Приборы учёта услуги", "Contoarele serviciului")}</h3>
-          <p class="quiet-note">{t("Подключения и показания редактируются в разделе «Показания». Здесь показаны также отключённые приборы и история дат подключения.", "Conexiunile și indexurile se editează în secțiunea «Indexuri». Sunt afișate și contoarele deconectate, cu datele de instalare și demontare.")}</p>
-          <div class="table-wrap"><table>
-            <thead><tr><th>{t("Прибор / номер", "Contor / număr")}</th><th>{t("Лицевой счёт", "Cont personal")}</th><th>{t("Тип", "Tip")}</th><th>{t("Состояние", "Stare")}</th><th>{t("Установка / снятие", "Instalare / demontare")}</th></tr></thead>
-            <tbody>{#each p.meters.filter(m => m.service_id === draft.id) as m}
-              <tr><td>{m.label}<small>{m.serial_number || "—"} · {unitLabel(m.unit, lang)}</small></td><td>{p.accounts.find(a => a.id === m.account_id)?.number || "—"}</td><td>{m.scope === "shared" ? t("Общий", "Comun") : t("Индивидуальный", "Individual")}</td><td>{m.retired_on ? t("Снят", "Demontat") : m.active ? t("Активен", "Activ") : t("Отключён", "Deconectat")}</td><td>{m.installed_on || "—"} / {m.retired_on || "—"}</td></tr>
-            {:else}<tr><td colspan="5">{t("Приборы учёта не добавлены.", "Nu au fost adăugate contoare.")}</td></tr>{/each}</tbody>
-          </table></div>
-          <h3>{t("Тарифы услуги", "Tarifele serviciului")}</h3>
-          <div class="table-wrap"><table><thead><tr><th>{t("Действует с", "Valabil din")}</th><th>{t("Тариф, MDL", "Tarif, MDL")} / {unitLabel(draft.unit, lang)}</th></tr></thead><tbody>
-            {#each p.tariffs.filter(x => x.service_id === draft.id).sort((a,b) => b.effective_from.localeCompare(a.effective_from)) as rate}<tr><td>{displayDate(rate.effective_from,p)}</td><td>{rate.rate}</td></tr>{:else}<tr><td colspan="2">{t("Тариф не задан.", "Tariful nu este stabilit.")}</td></tr>{/each}
-          </tbody></table></div>
+          <ServiceEditor project={p} bind:draft onreference={kind=>{saveEditor();if(!modal)openDesktop("catalog:"+kind);}} ontariffs={()=>{const id=draft.id;saveEditor();if(!modal){tariffServiceFilter=id;navigate("tariffs");}}}/>
         {:else if modal === "tariff"}
           {#if !p.tariffs.some(x => x.id === draft.id)}
             <label>{t("Способ ввода", "Mod de introducere")}<select bind:value={tariffEntryMode}>

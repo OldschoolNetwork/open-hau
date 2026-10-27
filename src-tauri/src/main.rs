@@ -11,11 +11,14 @@ use std::{
 use tauri::Manager;
 mod backups;
 mod report_files;
+mod databases;
+mod pdf_export;
 #[cfg(test)]
 mod report_files_tests;
 
 struct Storage {
     root: PathBuf,
+    active: Mutex<String>,
     lock: Mutex<()>,
 }
 
@@ -51,7 +54,7 @@ fn validate(value: &Value) -> Result<(), String> {
 #[tauri::command]
 fn load_project(storage: tauri::State<Storage>) -> Result<Option<Value>, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
-    let conn = connection(&storage.root)?;
+    let conn = connection(&databases::current(&storage)?)?;
     let mut stmt = conn
         .prepare("SELECT name, json FROM project_sections")
         .map_err(|e| e.to_string())?;
@@ -75,7 +78,7 @@ fn load_project(storage: tauri::State<Storage>) -> Result<Option<Value>, String>
 #[tauri::command]
 fn save_project(value: Value, storage: tauri::State<Storage>) -> Result<Value, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
-    save_with_copy(value, &storage.root)
+    save_with_copy(value, &databases::current(&storage)?)
 }
 
 fn save_with_copy(value: Value, root: &PathBuf) -> Result<Value, String> {
@@ -91,7 +94,7 @@ fn save_with_copy(value: Value, root: &PathBuf) -> Result<Value, String> {
 #[tauri::command]
 fn backup_settings(storage: tauri::State<Storage>) -> Result<Value, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
-    backups::settings(&storage.root)
+    backups::settings(&databases::current(&storage)?)
 }
 #[tauri::command]
 fn configure_backups(
@@ -99,23 +102,23 @@ fn configure_backups(
     storage: tauri::State<Storage>,
 ) -> Result<Value, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
-    backups::configure(&storage.root, directory)
+    backups::configure(&databases::current(&storage)?, directory)
 }
 #[tauri::command]
 fn backup_now(storage: tauri::State<Storage>) -> Result<Option<String>, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
-    backups::copy(&storage.root)
+    backups::copy(&databases::current(&storage)?)
 }
 
 #[tauri::command]
 fn report_export_settings(storage: tauri::State<Storage>) -> Result<Value, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
-    report_files::settings(&storage.root)
+    report_files::settings(&databases::current(&storage)?)
 }
 #[tauri::command]
 fn configure_report_exports(value: Value, storage: tauri::State<Storage>) -> Result<Value, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
-    report_files::configure(&storage.root, value)
+    report_files::configure(&databases::current(&storage)?, value)
 }
 #[tauri::command]
 fn write_report_exports(
@@ -125,7 +128,7 @@ fn write_report_exports(
     storage: tauri::State<Storage>,
 ) -> Result<Option<String>, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
-    report_files::write(&storage.root, &reason, &period, files)
+    report_files::write(&databases::current(&storage)?, &reason, &period, files)
 }
 
 fn save_value(value: Value, root: &PathBuf) -> Result<String, String> {
@@ -204,13 +207,58 @@ fn write_text_file(path: String, content: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn storage_path(storage: tauri::State<Storage>) -> String {
-    storage.root.display().to_string()
+fn write_binary_file(path: String, content: Vec<u8>) -> Result<(), String> {
+    if content.len() > 128 * 1024 * 1024 { return Err("Export exceeds 128 MiB".into()); }
+    if !std::path::Path::new(&path).is_absolute() || !path.to_lowercase().ends_with(".xlsx") { return Err("An absolute XLSX path is required".into()); }
+    fs::write(path, content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn storage_path(storage: tauri::State<Storage>) -> Result<String,String> {
+    Ok(databases::current(&storage)?.display().to_string())
 }
 
 #[tauri::command]
 fn runtime_platform() -> String {
     std::env::consts::OS.to_string()
+}
+
+#[tauri::command]
+fn notification_sound() -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    unsafe {
+        use windows::Win32::UI::WindowsAndMessaging::MB_OK;
+        use windows::Win32::System::Diagnostics::Debug::MessageBeep;
+        MessageBeep(MB_OK).map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("/usr/bin/afplay")
+        .arg("/System/Library/Sounds/Glass.aiff")
+        .spawn().map_err(|e| e.to_string())?;
+    Ok(())
+}
+#[tauri::command]
+async fn export_pdf(app:tauri::AppHandle,html:String,path:String,landscape:bool)->Result<(),String>{pdf_export::render(app,html,path,landscape).await}
+
+#[cfg(target_os = "windows")]
+fn suppress_download_flyout(window: &tauri::WebviewWindow) {
+    let _ = window.with_webview(|webview| unsafe {
+        use windows::core::Interface;
+        use webview2_com::{IsDefaultDownloadDialogOpenChangedEventHandler, Microsoft::Web::WebView2::Win32::ICoreWebView2_9};
+        if let Ok(core) = webview.controller().CoreWebView2() {
+            if let Ok(core9) = core.cast::<ICoreWebView2_9>() {
+                let mut token = 0i64;
+                let _ = core9.add_IsDefaultDownloadDialogOpenChanged(
+                    &IsDefaultDownloadDialogOpenChangedEventHandler::create(Box::new(|sender, _| {
+                        if let Some(sender) = sender {
+                            if let Ok(core9) = sender.cast::<ICoreWebView2_9>() {let _ = core9.CloseDefaultDownloadDialog();}
+                        }
+                        Ok(())
+                    })), &mut token);
+                let _ = core9.CloseDefaultDownloadDialog();
+            }
+        }
+    });
 }
 
 fn main() {
@@ -223,6 +271,7 @@ fn main() {
                 .unwrap_or(app.path().app_data_dir()?);
             app.manage(Storage {
                 root,
+                active: Mutex::new("default".to_string()),
                 lock: Mutex::new(()),
             });
             let window =
@@ -230,7 +279,20 @@ fn main() {
             // WebView2: preserve the PDF destination but suppress Edge's download flyout.
             #[cfg(target_os = "windows")]
             let window = window.on_download(|_, _| true);
-            window.build()?;
+            let built = window.build()?;
+            #[cfg(target_os = "windows")]
+            suppress_download_flyout(&built);
+            #[cfg(debug_assertions)]
+            if let Some(path) = std::env::var_os("OPENHAU_PDF_QA") {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let path = PathBuf::from(path);
+                    let html = "<!doctype html><html><head><meta charset=\"utf-8\"><style>th{background:#e7edf3;font-weight:bold}td,th{padding:12px;border:1px solid #999}table{border-collapse:collapse}</style></head><body><h1>OpenHaU · Demonstration</h1><p>Оборотно-сальдовая ведомость · Balanță</p><table><tr><th>Service</th><th>MDL</th></tr><tr><td>Example water</td><td>123.45</td></tr></table></body></html>";
+                    let result = pdf_export::render(handle.clone(),html.into(),path.to_string_lossy().into(),true).await;
+                    let _ = fs::write(path.with_extension("result.json"),serde_json::to_vec(&serde_json::json!({"success":result.is_ok(),"error":result.err()})).unwrap_or_default());
+                    handle.exit(0);
+                });
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -238,8 +300,16 @@ fn main() {
             save_project,
             read_json_file,
             write_text_file,
+            write_binary_file,
             storage_path,
             runtime_platform,
+            notification_sound,
+            export_pdf,
+            databases::database_catalog,
+            databases::create_database,
+            databases::read_database,
+            databases::activate_database,
+            databases::set_database_auto,
             backup_settings,
             configure_backups,
             backup_now,

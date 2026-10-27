@@ -13,7 +13,7 @@ export type AccountReportRow = {
   closing: string;
   warnings: string[];
 };
-export function accountBalanceReport(p: Project, from: string, to: string) {
+export function accountBalanceReport(p: Project, from: string, to: string,attentionOnly=false) {
   if (
     !/^\d{4}-(0[1-9]|1[0-2])$/.test(from) ||
     !/^\d{4}-(0[1-9]|1[0-2])$/.test(to) ||
@@ -70,7 +70,7 @@ export function accountBalanceReport(p: Project, from: string, to: string) {
         ),
         warnings: [...warnings],
       };
-    });
+    }).filter(row=>!attentionOnly||row.warnings.length>0);
   const totals = Object.fromEntries(
     ["opening", "charges", "adjustments", "paid", "closing"].map((key) => [
       key,
@@ -92,8 +92,8 @@ export function accountBalanceReport(p: Project, from: string, to: string) {
   };
 }
 
-export function accountReportCSV(p: Project, from: string, to: string) {
-  const r = accountBalanceReport(p, from, to);
+export function accountReportCSV(p: Project, from: string, to: string,attentionOnly=false) {
+  const r = accountBalanceReport(p, from, to,attentionOnly);
   const headers =
     p.settings.language === "ru"
       ? [

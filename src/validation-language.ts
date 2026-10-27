@@ -1,5 +1,11 @@
 type Language = "ru" | "ro";
 const messages: Record<string, [string, string]> = {
+  "Duplicate reference catalog records":["Повторяющиеся записи справочника","Înregistrări duplicate în catalog"],
+  "Unknown reference catalog link":["Связанная запись справочника не найдена","Înregistrarea asociată a catalogului nu a fost găsită"],
+  "Invalid reference catalog date":["Некорректная дата в справочнике","Dată nevalidă în catalog"],
+  "Invalid reference catalog number":["В справочнике требуется неотрицательное число","În catalog este necesar un număr nenegativ"],
+  "Invalid database name":["Укажите название базы длиной до 120 символов","Indicați denumirea bazei de cel mult 120 de caractere"],
+  "Database not found":["База данных не найдена","Baza de date nu a fost găsită"],
   "Duplicate payment batches":["Повторяющиеся документы оплаты","Documente de plată duplicate"],
   "Invalid payment batch configuration":["Проверьте месяц долга и услугу обслуживания в документе оплаты","Verificați luna datoriei și serviciul deservirii din document"],
   "Duplicate payment batch accounts or rows":["В документе повторяются лицевые счета или строки","Documentul conține conturi sau rânduri duplicate"],

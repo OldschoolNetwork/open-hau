@@ -3,7 +3,7 @@ import {D,charges,money,monthNext,csv} from "./engine";
 import {accountBalanceReport} from "./reports";
 export const UNALLOCATED_SERVICE="@unallocated";
 type Column="opening"|"charges"|"adjustments"|"paid";
-export function serviceBalanceReport(p:Project,from:string,to:string,serviceFilter=""){
+export function serviceBalanceReport(p:Project,from:string,to:string,serviceFilter="",attentionOnly=false){
   const base=accountBalanceReport(p,from,to),ru=p.settings.language==="ru";
   const rows:{account_id:string;service_id:string;service:string;number:string;payer:string;active:boolean;opening:string;charges:string;adjustments:string;paid:string;closing:string;warnings:string[]}[]=[];
   const group=<T>(items:T[],key:(item:T)=>string)=>{const result=new Map<string,T[]>();for(const item of items){const k=key(item);result.set(k,[...(result.get(k)||[]),item]);}return result;};
@@ -37,6 +37,7 @@ export function serviceBalanceReport(p:Project,from:string,to:string,serviceFilt
       if(sid===UNALLOCATED_SERVICE&&Object.values(values).every(v=>v.isZero()))continue;
       const service=p.services.find(s=>s.id===sid),warnings=[...summary.warnings];
       if(sid===UNALLOCATED_SERVICE)warnings.push(ru?"Не завершено распределение начальных остатков, оплат или корректировок по услугам":"Repartizarea soldurilor inițiale, plăților sau ajustărilor pe servicii este incompletă");
+      if(attentionOnly&&!warnings.length)continue;
       rows.push({account_id:account.id,service_id:sid,service:sid===UNALLOCATED_SERVICE?(ru?"Нераспределено":"Nerepartizat"):service?.name[p.settings.language]||sid,number:account.number,payer:account.payer_name,active:account.active,opening:money(values.opening,p),charges:money(values.charges,p),adjustments:money(values.adjustments,p),paid:money(values.paid,p),closing:money(values.opening.plus(values.charges).plus(values.adjustments).minus(values.paid),p),warnings});
     }
   }
@@ -45,7 +46,7 @@ export function serviceBalanceReport(p:Project,from:string,to:string,serviceFilt
   const totals=Object.fromEntries(fields.map(field=>[field,money(rows.reduce((sum,row)=>sum.plus(row[field]),D(0)),p)])) as Record<typeof fields[number],string>;
   return {from,to,serviceFilter,rows,totals,incomplete:rows.some(r=>r.warnings.length>0)};
 }
-export function serviceReportCSV(p:Project,from:string,to:string,serviceFilter=""){
-  const report=serviceBalanceReport(p,from,to,serviceFilter);
+export function serviceReportCSV(p:Project,from:string,to:string,serviceFilter="",attentionOnly=false){
+  const report=serviceBalanceReport(p,from,to,serviceFilter,attentionOnly);
   return csv([p.settings.language==="ru"?["Услуга","Счёт","Плательщик","На начало","Начислено","Корректировки","Оплачено","На конец","Проверка"]:["Serviciu","Cont","Plătitor","Sold inițial","Calculat","Ajustări","Achitat","Sold final","Verificare"],...report.rows.map(r=>[r.service,r.number,r.payer,r.opening,r.charges,r.adjustments,r.paid,r.closing,r.warnings.join("; ")]),[p.settings.language==="ru"?"Итого, MDL":"Total, MDL","","",report.totals.opening,report.totals.charges,report.totals.adjustments,report.totals.paid,report.totals.closing,""]]);
 }

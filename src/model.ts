@@ -2,6 +2,7 @@ import { z } from "zod";
 import Decimal from "decimal.js";
 import {dateFormats,periodFormats} from "./date-format";
 import { canonicalUnit } from "./units";
+import {referenceKinds,catalogFields} from "./catalog-definitions";
 
 const decimal = z
   .string()
@@ -352,6 +353,8 @@ const currentProjectSchema = z
     ...legacyProjectSchema.shape,
     schema_version: z.literal(2),
       payments:z.array(payment.extend({allocation_basis:period.optional(),allocation_balancing_service_id:id.optional(),allocation_manual_amount:ledgerMoney.optional()})).max(100000),
+      services:z.array(service.extend({provider:z.string().optional(),service_type:z.string().optional(),report_order:z.number().int().min(0).max(10000).optional(),meter_types:z.array(z.string().min(1)).max(100).optional()})).max(10000),
+      reference_catalogs:z.partialRecord(z.enum(referenceKinds),z.array(z.object({id,code:z.string(),name:z.string().trim().min(1),active:z.boolean(),notes:z.string(),attributes:z.record(z.string(),z.string()).default({})})).max(100000)).default({}),
     service_accounting: z.object({
       opening:z.array(z.object({account_id:id,service_id:id,amount:ledgerMoney})).max(100000),
       payments:z.array(z.object({payment_id:id,service_id:id,amount:ledgerMoney})).max(300000),
@@ -366,7 +369,7 @@ const currentProjectSchema = z
     treasury:treasurySchema.default({wallets:[],funds:[],transactions:[],locked_through:null}),
     settings: legacyProjectSchema.shape.settings.extend({
       date_format:z.enum(dateFormats).default("iso"),
-      period_format:z.enum(periodFormats).default("iso"),
+      period_format:z.enum(periodFormats).default("auto"),
       payment_balancing_service_id: id.optional(),
       receipt_language: z.enum(["ru", "ro", "both", "en"]),
       receipt_design: z.enum(receiptDesigns).default("studio"),
@@ -407,6 +410,7 @@ const currentProjectSchema = z
       tariff_documents,
       service_accounting,
       payment_batches,
+      reference_catalogs,
       ...common
     } = p;
     const previous = legacyProjectSchema.safeParse({
@@ -434,6 +438,7 @@ const currentProjectSchema = z
         });
     const fail = (message: string) => ctx.addIssue({ code: "custom", message });
     const accountIds=new Set(p.accounts.map(a=>a.id)),serviceIds=new Set(p.services.map(s=>s.id)),paymentById=new Map(p.payments.map(pay=>[pay.id,pay]));
+    for(const kind of referenceKinds){const rows=reference_catalogs[kind]||[];if(new Set(rows.map(r=>r.id)).size!==rows.length)fail("Duplicate reference catalog records");for(const row of rows)for(const field of catalogFields[kind]){const value=row.attributes[field.key];if(!value)continue;if(field.reference){const known=field.reference==="accounts"?accountIds:field.reference==="services"?serviceIds:new Set((reference_catalogs[field.reference]||[]).map(r=>r.id));if(!known.has(value))fail("Unknown reference catalog link");}else if(field.type==="date"&&!date.safeParse(value).success)fail("Invalid reference catalog date");else if(field.type==="number"&&!/^\d+(\.\d+)?$/.test(value))fail("Invalid reference catalog number");}}
     if(new Set(payment_batches.map(b=>b.id)).size!==payment_batches.length)fail("Duplicate payment batches");
     const batchPayments=new Set<string>();
     for(const batch of payment_batches){
@@ -699,6 +704,7 @@ export function demoProject(): Project {
     schema_version: 2,
     service_accounting:{opening:[],payments:[],adjustments:[]},
     tariff_documents: [],
+    reference_catalogs:{},
     payment_batches: [],
     treasury:{wallets:[],funds:[],transactions:[],locked_through:null},
     demo: true,
@@ -715,7 +721,7 @@ export function demoProject(): Project {
     },
     settings: {
       date_format:"iso",
-      period_format:"iso",
+      period_format:"auto",
       language: "ru",
       theme: "system",
       period: month,

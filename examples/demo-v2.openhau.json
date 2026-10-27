@@ -7,6 +7,7 @@
     "adjustments": []
   },
   "tariff_documents": [],
+  "reference_catalogs": {},
   "payment_batches": [],
   "treasury": {
     "wallets": [],
@@ -28,7 +29,7 @@
   },
   "settings": {
     "date_format": "iso",
-    "period_format": "iso",
+    "period_format": "auto",
     "language": "ru",
     "theme": "system",
     "period": "2026-10",

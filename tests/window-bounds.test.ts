@@ -1,0 +1,2 @@
+import {test} from "node:test";import assert from "node:assert/strict";import {fitWindow} from "../src/window-bounds";
+test("window fitting keeps all four edges inside the workspace after dragging, sizing and shrinking",()=>{for(const width of [400,980,1280])for(const height of [240,600])for(const p of [{x:-200,y:-100,width:1200,height:900},{x:1100,y:700,width:700,height:500},{x:10,y:10,width:100,height:100}]){const f=fitWindow(p,width,height);assert(f.x>=0&&f.y>=0&&f.x+f.width<=width&&f.y+f.height<=height);}});

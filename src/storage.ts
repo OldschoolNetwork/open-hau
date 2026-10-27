@@ -18,10 +18,13 @@ export function displayPath(path: string | null) {
   return path.startsWith(prefix) ? path.slice(prefix.length) : path;
 }
 const key = "openhau-preview-v1";
+let browserDatabase="default";
+export const browserStorageKey=(id:string)=>id==="default"?key:key+":"+id;
+export function setBrowserDatabase(id:string){browserDatabase=id;}
 export async function load() {
   const value = native
     ? await invoke("load_project")
-    : JSON.parse(localStorage.getItem(key) || "null");
+    : JSON.parse(localStorage.getItem(browserStorageKey(browserDatabase)) || "null");
   return value ? projectSchema.parse(value) : null;
 }
 export async function persist(p: Project, reason: "save" | "close" = "save") {
@@ -40,7 +43,7 @@ export async function persist(p: Project, reason: "save" | "close" = "save") {
     }
     return { ...result, export_warning };
   }
-  localStorage.setItem(key, JSON.stringify(data));
+  localStorage.setItem(browserStorageKey(browserDatabase), JSON.stringify(data));
   return {
     path: "Browser preview · localStorage",
     backup_path: null,
@@ -127,6 +130,16 @@ export async function exportText(
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   return true;
+}
+export async function exportPDF(name:string,html:string,landscape=false){
+  if(!native)throw Error("PDF export is available in the Windows desktop application");
+  const path=await save({defaultPath:name,filters:[{name:"PDF",extensions:["pdf"]}]});if(!path)return false;
+  await invoke("export_pdf",{html,path,landscape});
+  window.dispatchEvent(new CustomEvent("openhau:notify",{detail:{text:document.documentElement.lang==="ro"?"Fișierul PDF a fost salvat.":"Файл PDF сохранён.",error:false}}));return true;
+}
+export async function exportBinary(name:string,content:Uint8Array,extension:string){
+  if(native){const path=await save({defaultPath:name,filters:[{name:extension.toUpperCase(),extensions:[extension]}]});if(!path)return false;await invoke('write_binary_file',{path,content:Array.from(content)});return true;}
+  const url=URL.createObjectURL(new Blob([content as BlobPart],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return true;
 }
 export async function importJson() {
   if (native) {

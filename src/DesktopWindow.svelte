@@ -1,6 +1,8 @@
 <script lang="ts">
   import {Minus,Square,X} from "@lucide/svelte";
   import {commandIcon} from "./desktop-icons";
+  import {onMount} from "svelte";
+  import {fitWindow} from "./window-bounds";
   export let id: string,
     title: string,
     language: "ru" | "ro",
@@ -18,6 +20,8 @@
       y: number;
       origin: typeof position;
     } | null = null;
+  function constrain(){if(frame?.parentElement&&!maximized){const parent=frame.parentElement;position=fitWindow(position,parent.clientWidth,parent.clientHeight);}}
+  onMount(()=>{const observer=new ResizeObserver(constrain);observer.observe(frame.parentElement!);constrain();return()=>observer.disconnect();});
   function start(e: PointerEvent, kind: "move" | "resize") {
     if (
       e.button !== 0 ||
@@ -35,7 +39,7 @@
     const parent = frame.parentElement!,
       dx = e.clientX - gesture.x,
       dy = e.clientY - gesture.y;
-    position =
+    position = fitWindow(
       gesture.kind === "move"
         ? {
             ...position,
@@ -64,7 +68,7 @@
                 gesture.origin.height + dy,
               ),
             ),
-          };
+          },parent.clientWidth,parent.clientHeight);
   }
 </script>
 
@@ -136,7 +140,7 @@
     onkeydown={(e) => {
       if (e.key.startsWith("Arrow")) {
         const delta = e.shiftKey ? 40 : 10;
-        position = {
+        position = fitWindow({
           ...position,
           width: Math.max(
             620,
@@ -156,7 +160,7 @@
                   ? -delta
                   : 0),
           ),
-        };
+        },frame.parentElement!.clientWidth,frame.parentElement!.clientHeight);
         e.preventDefault();
       }
     }}

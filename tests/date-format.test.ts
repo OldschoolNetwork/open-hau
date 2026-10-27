@@ -7,6 +7,7 @@ import {accountReportHTML} from "../src/report-exports";
 import {statement} from "../src/engine";
 test("date styles are localised calendar displays, never UTC-shifted storage conversions",()=>{
  const p=demoProject();p.settings.date_format="dmy-dot";assert.equal(displayDate("2026-10-26",p),"26.10.2026");
+  p.settings.period_format="auto";assert.equal(displayPeriod("2026-10",p),"10.2026");p.settings.date_format="long";assert.equal(displayPeriod("2026-10",p,"ro"),"octombrie 2026");
  p.settings.date_format="mdy-slash";assert.equal(displayDate("2026-10-26",p),"10/26/2026");
  p.settings.date_format="long";assert.equal(displayDate("2026-10-26",p,"ru"),"26 октября 2026");assert.equal(displayDate("2026-10-26",p,"ro"),"26 octombrie 2026");assert.equal(displayDate("2026-10-26",p,"en"),"26 October 2026");assert(displayDate("2026-10-26",p,"both").includes(" / "));
  assert.equal(displayDate("2026-02-30",p),"2026-02-30");assert.equal(displayDate(null,p),"—");assert.equal(displayDate("2028-02-29",p,"en"),"29 February 2028");
