@@ -33,3 +33,6 @@ service.
 
 The current file size limit is 64 MiB. Native file save dialogs and the portable
 save path are separate from the browser preview's local storage.
+
+Use the trash icon in the database welcome screen to remove an entry from the recent list. This does not delete or modify the database file or an internal preview database. Automatic opening is cleared when its entry is removed. A linked file can be added again from its existing location. The compact welcome window has a fixed size; its list scrolls vertically.
+

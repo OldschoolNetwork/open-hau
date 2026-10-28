@@ -30,7 +30,7 @@
   import NotificationSettings from "./NotificationSettings.svelte";
   import SettingsHome from "./SettingsHome.svelte";
   import DatabaseHome from "./DatabaseHome.svelte";
-  import {databaseCatalog,readDatabase,activateDatabase,createDatabase,setDatabaseAuto,type DatabaseCatalog} from "./database-catalog";
+  import {databaseCatalog,readDatabase,forgetDatabase,activateDatabase,createDatabase,setDatabaseAuto,type DatabaseCatalog} from "./database-catalog";
   import ServiceCatalog from "./ServiceCatalog.svelte";
   import ServiceEditor from "./ServiceEditor.svelte";
   import ServiceRecord from "./ServiceRecord.svelte";
@@ -378,6 +378,7 @@
   async function openExistingDatabase(){if(!native){await importDatabase();return;}try{const path=await chooseFile({multiple:false,filters:[{name:'OpenHaU',extensions:['json']}]});if(!path||typeof path!=='string')return;valid(await invoke('read_json_file',{path}));if(!(await prepareDatabaseChange()))return;const id=await invoke<string>('register_database_file',{path});await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
   async function saveDatabaseAs(){if(editorSaveRequired())return;if(!native){await exportJson();return;}try{if(modal||Object.keys(readingEdits).length)throw Error(t('Завершите редактирование перед сохранением копии.','Încheiați editarea înainte de salvarea copiei.'));const value=valid(p),path=await chooseFileDestination({defaultPath:p.organization.name+'.openhau.json',filters:[{name:'OpenHaU',extensions:['json']}]});if(!path)return;const id=await invoke<string>('create_database_file',{path,value});await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
   async function importDatabase(){try{const raw=await importJson();if(!raw)return;const candidate=valid(raw);if(!(await prepareDatabaseChange()))return;const id=await createDatabase(candidate.organization.name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=candidate;dirty=true;await save();}}catch(e){fail(e);}}
+  async function removeDatabaseFromList(id:string){try{if(databaseOpened&&id===activeDatabaseId&&!(await prepareDatabaseChange()))return;await forgetDatabase(id);if(activeDatabaseId===id){activeDatabaseId='';databaseOpened=false;dirty=false;}await refreshCatalog();}catch(e){fail(e);}}
   async function configureAutoDatabase(id:string|null){try{await setDatabaseAuto(id);await refreshCatalog();}catch(e){fail(e);}}
   async function save(reason:"save"|"close"="save",fromEditor=false) {
     if (busy) return;
@@ -1978,7 +1979,7 @@
     <div class="desktop-commandbar"><button class="desktop-save" onclick={()=>save()} disabled={busy||loading}><Save size={17}/>{t("Сохранить","Salvare")}</button></div>
   </header>{/if}
   <main class="desktop-area" bind:this={desktopArea}>
-    {#if showDatabaseHome}<DatabaseHome {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={openExistingDatabase} onauto={configureAutoDatabase}/>{:else}
+    {#if showDatabaseHome}<DatabaseHome {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={openExistingDatabase} onauto={configureAutoDatabase} onremove={removeDatabaseFromList}/>{:else}
     {#if !desktopViews.some(v=>v.visible&&!v.minimized)}<div class="desktop-empty"><img src="/brand/logo-full.svg" alt="OpenHaU OPEN"/></div>{/if}
     <DesktopWidgets language={lang} databaseId={activeDatabaseId} period={displayPeriod(period,p)} charges={totalCharges} paid={totalPaid} balance={totalBalance} attention={missing} onopen={desktopCommand}/>
     {#each desktopViews as view (view.id)}

@@ -28,4 +28,22 @@ pub fn activate_database(id:String,storage:tauri::State<Storage>)->Result<String
 #[tauri::command]
 pub fn set_database_auto(id:Option<String>,storage:tauri::State<Storage>)->Result<(),String>{let _guard=storage.lock.lock().map_err(|e|e.to_string())?;if let Some(id)=&id{known(&storage.root,id)?;}let mut c=catalog(&storage.root)?;c["auto"]=json!(id);write(&storage.root,&c)}
 
+fn without_entry(mut value:Value,id:&str)->Result<Value,String>{let rows=value["databases"].as_array_mut().ok_or("Invalid database catalog")?;rows.retain(|row|row["id"].as_str()!=Some(id));let fallback=rows.first().and_then(|r|r["id"].as_str()).unwrap_or("").to_string();if value["auto"].as_str()==Some(id){value["auto"]=Value::Null;}if value["last"].as_str()==Some(id){value["last"]=json!(fallback);}Ok(value)}
+#[tauri::command]
+pub fn forget_database(id:String,storage:tauri::State<Storage>)->Result<(),String>{let _guard=storage.lock.lock().map_err(|e|e.to_string())?;forget(&storage,&id)}
+fn forget(storage:&Storage,id:&str)->Result<(),String>{known(&storage.root,id)?;let updated=without_entry(catalog(&storage.root)?,id)?;write(&storage.root,&updated)?;let mut active=storage.active.lock().map_err(|e|e.to_string())?;if active.as_str()==id{active.clear();}Ok(())}
+
 #[cfg(test)]mod tests{use super::*;#[test]fn profile_paths_reject_traversal_and_preserve_original_database(){let base=PathBuf::from("workspace");assert_eq!(root_for(&base,"default").unwrap(),base);assert_eq!(root_for(&base,"db-1").unwrap(),base.join("databases").join("db-1"));assert_eq!(root_for(&base,"file:123").unwrap(),base.join("databases").join("file-123"));for bad in ["file:","file:../x","../x","a/b","a\\b","","a:b"]{assert!(root_for(&base,bad).is_err());}}}
+
+#[cfg(test)]mod forget_tests{
+ use super::*;
+ #[test]fn forgetting_a_database_preserves_files_and_clears_automatic_open(){
+  let root=PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tmp").join(format!("forget-db-{}",SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()));fs::create_dir_all(&root).unwrap();
+  let database=root.join("example.json");fs::write(&database,b"fictional database contents").unwrap();
+  let internal=root_for(&root,"db-example").unwrap();fs::create_dir_all(&internal).unwrap();fs::write(internal.join("openhau.sqlite"),b"fictional internal database").unwrap();
+  let storage=Storage{root:root.clone(),active:std::sync::Mutex::new("file:1".into()),lock:std::sync::Mutex::new(()),file_versions:std::sync::Mutex::new(std::collections::HashMap::new())};
+  write(&root,&json!({"databases":[{"id":"file:1","name":"Example","path":database},{"id":"db-example","name":"Internal"}],"auto":"file:1","last":"file:1"})).unwrap();
+  forget(&storage,"file:1").unwrap();assert_eq!(fs::read(&database).unwrap(),b"fictional database contents");assert_eq!(catalog(&root).unwrap()["auto"],Value::Null);assert_eq!(catalog(&root).unwrap()["last"],json!("db-example"));assert!(storage.active.lock().unwrap().is_empty());
+  forget(&storage,"db-example").unwrap();assert_eq!(fs::read(internal.join("openhau.sqlite")).unwrap(),b"fictional internal database");assert!(catalog(&root).unwrap()["databases"].as_array().unwrap().is_empty());
+ }
+}

@@ -30,6 +30,8 @@ struct WorkspaceSize(Mutex<Option<(tauri::PhysicalSize<u32>,bool)>>);
 fn set_workspace_mode(app:tauri::AppHandle,state:tauri::State<WorkspaceSize>,welcome:bool)->Result<(),String>{
     let window=app.get_webview_window("main").ok_or("Main window unavailable")?;
     let mut saved=state.0.lock().map_err(|e|e.to_string())?;
+    window.set_resizable(!welcome).map_err(|e|e.to_string())?;
+    window.set_maximizable(!welcome).map_err(|e|e.to_string())?;
     if welcome&&saved.is_none(){
         let size=window.inner_size().map_err(|e|e.to_string())?;
         let maximized=window.is_maximized().map_err(|e|e.to_string())?;
@@ -343,6 +345,7 @@ fn main() {
             databases::read_database,
             databases::activate_database,
             databases::set_database_auto,
+            databases::forget_database,
             backup_settings,
             configure_backups,
             backup_now,

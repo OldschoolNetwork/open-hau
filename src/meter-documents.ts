@@ -1,4 +1,5 @@
 import {projectSchema,type Project} from './model';
+import {meterConnectedOn} from './meter-entry';
 export type MeterDocument=Project['meter_documents'][number];
 export function saveMeterDocument(p:Project,input:MeterDocument,post=false){
  const t=(ru:string,ro:string)=>p.settings.language==='ru'?ru:ro;
@@ -17,9 +18,10 @@ export function saveMeterDocument(p:Project,input:MeterDocument,post=false){
     meter.status_history=[...(meter.status_history||[{date:meter.installed_on||'0001-01-01',active:meter.active}]),{date:doc.date,active:row.active}];meter.active=row.active;meter.retired_on=row.active?null:doc.date;changed++;
    }else{
     if(!row.value.trim())continue;
-    if(doc.kind!=='initial'){const state=[...(meter.status_history||[])].filter(s=>s.date<=doc.date).sort((a,b)=>b.date.localeCompare(a.date))[0];if(state?!state.active:!meter.active)throw Error(t('Прибор отключён на дату ввода показаний.','Contorul este deconectat la data introducerii indexului.'));}
+    const readingDate=row.reading_date||doc.date;if(readingDate.slice(0,7)!==doc.period)throw Error(t('Дата показания должна входить в период документа.','Data indexului trebuie să aparțină perioadei documentului.'));
+    if(doc.kind!=='initial'){if(!meterConnectedOn(meter,readingDate))throw Error(t('Прибор отключён на дату ввода показаний.','Contorul este deconectat la data introducerii indexului.'));}
     if(doc.kind!=='initial'&&meter.scope!==doc.kind)throw Error(t('Тип прибора не соответствует документу.','Tipul contorului nu corespunde documentului.'));
-    next.meter_values.push({id:'reading-'+row.id,meter_id:row.meter_id,period:doc.period,reading_date:doc.date,value:row.value,kind:doc.kind==='initial'?'initial':'regular',notes:doc.comment});changed++;
+    next.meter_values.push({id:'reading-'+row.id,meter_id:row.meter_id,period:doc.period,reading_date:readingDate,value:row.value,kind:doc.kind==='initial'?'initial':'regular',notes:doc.comment});row.reading_id='reading-'+row.id;changed++;
    }
   }
   if(!changed)throw Error(t('В документе нет новых показаний или изменений статуса.','Documentul nu conține indexuri noi sau modificări de stare.'));

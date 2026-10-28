@@ -28,6 +28,7 @@ pub fn create(path:&Path,value:&Value)->Result<(),String>{
  let mut file=OpenOptions::new().write(true).create_new(true).open(path).map_err(|e|format!("Cannot create database; choose a new filename: {e}"))?;
  file.write_all(&data).and_then(|_|file.sync_all()).map_err(|e|e.to_string())?;Ok(())
 }
+#[cfg(test)]
 pub fn remember(storage:&Storage,path:&Path)->Result<(),String>{let (_,hash)=read(path)?;storage.file_versions.lock().map_err(|e|e.to_string())?.insert(path.to_path_buf(),hash);Ok(())}
 pub fn backup(path:&Path,settings_root:&PathBuf)->Result<Option<String>,String>{let config=crate::backups::settings(settings_root)?;let Some(folder)=config["directory"].as_str()else{return Ok(None)};let folder=PathBuf::from(folder);if !folder.is_dir(){return Err("Backup destination is unavailable".into());}let (value,_)=read(path)?;let target=folder.join(format!("OpenHaU-{}.openhau.json",stamp()?));create(&target,&value)?;Ok(Some(target.display().to_string()))}
 pub fn save(storage:&Storage,path:&Path,value:Value,settings_root:&PathBuf)->Result<Value,String>{
