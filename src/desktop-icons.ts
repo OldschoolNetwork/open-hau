@@ -7,7 +7,7 @@ export function commandIcon(command:DesktopCommand){
   if(id.includes("meter")||id.includes("reading")||id.includes("allocation"))return Gauge;
   if(id.includes("account")||id.includes("citizen")||id.includes("benefit")||id.includes("relationships")||id.includes("residence"))return Users;
   if(id.includes("properties")||id.includes("building")||id.includes("localit")||id.includes("street")||id.includes("entrance"))return Building2;
-  if(id.includes("payment")||id.includes("bank")||id==="treasury")return Wallet;
+  if(id.startsWith("batch")||id.includes("payment")||id.includes("bank")||id==="treasury")return Wallet;
   if(id.includes("receipt")||id.includes("tariff"))return ReceiptText;
   if(id.includes("report")||id.includes("balance")||id==="accumulation")return ChartNoAxesCombined;
   if(id.includes("setting")||id==="tools"||id==="regulations"||id==="processes")return Settings;

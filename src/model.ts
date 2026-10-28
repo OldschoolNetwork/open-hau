@@ -377,7 +377,7 @@ const currentProjectSchema = z
       state: z.enum(["draft", "applied"]),
       rows: z.array(z.object({id, service_id: id, effective_from: date, rate: nonnegative, tariff_id: id.nullable()})).min(1).max(1000),
     })).max(50000).default([]),
-    payment_batches:z.array(z.object({id,number:z.string().min(1),date,billing_through:period,balancing_service_id:id,method:z.string(),comment:z.string(),state:z.enum(["draft","applied"]),rows:z.array(z.object({id,account_id:id,amount:ledgerMoney.refine(v=>new Decimal(v).gte(0),"Invalid batch payment amount"),manual_maintenance:ledgerMoney.nullable(),payment_id:id.nullable()})).min(1).max(1000)})).max(50000).default([]),
+    payment_batches:z.array(z.object({id,imported:z.boolean().optional(),marked_for_deletion:z.boolean().optional(),number:z.string().min(1),date,billing_through:period,balancing_service_id:z.string(),method:z.string(),comment:z.string(),state:z.enum(["draft","applied"]),rows:z.array(z.object({id,account_id:id,amount:ledgerMoney,manual_maintenance:ledgerMoney.nullable(),payment_id:id.nullable(),source_automatic:z.boolean().optional(),source_advance:z.boolean().optional(),historical_shares:z.array(z.object({service_id:id,amount:ledgerMoney})).optional()})).min(1).max(1000)})).max(50000).default([]),
     treasury:treasurySchema.default({wallets:[],funds:[],transactions:[],locked_through:null}),
     settings: legacyProjectSchema.shape.settings.extend({
       date_format:z.enum(dateFormats).default("iso"),
@@ -467,15 +467,20 @@ const currentProjectSchema = z
     if(new Set(payment_batches.map(b=>b.id)).size!==payment_batches.length)fail("Duplicate payment batches");
     const batchPayments=new Set<string>();
     for(const batch of payment_batches){
-      if(!serviceIds.has(batch.balancing_service_id)||batch.billing_through>batch.date.slice(0,7))fail("Invalid payment batch configuration");
-      if(new Set(batch.rows.map(r=>r.id)).size!==batch.rows.length||new Set(batch.rows.map(r=>r.account_id)).size!==batch.rows.length)fail("Duplicate payment batch accounts or rows");
+      if(!batch.imported&&(!serviceIds.has(batch.balancing_service_id)||batch.billing_through>batch.date.slice(0,7)))fail("Invalid payment batch configuration");
+      if(new Set(batch.rows.map(r=>r.id)).size!==batch.rows.length||!batch.imported&&new Set(batch.rows.map(r=>r.account_id)).size!==batch.rows.length)fail("Duplicate payment batch accounts or rows");
+      if(batch.imported&&batch.state!=='applied')fail('Imported payment document must remain read-only');
       for(const row of batch.rows){
+        if(!batch.imported&&new Decimal(row.amount).lt(0))fail('Invalid batch payment amount');
+        if(row.historical_shares){if(new Set(row.historical_shares.map(s=>s.service_id)).size!==row.historical_shares.length)fail('Duplicate historical payment services');if(row.historical_shares.some(s=>!serviceIds.has(s.service_id))||!row.historical_shares.reduce((sum,s)=>sum.plus(s.amount),new Decimal(0)).eq(row.amount))fail('Historical payment allocation differs from document row');}
         if(!accountIds.has(row.account_id))fail("Unknown payment batch account");
         if(batch.state==="draft"&&row.payment_id!==null)fail("Draft payment batch references a receipt");
         if(batch.state==="applied"){
+          if(batch.imported&&new Decimal(row.amount).lt(0)){if(row.payment_id!==null||!row.historical_shares?.length)fail('Imported correction must preserve its service allocation');continue;}
           const pay=row.payment_id?paymentById.get(row.payment_id):null;
           if(new Decimal(row.amount).isZero()){if(row.payment_id!==null)fail("Zero batch row references a receipt");continue;}
-          if(!pay||pay.account_id!==row.account_id||pay.payment_date!==batch.date||!new Decimal(pay.amount).eq(row.amount)||pay.allocation_basis!==batch.billing_through||pay.allocation_balancing_service_id!==batch.balancing_service_id||pay.allocation_manual_amount!==(row.manual_maintenance??undefined))fail("Applied payment batch differs from its receipts");
+          if(!pay||pay.account_id!==row.account_id||pay.payment_date!==batch.date||!new Decimal(pay.amount).eq(row.amount)||!batch.imported&&(pay.allocation_basis!==batch.billing_through||pay.allocation_balancing_service_id!==batch.balancing_service_id||pay.allocation_manual_amount!==(row.manual_maintenance??undefined)))fail("Applied payment batch differs from its receipts");
+          if(batch.imported&&row.historical_shares&&row.payment_id){const actual=p.service_accounting.payments.filter(s=>s.payment_id===row.payment_id);for(const sid of new Set([...actual.map(s=>s.service_id),...row.historical_shares.map(s=>s.service_id)])){const x=actual.find(s=>s.service_id===sid)?.amount||'0',y=row.historical_shares.find(s=>s.service_id===sid)?.amount||'0';if(!new Decimal(x).eq(y))fail('Historical service shares differ from linked receipt');}}
           if(!row.payment_id||batchPayments.has(row.payment_id))fail("Receipt belongs to multiple payment batches");
           else {batchPayments.add(row.payment_id);const total=p.service_accounting.payments.filter(s=>s.payment_id===row.payment_id).reduce((s,r)=>s.plus(r.amount),new Decimal(0));if(!total.eq(row.amount))fail("Applied payment batch allocation is incomplete");}
         }

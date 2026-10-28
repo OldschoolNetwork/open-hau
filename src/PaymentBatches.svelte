@@ -1,55 +1,44 @@
 <script lang="ts">
-  import {ask} from "./storage";
-  import {onDestroy} from "svelte";import {reportEditorDirty} from "./editor-drafts";
-  export let editorId="";
-  import {displayDate,displayPeriod} from "./date-format";
-  import {type Project,type PaymentBatch,uid,today} from "./model";
-  import {D} from "./engine";
-  import {previousPaymentMonth,type PaymentShare} from "./payment-allocation";
-  import {previewBatchRow,savePaymentBatch} from "./payment-batches";
-  import {translator} from "./i18n";
-  import {issueText} from "./validation-language";
-  import {ZodError} from "zod";
-  import {Plus,Save,Check,Eye,X,Trash2,Users} from "@lucide/svelte";
-  export let project:Project;
-  export let onapply:(p:Project)=>void;
-  let draft:PaymentBatch|null=null,error="",details:PaymentShare[]|null=null,detailsAccount="";
-  $: t=translator(project.settings.language);
-  $: locked=draft?.state==="applied";
-  $: total=draft?.rows.reduce((s,r)=>{try{return s.plus(r.amount);}catch{return s;}},D(0)).toFixed(2)||"0.00";
-  function create(){draft={id:uid(),number:String(project.payment_batches.length+1),date:today(),billing_through:previousPaymentMonth(today()),balancing_service_id:project.settings.payment_balancing_service_id||"",method:"",comment:"",state:"draft",rows:[]};error="";details=null;}
-  function fill(){if(!draft)return;const existing=new Set(draft.rows.map(r=>r.account_id));draft.rows=[...draft.rows,...project.accounts.filter(a=>a.active&&!existing.has(a.id)).map(a=>({id:uid(),account_id:a.id,amount:"0.00",manual_maintenance:null,payment_id:null}))];details=null;}
-  function describe(e:unknown){return e instanceof ZodError?e.issues.slice(0,3).map(i=>issueText(i,project.settings.language)).join("; "):e instanceof Error?e.message:String(e);}
-  function save(post:boolean){if(!draft)return;try{const next=savePaymentBatch(project,draft,post);onapply(next);draft=structuredClone(next.payment_batches.find(b=>b.id===draft!.id)!);error="";details=null;savedDraft=JSON.stringify(draft);reportEditorDirty(editorId,false);}catch(e){error=describe(e);}}
-  function show(row:PaymentBatch["rows"][number]){if(!draft)return;try{details=draft.state==="applied"?project.service_accounting.payments.filter(r=>r.payment_id===row.payment_id).map(({service_id,amount})=>({service_id,amount})):previewBatchRow(project,draft,row);detailsAccount=project.accounts.find(a=>a.id===row.account_id)?.number||"";error="";}catch(e){error=describe(e);details=null;}}
-  let savedDraft=JSON.stringify(draft);
-  function openBatch(batch:PaymentBatch){draft=structuredClone(batch);savedDraft=JSON.stringify(draft);details=null;error='';}
-  $:reportEditorDirty(editorId,!!draft&&(!project.payment_batches.some(d=>d.id===draft!.id)||JSON.stringify(draft)!==savedDraft));
-  onDestroy(()=>reportEditorDirty(editorId,false));
-  async function backToList(){if(draft&&(!project.payment_batches.some(d=>d.id===draft!.id)||JSON.stringify(draft)!==savedDraft)&&!(await ask(t('Вернуться к списку без сохранения изменений документа?','Reveniți la listă fără salvarea modificărilor documentului?'))))return;draft=null;details=null;error='';reportEditorDirty(editorId,false);}
+ import {onDestroy} from 'svelte';import {reportEditorDirty} from './editor-drafts';
+ import {type Project,type PaymentBatch,uid} from './model';import {D} from './engine';
+ import {previewBatchRow,savePaymentBatch,applyPaymentDetail,type PaymentDetailRequest} from './payment-batches';
+ import {accountOpenInMonth} from './account-lifecycle';import {openReportLookup} from './report-settings';
+ import {translator} from './i18n';import {issueText} from './validation-language';import {ZodError} from 'zod';
+ import {Plus,Copy,Trash2,ArrowUp,ArrowDown,Users,Eye,Save,Check,X,FileText} from '@lucide/svelte';
+ export let project:Project;export let initial:PaymentBatch;export let editorId:string;
+ export let onapply:(p:Project)=>void;export let onclose:()=>void;export let ondetails:(request:PaymentDetailRequest)=>void;export let onmovements:(id:string)=>void;
+ export let beforeSave:()=>Promise<boolean>=async()=>true;
+ let draft=structuredClone(initial),selected='',error='';let savedDraft=JSON.stringify(draft);
+ $:t=translator(project.settings.language);$:locked=draft.state==='applied';
+ $:total=draft.rows.reduce((sum,row)=>{try{return sum.plus(row.amount);}catch{return sum;}},D(0)).toFixed(2);
+ $:reportEditorDirty(editorId,!locked&&(!project.payment_batches.some(b=>b.id===draft.id)||JSON.stringify(draft)!==savedDraft));
+ onDestroy(()=>reportEditorDirty(editorId,false));
+ function describe(e:unknown){return e instanceof ZodError?e.issues.slice(0,3).map(i=>issueText(i,project.settings.language)).join('; '):e instanceof Error?e.message:String(e);}
+ function row(accountId:string){return {id:uid(),account_id:accountId,amount:'0.00',manual_maintenance:null,payment_id:null};}
+ function add(){const account=project.accounts.find(a=>!draft.rows.some(r=>r.account_id===a.id));if(account){const value=row(account.id);draft.rows=[...draft.rows,value];selected=value.id;}}
+ function fill(ids?:Set<string>){const used=new Set(draft.rows.map(r=>r.account_id));draft.rows=[...draft.rows,...project.accounts.filter(a=>!used.has(a.id)&&(ids?ids.has(a.id):accountOpenInMonth(a,draft.date.slice(0,7)))).map(a=>row(a.id))];}
+ function pick(){openReportLookup({id:editorId+'-accounts',parentId:editorId,label:t('Лицевые счета','Conturi personale'),kind:'accounts',items:[],selected:[],multiple:true,onchoose:ids=>{if(!locked)fill(new Set(ids));}});}
+ function method(){openReportLookup({id:editorId+'-method',parentId:editorId,label:t('Варианты оплаты','Modalități de plată'),kind:'payment-methods',items:[],selected:[],multiple:false,onchoose:ids=>{if(!locked)draft.method=project.reference_catalogs['payment-methods']?.find(r=>r.id===ids[0])?.name||draft.method;}});}
+ function move(direction:number){const rows=[...draft.rows],i=rows.findIndex(r=>r.id===selected),j=i+direction;if(i<0||j<0||j>=rows.length)return;[rows[i],rows[j]]=[rows[j],rows[i]];draft.rows=rows;}
+ function copy(){const original=draft.rows.find(r=>r.id===selected),account=project.accounts.find(a=>!draft.rows.some(r=>r.account_id===a.id));if(original&&account){const value={...original,id:uid(),account_id:account.id,payment_id:null};draft.rows=[...draft.rows,value];selected=value.id;}}
+ function automatic(value:PaymentBatch['rows'][number]){try{value.manual_maintenance=value.manual_maintenance!==null?null:previewBatchRow(project,draft,value).find(s=>s.service_id===draft.balancing_service_id)?.amount||'0.00';error='';}catch(e){error=describe(e);}}
+ function detail(rowId:string){if(!draft.rows.some(r=>r.id===rowId))return;const expected=structuredClone(draft);ondetails({parentId:editorId,batch:expected,rowId,onapply:(amount,manual)=>{draft=applyPaymentDetail(project,draft,expected,rowId,amount,manual);}});}
+ async function save(post=false,close=false){if(!(await beforeSave()))return;try{const next=savePaymentBatch(project,draft,post);onapply(next);draft=structuredClone(next.payment_batches.find(b=>b.id===draft.id)!);savedDraft=JSON.stringify(draft);reportEditorDirty(editorId,false);error='';if(close)onclose();}catch(e){error=describe(e);}}
 </script>
-<div class="batch-workspace">
-  {#if error}<p role="alert" class="alert error">{error}</p>{/if}
-  {#if !draft}
-    <div class="toolbar"><button class="button" onclick={create}><Plus size={16}/>{t("Добавить","Adaugă")}</button></div>
-    <table><thead><tr><th>{t("Дата","Data")}</th><th>{t("Номер","Număr")}</th><th>{t("Вариант оплаты","Modalitate de plată")}</th><th>{t("Комментарий","Comentariu")}</th><th>{t("Статус","Stare")}</th><th></th></tr></thead><tbody>{#each [...project.payment_batches].reverse() as b}<tr><td>{displayDate(b.date,project)}</td><td>{b.number}</td><td>{b.method}</td><td>{b.comment}</td><td>{b.state==="applied"?t("Проведён","Aplicat"):t("Черновик","Ciornă")}</td><td><button class="icon-button" aria-label={t("Открыть документ","Deschide documentul")} onclick={()=>openBatch(b)}><Eye size={16}/></button></td></tr>{/each}</tbody></table>
-  {:else}
-    <fieldset disabled={locked} oninput={()=>details=null}>
-      <div class="two-fields"><label>{t("Дата оплаты","Data plății")}<input type="date" bind:value={draft.date}/></label><label>{t("Номер документа","Numărul documentului")}<input bind:value={draft.number}/></label><label>{t("Долг по месяц включительно","Datorie până la luna inclusiv")}<input type="month" bind:value={draft.billing_through}/></label><label>{t("Обслуживание дома · услуга для разницы","Deservirea blocului · serviciul diferenței")}<select bind:value={draft.balancing_service_id}><option value="">{t("Выберите услугу","Selectați serviciul")}</option>{#each project.services as s}<option value={s.id}>{s.name[project.settings.language]}</option>{/each}</select></label></div>
-      <label>{t("Вариант оплаты","Modalitate de plată")}<input bind:value={draft.method}/></label>
-      <div class="toolbar"><button type="button" class="button secondary" onclick={fill}><Users size={16}/>{t("Заполнить лицевыми счетами","Completează cu conturi")}</button><button type="button" class="button secondary" onclick={()=>{if(draft)draft.rows=[...draft.rows,{id:uid(),account_id:project.accounts.find(a=>!draft!.rows.some(r=>r.account_id===a.id))?.id||"",amount:"0.00",manual_maintenance:null,payment_id:null}];}}><Plus size={16}/>{t("Добавить строку","Adaugă rând")}</button></div>
-    </fieldset>
-    <div class="table-wrap"><table><thead><tr><th>№</th><th>{t("Лицевой счёт","Cont personal")}</th><th>{t("Сумма оплаты, MDL","Suma plății, MDL")}</th><th>{t("Обслуживание вручную, MDL","Deservire manuală, MDL")}</th><th></th></tr></thead><tbody>{#each draft.rows as row,i (row.id)}<tr><td>{i+1}</td><td><select disabled={locked} aria-label={t("Счёт строки ","Contul rândului ")+(i+1)} bind:value={row.account_id} onchange={()=>details=null}>{#each project.accounts as a}<option value={a.id}>{a.number} · {a.payer_name}</option>{/each}</select></td><td><input disabled={locked} aria-label={t("Оплата строки ","Plata rândului ")+(i+1)} bind:value={row.amount} oninput={()=>details=null}/></td><td><input disabled={locked} aria-label={t("Обслуживание строки ","Deservirea rândului ")+(i+1)} value={row.manual_maintenance??""} placeholder={t("Автоматически","Automat")} oninput={e=>{row.manual_maintenance=e.currentTarget.value||null;details=null;}}/></td><td><div class="button-group"><button class="icon-button" aria-label={t("Расшифровка строки ","Repartizarea rândului ")+(i+1)} onclick={()=>show(row)}><Eye size={16}/></button>{#if !locked}<button class="icon-button" aria-label={t("Убрать строку ","Elimină rândul ")+(i+1)} onclick={()=>{if(draft)draft.rows=draft.rows.filter(r=>r.id!==row.id);details=null;}}><Trash2 size={16}/></button>{/if}</div></td></tr>{/each}</tbody><tfoot><tr><th colspan="2">{t("Итого, MDL","Total, MDL")}</th><td>{total}</td><td colspan="2"></td></tr></tfoot></table></div>
-    <label>{t("Комментарий","Comentariu")}<textarea disabled={locked} bind:value={draft.comment}></textarea></label>
-    {#if details}<section class="panel"><h3>{t("Расшифровка платежа · счёт ","Repartizarea plății · cont ")}{detailsAccount}</h3><table><thead><tr><th>{t("Услуга","Serviciu")}</th><th>MDL</th></tr></thead><tbody>{#each details as r}<tr><td>{project.services.find(s=>s.id===r.service_id)?.name[project.settings.language]}</td><td>{r.amount}</td></tr>{/each}</tbody></table></section>{/if}
-    <p class="quiet-note">{t("Нулевые строки не создают оплат. Проведение распределяет каждую оплату по услугам; при ошибке ни одна строка не проводится.","Rândurile nule nu creează plăți. Aplicarea repartizează fiecare plată pe servicii; la eroare nu se aplică niciun rând.")}</p>
-    <div class="toolbar">{#if !locked}<button class="button secondary" onclick={()=>save(false)}><Save size={16}/>{t("Сохранить черновик","Salvează ciorna")}</button><button class="button" onclick={()=>save(true)}><Check size={16}/>{t("Провести документ","Aplică documentul")}</button>{/if}<button class="button secondary" onclick={backToList}><X size={16}/>{t("К списку","La listă")}</button></div>
-  {/if}
+<div class="batch-editor">
+ {#if error}<p class="alert error" role="alert">{error}</p>{/if}
+ <fieldset disabled={locked}>
+  <div class="header-fields"><label>{t('Дата','Data')}<input type="date" bind:value={draft.date}/></label><label>{t('Номер','Număr')}<input bind:value={draft.number}/></label></div>
+  <label class="method"><span>{t('Вариант оплаты','Modalitate de plată')}</span><div><input bind:value={draft.method}/><button title={t('Выбрать вариант оплаты','Selectează modalitatea de plată')} onclick={method}>…</button><button title={t('Очистить','Golește')} onclick={()=>draft.method=''}><X size={15}/></button></div></label>
+ </fieldset>
+ <div class="line-toolbar" role="toolbar" aria-label={t('Строки оплаты','Rânduri de plată')}>
+  <button disabled={locked} title={t('Добавить','Adaugă')} onclick={add}><Plus size={17}/></button><button disabled={locked||!selected} title={t('Копировать строку','Copiază rândul')} onclick={copy}><Copy size={17}/></button><button disabled={locked||!selected} title={t('Удалить строку','Elimină rândul')} onclick={()=>{draft.rows=draft.rows.filter(r=>r.id!==selected);selected='';}}><Trash2 size={17}/></button>
+  <button disabled={locked||!selected} title={t('Вверх','Sus')} onclick={()=>move(-1)}><ArrowUp size={17}/></button><button disabled={locked||!selected} title={t('Вниз','Jos')} onclick={()=>move(1)}><ArrowDown size={17}/></button>
+  <button disabled={locked} onclick={pick}><Users size={16}/>{t('Подбор','Selectare')}</button><button disabled={locked} onclick={()=>fill()}><Plus size={16}/>{t('Заполнить','Completează')}</button><button disabled={locked} onclick={()=>{draft.rows=[];selected='';}}><X size={16}/>{t('Очистить','Golește')}</button>
+  <button class="details-command" disabled={!selected} onclick={()=>detail(selected)}><Eye size={16}/>{t('Расшифровка платежа','Repartizarea plății')}</button>
+ </div>
+ <div class="table-wrap"><table><thead><tr><th>№</th><th>{t('Лицевой счёт','Cont personal')}</th><th>{t('Сумма платежа','Suma plății')}</th><th>{t('Распределять оплату автоматически','Repartizare automată')}</th>{#if draft.imported}<th>{t('Переплата на аванс','Supraplată în avans')}</th>{/if}<th>{t('Способ распределения','Metodă de repartizare')}</th></tr></thead><tbody>{#each draft.rows as row,i (row.id)}<tr class:selected={selected===row.id} class:attention-row={!locked&&(!row.account_id||row.amount==='')} onclick={()=>selected=row.id} ondblclick={()=>detail(row.id)}><td>{i+1}</td><td>{#if locked}{project.accounts.find(a=>a.id===row.account_id)?.number}, {project.accounts.find(a=>a.id===row.account_id)?.payer_name}{:else}<select bind:value={row.account_id} aria-label={t('Лицевой счёт строки ','Contul din rândul ')+(i+1)}>{#each project.accounts as a}<option value={a.id}>{a.number}, {a.payer_name}</option>{/each}</select>{/if}</td><td><input disabled={locked} bind:value={row.amount} aria-label={t('Сумма строки ','Suma rândului ')+(i+1)}/></td><td class="checkbox-cell"><input disabled={locked} type="checkbox" checked={row.source_automatic??row.manual_maintenance===null} onchange={()=>automatic(row)} aria-label={t('Автоматическое распределение строки ','Repartizare automată în rândul ')+(i+1)}/></td>{#if draft.imported}<td class="checkbox-cell"><input type="checkbox" disabled checked={row.source_advance||false} aria-label={t('Переплата на аванс','Supraplată în avans')}/></td>{/if}<td>{draft.imported?t('Сохранённое распределение','Repartizare păstrată'):row.manual_maintenance===null?t('Пропорционально долгу','Proporțional datoriei'):t('Обслуживание вручную','Deservire manuală')}</td></tr>{/each}</tbody><tfoot><tr><th colspan="2">{t('Итого','Total')}</th><td>{total}</td><td colspan={draft.imported?3:2}></td></tr></tfoot></table></div>
+ <fieldset disabled={locked}><label class="comment"><span>{t('Комментарий','Comentariu')}</span><input bind:value={draft.comment}/></label>{#if !draft.imported}<details open={!draft.balancing_service_id&&!locked}><summary>{t('Параметры распределения','Parametri de repartizare')}</summary><div class="header-fields"><label>{t('Долг по месяц включительно','Datorie până la luna inclusiv')}<input type="month" bind:value={draft.billing_through}/></label><label>{t('Услуга обслуживания дома','Serviciul de deservire a blocului')}<select bind:value={draft.balancing_service_id}><option value="">{t('Выберите услугу','Selectați serviciul')}</option>{#each project.services as s}<option value={s.id}>{s.name[project.settings.language]}</option>{/each}</select></label></div></details>{/if}</fieldset>
+ <footer><button class="button secondary movements" onclick={()=>onmovements(draft.id)} disabled={!project.payment_batches.some(b=>b.id===draft.id)}><FileText size={16}/>{t('Движения','Înregistrări')}</button>{#if !locked}<button class="button" onclick={()=>save(true,true)}><Check size={16}/>OK</button><button class="button secondary" onclick={()=>save()}><Save size={16}/>{t('Сохранить','Salvează')}</button>{/if}<button class="button secondary" onclick={onclose}><X size={16}/>{t('Закрыть','Închide')}</button></footer>
 </div>
-<style>
-  .batch-workspace{display:flex;flex-direction:column;gap:12px}
-  fieldset{border:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:12px}
-  label{display:flex;flex-direction:column;gap:6px}
-  input,select,textarea{width:100%}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
-</style>
+<style>.batch-editor{display:flex;flex-direction:column;gap:12px;padding:14px;min-width:0;box-sizing:border-box}fieldset{border:0;padding:0;margin:0;min-width:0;display:flex;flex-direction:column;gap:12px}.header-fields{display:flex;gap:16px;flex-wrap:wrap}label{display:flex;flex-direction:column;gap:5px}.method,.comment{display:grid;grid-template-columns:140px minmax(0,1fr);align-items:center;gap:12px}.method>div{display:flex;min-width:0}.method input,.comment input{min-width:0;width:100%;box-sizing:border-box}.method button{width:34px;flex-shrink:0;display:grid;place-items:center;background:var(--surface);color:var(--text);border:1px solid var(--border)}.line-toolbar,footer{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.line-toolbar button{display:flex;align-items:center;gap:5px;min-height:32px;border:0;padding:5px 7px;background:transparent;color:var(--text)}.line-toolbar button:hover{background:var(--hover)}.details-command{margin-left:auto}.table-wrap{overflow:auto;max-height:52vh}table{width:100%;min-width:720px;border-collapse:collapse}th,td{padding:7px;text-align:left}th{background:var(--surface);position:sticky;top:0;z-index:1}td select{width:100%;min-width:220px;box-sizing:border-box}td input:not([type=checkbox]){width:110px;text-align:right;box-sizing:border-box}.checkbox-cell{text-align:center}.selected{background:#489bcb30}footer{justify-content:flex-end;gap:8px}.movements{margin-right:auto}details>div{padding:12px 0}summary{padding:8px;cursor:pointer}</style>

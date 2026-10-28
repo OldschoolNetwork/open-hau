@@ -37,6 +37,11 @@
   import PaymentReport from "./PaymentReport.svelte";
   import PaymentAllocation from "./PaymentAllocation.svelte";
   import PaymentBatches from "./PaymentBatches.svelte";
+  import PaymentBatchList from "./PaymentBatchList.svelte";
+  import PaymentBatchDetails from "./PaymentBatchDetails.svelte";
+  import PaymentBatchMovements from "./PaymentBatchMovements.svelte";
+  import type {PaymentBatch} from "./model";
+  import type {PaymentDetailRequest} from "./payment-batches";
   import {displayDate,displayPeriod,dateFormats,periodFormats} from "./date-format";
   import {previousPaymentMonth,type PaymentShare} from "./payment-allocation";
   import PhysicalMeters from "./PhysicalMeters.svelte";
@@ -183,6 +188,12 @@
   const meterDocumentKinds:Record<string,MeterDocument['kind']>={'individual-readings':'individual','shared-readings':'shared','initial-readings':'initial','meter-status':'status'};
   let meterDocumentEditors:Record<string,MeterDocument>={};
   function editMeterDocument(doc:MeterDocument){const id='meterdoc:'+doc.id;meterDocumentEditors={...meterDocumentEditors,[id]:doc};openDesktop(id);}
+  let paymentEditors:Record<string,PaymentBatch>={},paymentDetails:Record<string,PaymentDetailRequest>={};
+  function editPaymentBatch(batch:PaymentBatch){const id='batcheditor:'+batch.id;paymentEditors={...paymentEditors,[id]:batch};openDesktop(id);}
+  function openPaymentDetails(request:PaymentDetailRequest){const id='batchdetails:'+request.parentId+':'+request.rowId;if(!desktopViews.some(v=>v.id===id&&v.visible))paymentDetails={...paymentDetails,[id]:request};openDesktop(id);}
+  function openBatchMovements(id:string){openDesktop('batchmovements:'+id);}
+  async function closePaymentDetails(parentId:string){for(const view of [...desktopViews].filter(v=>v.visible&&paymentDetails[v.id]?.parentId===parentId)){await hideDesktop(view.id);if(desktopViews.some(v=>v.id===view.id&&v.visible))return false;}return true;}
+  async function prepareBatchAction(id:string){const parent='batcheditor:'+id;if(desktopViews.some(v=>v.id===parent&&v.visible)){await hideDesktop(parent);return !desktopViews.some(v=>v.id===parent&&v.visible);}return true;}
   let intervalRequests:Record<string,IntervalRequest>={};
   const accountDocumentKinds:Record<string,AccountDocument['kind']>={'open-account':'open','close-account':'close','account-changes':'information','account-services':'services','opening-balances':'opening-balance'};
   let accountDocumentEditors:Record<string,AccountDocument>={};
@@ -201,6 +212,8 @@
     if(pages.some(x=>x.id===id))page=id;
   }
   async function hideDesktop(id:string,minimize=false){
+    if(!minimize)for(const child of [...desktopViews].filter(v=>v.visible&&reportLookupRequests[v.id]?.parentId===id))await hideDesktop(child.id);
+    if(!minimize&&id.startsWith("batcheditor:")&&!(await closePaymentDetails(id)))return;
     if(!minimize&&editorDirties[id]&&!(await ask(t('Закрыть это окно без сохранения введённых изменений?','Închideți această fereastră fără salvarea modificărilor introduse?'))))return;
     if(!minimize)editorDirties={...editorDirties,[id]:false};
     desktopViews=desktopViews.map(v=>v.id===id?{...v,visible:minimize?v.visible:false,minimized:minimize}:v);
@@ -210,6 +223,9 @@
   async function closeAllDesktop(){for(const view of [...desktopViews].filter(v=>v.visible)){await hideDesktop(view.id);if(desktopViews.some(v=>v.id===view.id&&v.visible))break;}}
 
   function desktopTitle(id:string,language:"ru"|"ro"){
+    if(id.startsWith('batcheditor:'))return language==='ru'?'Групповой ввод оплаты · редактирование':'Introducere plăți în grup · editare';
+    if(id.startsWith('batchdetails:'))return language==='ru'?'Расшифровка платежа':'Repartizarea plății';
+    if(id.startsWith('batchmovements:'))return language==='ru'?'Движения документа оплаты':'Înregistrări document de plată';
     if(id.startsWith('reportinterval:'))return language==='ru'?'Настройка интервала':'Configurare interval';
     if(id.startsWith('serviceeditor:'))return language==='ru'?'Услуги · редактирование':'Servicii · editare';
     if(id.startsWith('physicaleditor:'))return language==='ru'?'Прибор учёта':'Contor';
@@ -371,7 +387,7 @@
     const raw=await readDatabase(id),entry=catalog.databases.find(d=>d.id===id),candidate=raw?valid(raw):(id==="default"?p:blankDatabase(entry?.name||"OpenHaU"));
     if(!initial&&(modal||Object.keys(readingEdits).length))throw Error(t("Завершите открытое редактирование и примените показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));
     if(!initial&&!prepared&&!(await prepareDatabaseChange()))return;
-    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;dirty=false;loadFailed=false;receiptPeriod='';desktopViews=[];reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};editorDirties={};activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
+    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;dirty=false;loadFailed=false;receiptPeriod='';desktopViews=[];reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
   }
   async function openDatabase(id:string){try{await switchDatabase(id);}catch(e){fail(e);}}
   async function newDatabase(name:string){try{if(!(await prepareDatabaseChange()))return;if(native){const path=await chooseFileDestination({defaultPath:name+'.openhau.json',filters:[{name:'OpenHaU',extensions:['json']}]});if(!path)return;const id=await invoke<string>('create_database_file',{path,value:blankDatabase(name)});await refreshCatalog();await switchDatabase(id,true,true);return;}const id=await createDatabase(name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=blankDatabase(name);dirty=true;await save();}}catch(e){fail(e);}}
@@ -1642,7 +1658,7 @@
       {:else if page === "payment-report"}
         <PaymentReport project={p}/>
       {:else if page === "payment-batches"}
-        <PaymentBatches editorId="payment-batches" project={p} onapply={applyAndSave}/>
+        <PaymentBatchList project={p} onapply={applyAndSave} onedit={editPaymentBatch} onmovements={openBatchMovements} beforeChange={prepareBatchAction}/>
       {:else if page === "service-reports"}
         <Reports project={p} mode="service"/>
       {:else if page === "receipts"}
@@ -1987,6 +2003,9 @@
         {#if view.id.startsWith('reportinterval:')&&intervalRequests[view.id]}<ReportInterval request={intervalRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('reportlookup:')&&reportLookupRequests[view.id]}<ReportLookup project={p} onmanage={manageLookup} request={reportLookupRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('reportsettings:')&&reportSettingsRequests[view.id]}<ReportSettings request={reportSettingsRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('batcheditor:')&&paymentEditors[view.id]}<PaymentBatches editorId={view.id} project={p} initial={paymentEditors[view.id]} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)} ondetails={openPaymentDetails} onmovements={openBatchMovements} beforeSave={()=>closePaymentDetails(view.id)}/>
+        {:else if view.id.startsWith('batchdetails:')&&paymentDetails[view.id]}<PaymentBatchDetails editorId={view.id} project={p} request={paymentDetails[view.id]} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('batchmovements:')}<PaymentBatchMovements project={p} batchId={view.id.slice('batchmovements:'.length)}/>
         {:else if view.id.startsWith('accountdoc:')&&accountDocumentEditors[view.id]}<AccountDocuments editorId={view.id} project={p} kind={accountDocumentEditors[view.id].kind} initial={accountDocumentEditors[view.id]} onapply={applyAndSave} onedit={editAccountDocument} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('serviceeditor:')}<ServiceRecord editorId={view.id} project={p} initial={serviceEditors[view.id]||null} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)} onreference={kind=>openDesktop('catalog:'+kind)} ontariffs={id=>{tariffServiceFilter=id;navigate('tariffs');}}/>
         {:else if view.id.startsWith('physicaleditor:')&&physicalEditors[view.id]}<PhysicalMeters editorId={view.id} project={p} onapply={applyAndSave} editorOnly={true} initialMeter={physicalEditors[view.id].meter} initialReading={physicalEditors[view.id].reading} onclose={()=>hideDesktop(view.id)}/>
