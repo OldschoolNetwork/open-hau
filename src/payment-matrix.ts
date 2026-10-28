@@ -29,7 +29,7 @@ export function paymentMatrix(p:Project,from:string,to:string,options=paymentMat
    if(!matchesReportSelection(p,pay.account_id,line.service_id,options.filters))continue;
    if(D(line.amount).isZero())continue;
    // Without a service-type mapping, preserve separate services instead of merging unrelated data.
-   const id=options.groupServiceTypes&&service?.service_type?'type:'+type:line.service_id,name=options.groupServiceTypes&&service?.service_type?type:service?.name[p.settings.language]||unknown;
+   const id=options.groupServiceTypes&&service?.service_type?'type:'+type:line.service_id,name=options.groupServiceTypes&&service?.service_type?(p.reference_catalogs['service-types']?.find(r=>r.id===type)?.name||type):service?.name[p.settings.language]||unknown;
    if(!columns.has(id))columns.set(id,{id,name,order:service?.report_order??10000});
    if(!groups.has(group))groups.set(group,new Map());const accounts=groups.get(group)!;
    if(!accounts.has(account.id))accounts.set(account.id,{account_id:account.id,number:account.number,payer:account.payer_name,address:account.address,amounts:new Map()});

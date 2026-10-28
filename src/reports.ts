@@ -1,3 +1,5 @@
+import {reportRange,monthChargeEvents,chargeEventIndex} from './report-dates';
+import {accountOpenInMonth} from './account-lifecycle';
 import type { Project } from "./model";
 import { add, D, money, monthNext, statement, csv } from "./engine";
 
@@ -14,12 +16,7 @@ export type AccountReportRow = {
   warnings: string[];
 };
 export function accountBalanceReport(p: Project, from: string, to: string,attentionOnly=false,postedOnly=false) {
-  if (
-    !/^\d{4}-(0[1-9]|1[0-2])$/.test(from) ||
-    !/^\d{4}-(0[1-9]|1[0-2])$/.test(to) ||
-    from > to
-  )
-    throw Error("Invalid report period range");
+  const eventIndex=chargeEventIndex(p);const range=reportRange(from,to);from=range.fromMonth;to=range.toMonth;
   const months: string[] = [];
   for (let month = from; month <= to; month = monthNext(month)) {
     if (months.length >= 1200) throw Error("Report range exceeds 100 years");
@@ -28,7 +25,7 @@ export function accountBalanceReport(p: Project, from: string, to: string,attent
   const rows: AccountReportRow[] = p.accounts
     .filter((a) => a.opening_period <= to)
     .map((a) => {
-      const opening = from < a.opening_period ? money(a.opening_balance,p) : statement(p, a, from).opening;
+      let opening = from < a.opening_period ? money(a.opening_balance,p) : statement(p, a, from).opening;
       let charges = D(0),
         adjustments = D(0),
         paid = D(0);
@@ -39,7 +36,7 @@ export function accountBalanceReport(p: Project, from: string, to: string,attent
         const preserved = p.snapshots.some(
           (x) => x.account_id === a.id && x.period === month,
         );
-        if ((a.active || preserved)&&(!postedOnly||preserved)) {
+        if ((accountOpenInMonth(a,month) || preserved)&&(!postedOnly||preserved)) {
           charges = charges.plus(add(s.lines.map((l) => l.amount)));
           for (const warning of s.warnings)
             warnings.add(`${month}: ${warning}`);
@@ -54,6 +51,20 @@ export function accountBalanceReport(p: Project, from: string, to: string,attent
           warnings.add(
             `${month}: ${p.settings.language === "ru" ? "пропущена закрытая история" : "istoricul închis lipsește"} ${s.gaps.join(", ")}`,
           );
+      }
+      // Move only dated boundary transactions; complete-month results remain unchanged.
+      for(const month of [...new Set([from,to])]){
+        if(month<a.opening_period)continue;
+        for(const event of monthChargeEvents(p,a,month,postedOnly,eventIndex)){
+          const before=event.date<range.fromDate,after=event.date>range.toDate;
+          if(!before&&!after)continue;
+          if(event.kind==='charge')charges=charges.minus(event.amount);else adjustments=adjustments.minus(event.amount);
+          if(before)opening=money(D(opening).plus(event.amount),p);
+        }
+      }
+      for(const payment of p.payments.filter(pay=>pay.account_id===a.id&&pay.payment_date>=from+'-01'&&pay.payment_date<monthNext(to)+'-01')){
+        if(payment.payment_date<range.fromDate){opening=money(D(opening).minus(payment.amount),p);paid=paid.minus(payment.amount);}
+        else if(payment.payment_date>range.toDate)paid=paid.minus(payment.amount);
       }
       return {
         account_id: a.id,

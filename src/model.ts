@@ -9,7 +9,7 @@ const decimal = z
   .max(64)
   .regex(
     /^-?\d{1,16}(\.\d{1,16})?$/,
-    "Используй число с точкой, до 16 цифр до и после неё",
+    "Используйте число с точкой, до 16 цифр до и после неё",
   );
 const nonnegative = decimal.refine(
   (v) => !v.startsWith("-"),
@@ -55,6 +55,9 @@ const account = z.object({
   opening_period: period,
   service_ids: z.array(id),
   active: z.boolean(),
+  opening_date:date.optional(),
+  closing_date:date.nullable().optional(),
+  service_history:z.array(z.object({effective_from:period,service_ids:z.array(id)})).optional(),
   notes: z.string(),
   custom_fields: z.record(z.string(), z.string()).default({}),
 });
@@ -261,10 +264,10 @@ export const legacyProjectSchema = z
       fail("Повторяющиеся закрытые периоды");
     if (
       new TextEncoder().encode(JSON.stringify(p, null, 2)).byteLength >
-      20 * 1024 * 1024
+      64 * 1024 * 1024
     )
       fail(
-        "Полный JSON превышает 20 МБ; уменьшите логотипы или число конфигураций",
+        "Полный JSON превышает 64 МБ; уменьшите логотипы или число конфигураций",
       );
   });
 const physicalMeter = z.object({
@@ -279,6 +282,10 @@ const physicalMeter = z.object({
   installed_on: date.nullable().default(null),
   retired_on: date.nullable().default(null),
   initial_value: nonnegative.default("0"),
+  status_history:z.array(z.object({date,active:z.boolean()})).optional(),
+  type_id:z.string().optional(),
+  source_metadata:z.record(z.string(),z.string()).optional(),
+  account_links:z.array(z.object({date,account_id:id,active:z.boolean(),dependent:z.boolean()})).optional(),
 });
 const physicalMeterValue = z.object({
   id,
@@ -357,6 +364,9 @@ const currentProjectSchema = z
       payments:z.array(payment.extend({allocation_basis:period.optional(),allocation_balancing_service_id:id.optional(),allocation_manual_amount:ledgerMoney.optional()})).max(100000),
       services:z.array(service.extend({provider:z.string().optional(),service_type:z.string().optional(),report_order:z.number().int().min(0).max(10000).optional(),meter_types:z.array(z.string().min(1)).max(100).optional()})).max(10000),
       reference_catalogs:z.partialRecord(z.enum(referenceKinds),z.array(z.object({id,code:z.string(),name:z.string().trim().min(1),active:z.boolean(),marked_for_deletion:z.boolean().default(false),notes:z.string(),attributes:z.record(z.string(),z.string()).default({})})).max(100000)).default({}),
+      account_documents:z.array(z.object({id,number:z.string().min(1),date,kind:z.enum(['open','close','information','services','opening-balance']),state:z.enum(['draft','applied']),account,comment:z.string(),before:account.optional()})).max(100000).default([]),
+      meter_documents:z.array(z.object({id,number:z.string().min(1),date,period,kind:z.enum(['individual','shared','initial','status']),state:z.enum(['draft','applied']),comment:z.string(),rows:z.array(z.object({id,meter_id:id,value:z.string(),active:z.boolean()})).max(100000)})).max(100000).default([]),
+      charge_events:z.array(z.object({account_id:id,service_id:z.union([id,z.literal('')]),period,date,kind:z.enum(['charge','adjustment']),amount:ledgerMoney})).max(300000).default([]),
     service_accounting: z.object({
       opening:z.array(z.object({account_id:id,service_id:id,amount:ledgerMoney})).max(100000),
       payments:z.array(z.object({payment_id:id,service_id:id,amount:ledgerMoney})).max(300000),
@@ -413,6 +423,9 @@ const currentProjectSchema = z
       service_accounting,
       payment_batches,
       reference_catalogs,
+      account_documents,
+      meter_documents,
+      charge_events,
       ...common
     } = p;
     const previous = legacyProjectSchema.safeParse({
@@ -440,6 +453,16 @@ const currentProjectSchema = z
         });
     const fail = (message: string) => ctx.addIssue({ code: "custom", message });
     const accountIds=new Set(p.accounts.map(a=>a.id)),serviceIds=new Set(p.services.map(s=>s.id)),paymentById=new Map(p.payments.map(pay=>[pay.id,pay]));
+    if(new Set(account_documents.map(d=>d.id)).size!==account_documents.length)fail('Duplicate account documents');
+    const snapshotsByKey=new Map(p.snapshots.map(s=>[s.account_id+'|'+s.period,s]));
+    const eventTotals=new Map<string,{charge:Decimal;adjustment:Decimal}>();
+    for(const event of charge_events){
+      const key=event.account_id+'|'+event.period;
+      if(!accountIds.has(event.account_id)||(event.service_id&&!serviceIds.has(event.service_id))||event.date.slice(0,7)!==event.period||!snapshotsByKey.has(key))fail('Invalid dated charge reference');
+      const totals=eventTotals.get(key)||{charge:new Decimal(0),adjustment:new Decimal(0)};
+      totals[event.kind]=totals[event.kind].plus(event.amount);eventTotals.set(key,totals);
+    }
+    for(const [key,totals] of eventTotals){const snapshot=snapshotsByKey.get(key);if(snapshot&&(!totals.charge.eq(snapshot.lines.reduce((sum,line)=>sum.plus(line.amount),new Decimal(0)))||!totals.adjustment.eq(snapshot.adjustment)))fail('Dated charge events differ from preserved monthly totals');}
     for(const kind of referenceKinds){const rows=reference_catalogs[kind]||[];if(new Set(rows.map(r=>r.id)).size!==rows.length)fail("Duplicate reference catalog records");for(const row of rows)for(const field of catalogFields[kind]){const value=row.attributes[field.key];if(!value)continue;if(field.reference){const known=field.reference==="accounts"?accountIds:field.reference==="services"?serviceIds:new Set((reference_catalogs[field.reference]||[]).map(r=>r.id));if(!known.has(value))fail("Unknown reference catalog link");}else if(field.type==="date"&&!date.safeParse(value).success)fail("Invalid reference catalog date");else if(field.type==="number"&&!/^\d+(\.\d+)?$/.test(value))fail("Invalid reference catalog number");}}
     if(new Set(payment_batches.map(b=>b.id)).size!==payment_batches.length)fail("Duplicate payment batches");
     const batchPayments=new Set<string>();
@@ -634,15 +657,15 @@ const currentProjectSchema = z
       if (!meter) fail("Reading references an unknown physical meter");
       else if (
         (meter.installed_on && r.reading_date < meter.installed_on) ||
-        (meter.retired_on && r.reading_date > meter.retired_on)
+        (meter.retired_on && !meter.status_history?.length && r.reading_date > meter.retired_on)
       )
         fail("Reading date falls outside the meter installation lifetime");
     }
     if (
       new TextEncoder().encode(JSON.stringify(p, null, 2)).byteLength >
-      20 * 1024 * 1024
+      64 * 1024 * 1024
     )
-      fail("Full project JSON exceeds 20 MB");
+      fail("Full project JSON exceeds 64 MB");
   });
 
 export const projectSchema = z.preprocess((input) => {
@@ -707,6 +730,9 @@ export function demoProject(): Project {
     service_accounting:{opening:[],payments:[],adjustments:[]},
     tariff_documents: [],
     reference_catalogs:{},
+    account_documents:[],
+    meter_documents:[],
+    charge_events:[],
     payment_batches: [],
     treasury:{wallets:[],funds:[],transactions:[],locked_through:null},
     demo: true,

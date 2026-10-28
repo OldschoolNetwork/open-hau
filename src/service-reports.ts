@@ -1,10 +1,12 @@
+import {reportRange,monthChargeEvents,chargeEventIndex} from './report-dates';
+import {accountOpenInMonth} from './account-lifecycle';
 import type {Project} from "./model";
 import {D,charges,money,monthNext,csv} from "./engine";
 import {accountBalanceReport} from "./reports";
 export const UNALLOCATED_SERVICE="@unallocated";
 type Column="opening"|"charges"|"adjustments"|"paid";
 export function serviceBalanceReport(p:Project,from:string,to:string,serviceFilter="",attentionOnly=false,postedOnly=false){
-  const base=accountBalanceReport(p,from,to,false,postedOnly),ru=p.settings.language==="ru";
+  const eventIndex=chargeEventIndex(p);const range=reportRange(from,to);const base=accountBalanceReport(p,from,to,false,postedOnly);from=range.fromMonth;to=range.toMonth;const ru=p.settings.language==="ru";
   const rows:{account_id:string;service_id:string;service:string;number:string;payer:string;active:boolean;opening:string;charges:string;adjustments:string;paid:string;closing:string;warnings:string[]}[]=[];
   const group=<T>(items:T[],key:(item:T)=>string)=>{const result=new Map<string,T[]>();for(const item of items){const k=key(item);result.set(k,[...(result.get(k)||[]),item]);}return result;};
   const snapshots=group(p.snapshots,s=>s.account_id),payments=group(p.payments,pay=>pay.account_id),initial=group(p.service_accounting.opening,r=>r.account_id),paymentShares=group(p.service_accounting.payments,r=>r.payment_id),adjustmentShares=group(p.service_accounting.adjustments,r=>r.account_id+"|"+r.period);
@@ -21,15 +23,17 @@ export function serviceBalanceReport(p:Project,from:string,to:string,serviceFilt
       distribute(adjustmentShares.get(account.id+"|"+snapshot.period)||[],snapshot.adjustment,"opening");
     }
     for(const pay of payments.get(account.id)||[]){
-      if(pay.payment_date<account.opening_period+"-01"||pay.payment_date>=monthNext(to)+"-01")continue;
-      const earlier=pay.payment_date<from+"-01";
+      if(pay.payment_date<account.opening_period+"-01"||pay.payment_date>range.toDate)continue;
+      const earlier=pay.payment_date<range.fromDate;
       distribute(paymentShares.get(pay.id)||[],pay.amount,earlier?"opening":"paid",earlier?-1:1);
     }
     for(let month=from;month<=to;month=monthNext(month)){
       if(month<account.opening_period)continue;
-      const saved=byMonth.get(month),calculated=saved||charges(p,account,month);
-      if((account.active||saved)&&(!postedOnly||saved))for(const line of calculated.lines)put(line.service_id,"charges",line.amount);
-      distribute(adjustmentShares.get(account.id+"|"+month)||[],calculated.adjustment,"adjustments");
+      const saved=byMonth.get(month);
+      for(const event of monthChargeEvents(p,account,month,postedOnly,eventIndex)){
+        if(event.date>range.toDate)continue;
+        put(event.service_id||UNALLOCATED_SERVICE,event.date<range.fromDate?'opening':event.kind==='charge'?'charges':'adjustments',event.amount);
+      }
     }
     for(const sid of account.service_ids)if(!amounts.has(sid))put(sid,"charges","0");
     for(const [sid,values] of amounts){

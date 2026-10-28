@@ -1,13 +1,15 @@
 <script lang="ts">
   import {invoke} from "@tauri-apps/api/core";
+  import {open as chooseFile,save as chooseFileDestination} from "@tauri-apps/plugin-dialog";
   import { translator } from "./i18n";
-  import { onMount } from "svelte";
+  import { onMount,tick } from "svelte";
   import DesktopMenu from "./DesktopMenu.svelte";
   import DesktopWindow from "./DesktopWindow.svelte";
   import DesktopChooser from "./DesktopChooser.svelte";
   import {desktopMenus,chooserGroups,catalogs} from "./desktop-menu";
   import ReferenceCatalog from "./ReferenceCatalog.svelte";
   import ReferenceRecordEditor from "./ReferenceRecordEditor.svelte";
+  import {newReferenceRecord,type ReferenceRecord} from "./reference-catalogs";
   import type {ReferenceKind} from "./catalog-definitions";
   import { ZodError } from "zod";
   import Reports from "./Reports.svelte";
@@ -15,7 +17,15 @@
   import DesktopWidgets from "./DesktopWidgets.svelte";
   import MarkedDeletion from "./MarkedDeletion.svelte";
   import ReportSettings from "./ReportSettings.svelte";
-  import type {ReportSettingsRequest} from "./report-settings";
+  import ReportLookup from "./ReportLookup.svelte";
+  import AccountDocuments from "./AccountDocuments.svelte";
+  import MeterDocuments from "./MeterDocuments.svelte";
+  import type {PhysicalMeter,PhysicalMeterValue} from "./model";
+  import type {MeterDocument} from "./meter-documents";
+  import ReportInterval from "./ReportInterval.svelte";
+  import type {IntervalRequest} from "./report-interval";
+  import {accountOpenInMonth,type AccountDocument} from "./account-lifecycle";
+  import type {ReportSettingsRequest,ReportLookupRequest} from "./report-settings";
   import Notifications from "./Notifications.svelte";
   import NotificationSettings from "./NotificationSettings.svelte";
   import SettingsHome from "./SettingsHome.svelte";
@@ -23,6 +33,7 @@
   import {databaseCatalog,readDatabase,activateDatabase,createDatabase,setDatabaseAuto,type DatabaseCatalog} from "./database-catalog";
   import ServiceCatalog from "./ServiceCatalog.svelte";
   import ServiceEditor from "./ServiceEditor.svelte";
+  import ServiceRecord from "./ServiceRecord.svelte";
   import PaymentReport from "./PaymentReport.svelte";
   import PaymentAllocation from "./PaymentAllocation.svelte";
   import PaymentBatches from "./PaymentBatches.svelte";
@@ -138,7 +149,44 @@
   type WorkspaceView={id:string;page:string;visible:boolean;minimized:boolean;position:{x:number;y:number;width:number;height:number}};
   let desktopViews:WorkspaceView[]=[],activeDesktop="",desktopArea:HTMLElement;
   let reportSettingsRequests:Record<string,ReportSettingsRequest>={};
+  let reportLookupRequests:Record<string,ReportLookupRequest>={};
   let workspaceLocked=false;
+  let queuedEditorSave=false;
+  let editorDirties:Record<string,boolean>={};
+  $:pendingEditor=Object.keys(editorDirties).find(id=>editorDirties[id]);
+  function editorSaveRequired(){if(pendingEditor){focusDesktop(pendingEditor);fail(t('Сохраните изменения в открытом окне документа или закройте его с отказом от правок.','Salvați modificările din fereastra documentului sau închideți-o renunțând la modificări.'));return true;}return false;}
+
+  let referenceCopies:Record<string,ReferenceRecord>={};
+  function manageLookup(action:'add'|'copy'|'edit'|'mark',kind:ReferenceKind|'accounts'|'services',id?:string){
+    if(kind==='accounts'){
+      const account=p.accounts.find(a=>a.id===id);
+      if(action==='mark'&&account){const next=structuredClone(p);next.accounts.find(a=>a.id===id)!.marked_for_deletion=!account.marked_for_deletion;setProject(next);return;}
+      if(action==='copy'&&account){openEditor('account',{...structuredClone(account),id:uid(),number:'',opening_balance:'0.00',opening_period:period,opening_date:undefined,closing_date:null,service_history:undefined,active:true,marked_for_deletion:false});return;}
+      openEditor('account',action==='edit'?account:undefined);return;
+    }
+    if(kind==='services'){
+      const service=p.services.find(s=>s.id===id);
+      if(action==='mark'&&service){const next=structuredClone(p);next.services.find(s=>s.id===id)!.marked_for_deletion=!service.marked_for_deletion;setProject(next);return;}
+      editServiceRecord(action==='copy'&&service?{...structuredClone(service),id:uid(),marked_for_deletion:false}:action==='edit'?service||null:null);return;
+    }
+    const record=p.reference_catalogs[kind]?.find(r=>r.id===id);
+    if(action==='mark'&&record){const next=structuredClone(p);next.reference_catalogs[kind]!.find(r=>r.id===id)!.marked_for_deletion=!record.marked_for_deletion;setProject(next);return;}
+    let key=id||uid();
+    if(action==='add')key=uid();
+    if(action==='copy'&&record){const copy={...structuredClone(record),id:uid(),code:newReferenceRecord(p,kind).code,marked_for_deletion:false};key=copy.id;referenceCopies={...referenceCopies,[key]:copy};}
+    openDesktop('catalogedit:'+kind+':'+key);
+  }
+  let serviceEditors:Record<string,Project['services'][number]|null>={};
+  function editServiceRecord(service:Project['services'][number]|null=null){const id='serviceeditor:'+uid();serviceEditors={...serviceEditors,[id]:service};openDesktop(id);}
+  let physicalEditors:Record<string,{meter:PhysicalMeter|null;reading:PhysicalMeterValue|null}>={};
+  function editPhysical(meter:PhysicalMeter|null,reading:PhysicalMeterValue|null=null){const id='physicaleditor:'+uid();physicalEditors={...physicalEditors,[id]:{meter,reading}};openDesktop(id);}
+  const meterDocumentKinds:Record<string,MeterDocument['kind']>={'individual-readings':'individual','shared-readings':'shared','initial-readings':'initial','meter-status':'status'};
+  let meterDocumentEditors:Record<string,MeterDocument>={};
+  function editMeterDocument(doc:MeterDocument){const id='meterdoc:'+doc.id;meterDocumentEditors={...meterDocumentEditors,[id]:doc};openDesktop(id);}
+  let intervalRequests:Record<string,IntervalRequest>={};
+  const accountDocumentKinds:Record<string,AccountDocument['kind']>={'open-account':'open','close-account':'close','account-changes':'information','account-services':'services','opening-balances':'opening-balance'};
+  let accountDocumentEditors:Record<string,AccountDocument>={};
+  function editAccountDocument(doc:AccountDocument){const id='accountdoc:'+doc.id;accountDocumentEditors={...accountDocumentEditors,[id]:doc};openDesktop(id);}
   function openDesktop(id:string){
     const existing=desktopViews.find(v=>v.id===id);
     if(existing){existing.visible=true;existing.minimized=false;focusDesktop(id);return;}
@@ -152,12 +200,25 @@
     view.visible=true;view.minimized=false;desktopViews=[...desktopViews.filter(v=>v.id!==id),view];activeDesktop=id;
     if(pages.some(x=>x.id===id))page=id;
   }
-  function hideDesktop(id:string,minimize=false){
+  async function hideDesktop(id:string,minimize=false){
+    if(!minimize&&editorDirties[id]&&!(await ask(t('Закрыть это окно без сохранения введённых изменений?','Închideți această fereastră fără salvarea modificărilor introduse?'))))return;
+    if(!minimize)editorDirties={...editorDirties,[id]:false};
     desktopViews=desktopViews.map(v=>v.id===id?{...v,visible:minimize?v.visible:false,minimized:minimize}:v);
     activeDesktop=[...desktopViews].reverse().find(v=>v.visible&&!v.minimized)?.id||"";
+    if(!minimize)setTimeout(()=>{if(desktopViews.some(v=>v.id===id&&!v.visible))desktopViews=desktopViews.filter(v=>v.id!==id);},220);
   }
+  async function closeAllDesktop(){for(const view of [...desktopViews].filter(v=>v.visible)){await hideDesktop(view.id);if(desktopViews.some(v=>v.id===view.id&&v.visible))break;}}
+
   function desktopTitle(id:string,language:"ru"|"ro"){
+    if(id.startsWith('reportinterval:'))return language==='ru'?'Настройка интервала':'Configurare interval';
+    if(id.startsWith('serviceeditor:'))return language==='ru'?'Услуги · редактирование':'Servicii · editare';
+    if(id.startsWith('physicaleditor:'))return language==='ru'?'Прибор учёта':'Contor';
+    if(id.startsWith('meterdoc:'))return language==='ru'?'Приборы учёта · документ':'Contoare · document';
+    if(meterDocumentKinds[id]||id==='shared-connections')return desktopMenus.flatMap(m=>m.children||[]).find(c=>c.id===id)?.[language]||id;
+    if(id.startsWith('accountdoc:'))return language==='ru'?'Лицевой счёт · документ':'Cont personal · document';
+    if(accountDocumentKinds[id])return desktopMenus.flatMap(m=>m.children||[]).find(c=>c.id===id)?.[language]||id;
     if(id==='purge')return language==='ru'?'Удаление помеченных объектов':'Eliminare obiecte marcate';
+    if(id.startsWith('reportlookup:'))return (reportLookupRequests[id]?.label||'')+(language==='ru'?' · выбор элемента':' · selectare element');
     if(id.startsWith("reportsettings:"))return language==='ru'?'Настройка отчёта':'Configurare raport';
     if(id.startsWith("catalog:")||id.startsWith("catalogedit:")){const [,kind]=id.split(":"),entry=catalogs.find(c=>c.id===kind);return (entry?.[language]||kind)+(id.startsWith("catalogedit:")?(language==="ru"?" · запись":" · înregistrare"):"");}
     const titles:Record<string,[string,string]>={reports:["Оборотно-сальдовая ведомость","Balanță de verificare"],receipts:["Квитанция","Factură"],tariffs:["Изменение тарифов на услуги","Modificare tarife servicii"],settings:["Общие настройки","Setări generale"]};
@@ -169,7 +230,7 @@
   }
   function desktopCommand(action:string){
     if(action==='temporary-lock'){workspaceLocked=true;return;}
-    if(action.startsWith("file:")){if(action==="file:save")void save();else if(action==="file:export")void exportJson();else if(action==="file:open")void importDatabase();else void requestDatabaseHome();return;}
+    if(action.startsWith("file:")){if(action==="file:save")void save();else if(action==="file:export")void exportJson();else if(action==="file:open")void openExistingDatabase();else if(action==="file:save-as")void saveDatabaseAs();else if(action==="file:import")void importDatabase();else void requestDatabaseHome();return;}
     if(action.startsWith("edit:")){void editText(action.slice(5));return;}
     showDatabaseHome=false;
     if(action==="about"){modal="about";return;}
@@ -177,7 +238,7 @@
       const visible=desktopViews.filter(v=>v.visible),index=visible.findIndex(v=>v.id===activeDesktop);
       if(action==="window:next"||action==="window:previous"){if(visible.length)focusDesktop(visible[(Math.max(index,0)+(action==="window:next"?1:visible.length-1))%visible.length].id);}
       else if(action==="window:close")hideDesktop(activeDesktop);
-      else if(action==="window:close-all"){desktopViews=desktopViews.map(v=>({...v,visible:false}));activeDesktop="";}
+      else if(action==="window:close-all")void closeAllDesktop();
       else if(action==="window:cascade")desktopViews=desktopViews.map((v,i)=>({...v,position:{...v.position,x:16+(i%8)*26,y:16+(i%8)*26}}));
       return;
     }
@@ -232,7 +293,7 @@
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
-  $: active = p.accounts.filter((a) => a.active && a.opening_period <= period);
+  $: active = p.accounts.filter((a) => accountOpenInMonth(a,period));
   $: statements = active.map((a) => ({ a, s: statement(p, a, period) }));
   $: totalCharges = money(add(statements.map((x) => x.s.total)), p);
   $: totalPaid = money(add(statements.map((x) => x.s.paid)), p);
@@ -241,7 +302,10 @@
     (x) => x.s.warnings.length || x.s.gaps.length,
   ).length;
   $: heading = pages.find((x) => x.id === page);
-  $: receiptAccounts = active.filter((a) => selected.includes(a.id));
+  let receiptPeriod='';
+  $: receiptMonth=receiptPeriod||period;
+  $: receiptEligible=p.accounts.filter(a=>a.opening_period<=receiptMonth&&(accountOpenInMonth(a,receiptMonth)||p.snapshots.some(snapshot=>snapshot.account_id===a.id&&snapshot.period===receiptMonth)));
+  $: receiptAccounts=receiptEligible.filter(a=>selected.includes(a.id));
   $: if (typeof document !== "undefined") {
     const dark =
       p.settings.theme === "dark" ||
@@ -256,11 +320,11 @@
     dirty = true;
     notice = "";
   }
-  function setPaymentDeadline(value:string){
+  function setPaymentDeadline(value:string,month=period){
     try{
       const next=structuredClone(p);
-      next.payment_deadlines=next.payment_deadlines.filter(d=>d.period!==period);
-      if(value)next.payment_deadlines.push({period,due_date:value});
+      next.payment_deadlines=next.payment_deadlines.filter(d=>d.period!==month);
+      if(value)next.payment_deadlines.push({period:month,due_date:value});
       setProject(next);
     }catch(e){fail(e);}
   }
@@ -285,12 +349,15 @@
     dirty = true;
     error = "";
   }
+  async function persistCommitted(){await tick();if(busy){queuedEditorSave=true;return;}await save('save',true);}
+  function applyAndSave(next:Project){setProject(next);void persistCommitted();}
   let catalog:DatabaseCatalog={databases:[{id:"default",name:"OpenHaU"}],auto:null,last:"default"},activeDatabaseId="default",showDatabaseHome=true,lastTextField:HTMLInputElement|HTMLTextAreaElement|null=null;
   function rememberText(e:FocusEvent){if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)lastTextField=e.target;}
   async function editText(command:string){try{const field=lastTextField;if(!field||!field.isConnected)throw Error(t("Выберите текстовое поле для редактирования.","Selectați un câmp de text pentru editare."));field.focus();if(command==="paste"){const text=await navigator.clipboard.readText();field.setRangeText(text,field.selectionStart??field.value.length,field.selectionEnd??field.value.length,"end");field.dispatchEvent(new Event("input",{bubbles:true}));}else if(!document.execCommand(command))throw Error(t("Операция недоступна для выбранного поля. Используйте сочетание клавиш.","Operațiunea nu este disponibilă pentru câmpul selectat. Utilizați combinația de taste."));}catch(e){fail(e);}}
   async function refreshCatalog(){try{catalog=await databaseCatalog();}catch(e){fail(e);}}
   let databaseOpened=false;
   async function prepareDatabaseChange(){
+    if(editorSaveRequired())return false;
     if(modal||Object.keys(readingEdits).length){fail(t("Завершите редактирование и примените введённые показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));return false;}
     if(!databaseOpened)return true;
     if(!(await ask(t("Сохранить текущую базу и продолжить? Сначала примените изменения в открытых документах.","Salvați baza curentă și continuați? Aplicați mai întâi modificările din documentele deschise."))))return false;
@@ -304,14 +371,18 @@
     const raw=await readDatabase(id),entry=catalog.databases.find(d=>d.id===id),candidate=raw?valid(raw):(id==="default"?p:blankDatabase(entry?.name||"OpenHaU"));
     if(!initial&&(modal||Object.keys(readingEdits).length))throw Error(t("Завершите открытое редактирование и примените показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));
     if(!initial&&!prepared&&!(await prepareDatabaseChange()))return;
-    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;dirty=false;loadFailed=false;desktopViews=[];activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
+    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;dirty=false;loadFailed=false;receiptPeriod='';desktopViews=[];reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};editorDirties={};activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
   }
   async function openDatabase(id:string){try{await switchDatabase(id);}catch(e){fail(e);}}
-  async function newDatabase(name:string){try{if(!(await prepareDatabaseChange()))return;const id=await createDatabase(name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=blankDatabase(name);dirty=true;await save();}}catch(e){fail(e);}}
+  async function newDatabase(name:string){try{if(!(await prepareDatabaseChange()))return;if(native){const path=await chooseFileDestination({defaultPath:name+'.openhau.json',filters:[{name:'OpenHaU',extensions:['json']}]});if(!path)return;const id=await invoke<string>('create_database_file',{path,value:blankDatabase(name)});await refreshCatalog();await switchDatabase(id,true,true);return;}const id=await createDatabase(name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=blankDatabase(name);dirty=true;await save();}}catch(e){fail(e);}}
+  async function openExistingDatabase(){if(!native){await importDatabase();return;}try{const path=await chooseFile({multiple:false,filters:[{name:'OpenHaU',extensions:['json']}]});if(!path||typeof path!=='string')return;valid(await invoke('read_json_file',{path}));if(!(await prepareDatabaseChange()))return;const id=await invoke<string>('register_database_file',{path});await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
+  async function saveDatabaseAs(){if(editorSaveRequired())return;if(!native){await exportJson();return;}try{if(modal||Object.keys(readingEdits).length)throw Error(t('Завершите редактирование перед сохранением копии.','Încheiați editarea înainte de salvarea copiei.'));const value=valid(p),path=await chooseFileDestination({defaultPath:p.organization.name+'.openhau.json',filters:[{name:'OpenHaU',extensions:['json']}]});if(!path)return;const id=await invoke<string>('create_database_file',{path,value});await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
   async function importDatabase(){try{const raw=await importJson();if(!raw)return;const candidate=valid(raw);if(!(await prepareDatabaseChange()))return;const id=await createDatabase(candidate.organization.name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=candidate;dirty=true;await save();}}catch(e){fail(e);}}
   async function configureAutoDatabase(id:string|null){try{await setDatabaseAuto(id);await refreshCatalog();}catch(e){fail(e);}}
-  async function save(reason:"save"|"close"="save") {
+  async function save(reason:"save"|"close"="save",fromEditor=false) {
     if (busy) return;
+    if(!fromEditor&&editorSaveRequired())return;
+    if(!fromEditor&&['account','service','organization','payment','tariff','adjustment','json'].includes(modal)){fail(t('Сначала сохраните изменения в открытой форме.','Salvați mai întâi modificările din formularul deschis.'));return;}
     notice="";
     if (loadFailed) {
       error = t(
@@ -350,6 +421,7 @@
       fail(e);
     } finally {
       busy = false;
+      if(queuedEditorSave){queuedEditorSave=false;void save('save',true);}
     }
   }
   let settingsCategory="home";
@@ -361,6 +433,7 @@
     error = "";
   }
   function openEditor(kind: string, item?: unknown) {
+    if(kind==="service"){editServiceRecord(item as Project["services"][number]||null);return;}
     if(kind==="payment"&&item&&p.payment_batches.some(b=>b.state==="applied"&&b.rows.some(r=>r.payment_id===(item as {id:string}).id))){error=t("Оплата относится к проведённому групповому документу. Откройте его для просмотра расшифровки.","Plata aparține unui document de grup aplicat. Deschideți documentul pentru vizualizarea repartizării.");return;}
     if (kind === "tariff" && item && p.tariff_documents.some(d => d.state === "applied" && d.rows.some(r => r.tariff_id === (item as {id: string}).id))) {
       error = t("Тариф введён применённым документом. Документ доступен для просмотра; новый тариф задаётся новой записью.", "Tariful provine dintr-un document aplicat. Documentul poate fi vizualizat; un tarif nou se introduce printr-o înregistrare nouă.");
@@ -454,6 +527,7 @@
       if (modal === "tariff" && tariffEntryMode === "average") {
         setProject(addAverageTariff(p, draft.service_id, tariffTransitionPeriod, draft.rate, tariffFollowingRate));
         modal = "";
+        void persistCommitted();
         return;
       }
       let next = structuredClone(p);
@@ -508,7 +582,7 @@
           throw Error(
             t(
               "Период закрыт. Сначала откройте его.",
-              "Perioada este închisă. Redeschide-o mai întâi.",
+              "Perioada este închisă. Redeschideți-o mai întâi.",
             ),
           );
         const a = next.accounts.find((x) => x.id === item.account_id);
@@ -539,6 +613,7 @@
         next = setAccountMonthlyPersons(next, item.id, draft.wastePersonsPeriod, draft.wastePersonsMonth);
       setProject(next);
       modal = "";
+      void persistCommitted();
     } catch (e) {
       fail(e);
     }
@@ -581,6 +656,7 @@
       }
       setProject(next);
       modal = "";
+      void persistCommitted();
     } catch (e) {
       fail(e);
     }
@@ -807,8 +883,8 @@
       if (!receiptAccounts.length)
         throw Error(t("Выберите счета для печати.", "Selectați conturile pentru imprimare."));
       await exportText(
-        "OpenHaU-facturi-" + period + ".html",
-        receiptDocument(p, receiptAccounts, period),
+        "OpenHaU-facturi-" + receiptMonth + ".html",
+        receiptDocument(p, receiptAccounts, receiptMonth),
         "html",
       );
     } catch (e) {
@@ -916,6 +992,12 @@
   onMount(() => {
     const showReportSettings=(event:Event)=>{const request=(event as CustomEvent<ReportSettingsRequest>).detail;const id='reportsettings:'+request.id;reportSettingsRequests={...reportSettingsRequests,[id]:request};desktopViews=desktopViews.filter(v=>v.id!==id);openDesktop(id);};
     window.addEventListener('openhau:report-settings',showReportSettings);
+    const showReportLookup=(event:Event)=>{const request=(event as CustomEvent<ReportLookupRequest>).detail,id='reportlookup:'+request.id;reportLookupRequests={...reportLookupRequests,[id]:request};openDesktop(id);};
+    window.addEventListener('openhau:report-lookup',showReportLookup);
+    const showInterval=(event:Event)=>{const request=(event as CustomEvent<IntervalRequest>).detail,id='reportinterval:'+request.id;intervalRequests={...intervalRequests,[id]:request};desktopViews=desktopViews.filter(v=>v.id!==id);openDesktop(id);};
+    window.addEventListener('openhau:report-interval',showInterval);
+    const trackEditor=(event:Event)=>{const {id,dirty:hasChanges}=(event as CustomEvent<{id:string;dirty:boolean}>).detail;editorDirties={...editorDirties,[id]:hasChanges};};
+    window.addEventListener('openhau:editor-dirty',trackEditor);
     const external = (e: MouseEvent) => {
       const a = (e.target as Element)?.closest?.("a");
       if (native && a?.href.startsWith("https://")) {
@@ -930,7 +1012,7 @@
     };
     themeMedia.addEventListener("change", themeChange);
     const beforeUnload = (e: BeforeUnloadEvent) => {
-      if (dirty && !native) {
+      if ((dirty||pendingEditor||Object.keys(readingEdits).length||["account","service","organization","payment","tariff","adjustment"].includes(modal)) && !native) {
         e.preventDefault();
         e.returnValue = "";
       }
@@ -951,6 +1033,8 @@
     if (native)
       void getCurrentWindow()
         .onCloseRequested(async (event) => {
+          if(pendingEditor){event.preventDefault();editorSaveRequired();return;}
+          if(["account","service","organization","payment","tariff","adjustment"].includes(modal)||Object.keys(readingEdits).length){event.preventDefault();fail(t('Завершите редактирование и примените введённые данные перед выходом.','Încheiați editarea și aplicați datele introduse înainte de ieșire.'));return;}
           if (!dirty) return;
           event.preventDefault();
           if (
@@ -982,6 +1066,9 @@
     })();
     return () => {
       window.removeEventListener('openhau:report-settings',showReportSettings);
+      window.removeEventListener('openhau:report-lookup',showReportLookup);
+      window.removeEventListener('openhau:report-interval',showInterval);
+      window.removeEventListener('openhau:editor-dirty',trackEditor);
       unlistenClose?.();
       document.removeEventListener("click", external);
       themeMedia.removeEventListener("change", themeChange);
@@ -1292,9 +1379,9 @@
           </div>
         </article>
       {:else if page === "services"}
-        <ServiceCatalog project={p} onedit={service=>openEditor("service",service)} ontariffs={id=>{tariffServiceFilter=id;navigate("tariffs");}}/>
+        <ServiceCatalog project={p} onapply={setProject} onedit={service=>openEditor("service",service)}/>
       {:else if page === "tariffs"}
-        <TariffDocuments project={p} onapply={setProject}/>
+        <TariffDocuments editorId="tariffs" project={p} onapply={applyAndSave}/>
         <label>{t("Услуга", "Serviciu")}<select bind:value={tariffServiceFilter}>
           <option value="">{t("Все услуги", "Toate serviciile")}</option>
           {#each p.services as s}<option value={s.id}>{s.name[lang]} · {unitLabel(s.unit, lang)}</option>{/each}
@@ -1343,7 +1430,7 @@
           </div>
         </article>
       {:else if page === "readings"}
-        <PhysicalMeters project={p} onapply={setProject} />
+        <PhysicalMeters project={p} onapply={setProject} onedit={m=>editPhysical(m)} onreading={r=>editPhysical(null,r)}/>
         <SharedMeters project={p} onapply={setProject} />
         <MonthlyResidents project={p} onapply={setProject} />
         <div class="toolbar">
@@ -1366,7 +1453,7 @@
         {#if closed}<div class="alert">
             <LockKeyhole size={17} />{t(
               "Месяц закрыт. Открой его в обзоре для исправлений.",
-              "Luna este închisă. Redeschide-o din prezentare pentru corecturi.",
+              "Luna este închisă. Redeschideți-o din prezentare pentru corecturi.",
             )}
           </div>{/if}
         <article class="panel">
@@ -1550,15 +1637,15 @@
       {:else if page === "reports"}
         <Reports project={p} />
       {:else if page === "individual-meters" || page === "shared-meters"}
-        <PhysicalMeters project={p} onapply={setProject} scopeFilter={page==="individual-meters"?"individual":"shared"}/>
+        <PhysicalMeters project={p} onapply={setProject} onedit={m=>editPhysical(m)} onreading={r=>editPhysical(null,r)} scopeFilter={page==="individual-meters"?"individual":"shared"}/>
       {:else if page === "payment-report"}
         <PaymentReport project={p}/>
       {:else if page === "payment-batches"}
-        <PaymentBatches project={p} onapply={setProject}/>
+        <PaymentBatches editorId="payment-batches" project={p} onapply={applyAndSave}/>
       {:else if page === "service-reports"}
         <Reports project={p} mode="service"/>
       {:else if page === "receipts"}
-        <div class="receipts-layout">
+        <div class="receipt-period-selector"><label>{t('Период квитанций','Perioada facturilor')}<input type="month" aria-label={t('Месяц и год квитанций','Luna și anul facturilor')} value={receiptMonth} onchange={e=>{if(/^\d{4}-(0[1-9]|1[0-2])$/.test(e.currentTarget.value))receiptPeriod=e.currentTarget.value;}}/></label><span>{displayPeriod(receiptMonth,p)}</span></div><div class="receipts-layout">
           <aside class="receipt-controls panel">
             <div class="panel-heading">
               <h2>{t("Оформление", "Aspect")}</h2>
@@ -1590,8 +1677,8 @@
                   ><option value="both">Русский + Română</option><option value="en">English</option></select
                 ></label
               >
-              <label>{t("Оплатить до · текущий месяц", "Achitați până la · luna curentă")}<input type="date" value={paymentDeadline(p,period)} onchange={(e)=>setPaymentDeadline(e.currentTarget.value)}/></label>
-              {#if p.payment_deadlines.some(d=>d.period===period)}<button class="text-button" onclick={()=>setPaymentDeadline("")}>{t("Вернуть общий срок оплаты", "Restabilește termenul general de plată")}</button>{/if}
+              <label>{t("Оплатить до · выбранный месяц", "Achitați până la · luna selectată")}<input type="date" value={paymentDeadline(p,receiptMonth)} onchange={(e)=>setPaymentDeadline(e.currentTarget.value,receiptMonth)}/></label>
+              {#if p.payment_deadlines.some(d=>d.period===receiptMonth)}<button class="text-button" onclick={()=>setPaymentDeadline("",receiptMonth)}>{t("Вернуть общий срок оплаты", "Restabilește termenul general de plată")}</button>{/if}
               <div class="two-fields">
                 <label
                   >{t("Цвет", "Culoare")}<input
@@ -1653,16 +1740,16 @@
               <div class="check-row">
                 <input
                   type="checkbox"
-                  checked={active.length > 0 &&
-                    receiptAccounts.length === active.length}
+                  checked={receiptEligible.length > 0 &&
+                    receiptAccounts.length === receiptEligible.length}
                   onchange={(e) =>
                     (selected = e.currentTarget.checked
-                      ? active.map((a) => a.id)
+                      ? receiptEligible.map((a) => a.id)
                       : [])}
                 /><strong>{t("Все счета", "Toate conturile")}</strong>
               </div>
               <div class="receipt-account-list">
-                {#each active as a}<label class="check-row"
+                {#each receiptEligible as a}<label class="check-row"
                     ><input
                       type="checkbox"
                       checked={selected.includes(a.id)}
@@ -1676,7 +1763,7 @@
                   "Печать",
                   "Tipărire",
                 )}</button
-              ><button class="button secondary" disabled={!native||!receiptAccounts.length} onclick={async()=>{try{await exportPDF(`OpenHaU-receipts-${period}.pdf`,receiptDocument(p,receiptAccounts,period));}catch(e){fail(e);}}}><Download size={16}/>{t("Сохранить PDF","Salvează PDF")}</button
+              ><button class="button secondary" disabled={!native||!receiptAccounts.length} onclick={async()=>{try{await exportPDF(`OpenHaU-receipts-${receiptMonth}.pdf`,receiptDocument(p,receiptAccounts,receiptMonth));}catch(e){fail(e);}}}><Download size={16}/>{t("Сохранить PDF","Salvează PDF")}</button
               ><button class="button secondary" onclick={exportHTML}
                 ><Download size={16} />{t(
                   "Сохранить HTML",
@@ -1686,8 +1773,8 @@
               {#if p.settings.receipt_design==="custom"}<ReceiptDesigner project={p} onapply={setProject}/>{/if}
               <p class="quiet-note">
                 {t(
-                  "Для сохранения PDF выберите соответствующее назначение в диалоге печати.",
-                  "Pentru salvarea PDF selectați destinația corespunzătoare din dialogul de imprimare.",
+                  "Для сохранения файла используйте «Сохранить PDF».",
+                  "Pentru salvarea fișierului folosiți „Salvează PDF”.",
                 )}
               </p>
             </div>
@@ -1702,7 +1789,7 @@
               {@html `<style>${receiptBaseCSS}\n${receiptDesignCSS}\n${p.settings.receipt_css.replace(/<\/style/gi, "")}</style>`}{#each receiptAccounts as a}{@html receipt(
                   p,
                   a,
-                  period,
+                  receiptMonth,
                 )}{/each}{#if !receiptAccounts.length}<div class="empty-state">
                   {t("Выберите счета слева.", "Selectați conturile din stânga.")}
                 </div>{/if}
@@ -1886,18 +1973,27 @@
 <div class="desktop-shell no-print" class:welcome-shell={showDatabaseHome}>
   <Notifications {notice} {error} language={lang} onnotice={()=>notice=""}/>
   {#if !showDatabaseHome}<header class="desktop-chrome">
-    <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><span>{t("Период: ","Perioadă: ")}{displayPeriod(period,p)}</span><div class="desktop-state">{dirty?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
+    <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><span>{t("Период: ","Perioadă: ")}{displayPeriod(period,p)}</span><div class="desktop-state">{dirty||pendingEditor?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
     <DesktopMenu menus={desktopMenus} language={lang} oncommand={desktopCommand}/>
     <div class="desktop-commandbar"><button class="desktop-save" onclick={()=>save()} disabled={busy||loading}><Save size={17}/>{t("Сохранить","Salvare")}</button></div>
   </header>{/if}
   <main class="desktop-area" bind:this={desktopArea}>
-    {#if showDatabaseHome}<DatabaseHome {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={importDatabase} onauto={configureAutoDatabase}/>{:else}
+    {#if showDatabaseHome}<DatabaseHome {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={openExistingDatabase} onauto={configureAutoDatabase}/>{:else}
     {#if !desktopViews.some(v=>v.visible&&!v.minimized)}<div class="desktop-empty"><img src="/brand/logo-full.svg" alt="OpenHaU OPEN"/></div>{/if}
     <DesktopWidgets language={lang} databaseId={activeDatabaseId} period={displayPeriod(period,p)} charges={totalCharges} paid={totalPaid} balance={totalBalance} attention={missing} onopen={desktopCommand}/>
     {#each desktopViews as view (view.id)}
       <DesktopWindow id={view.id} title={desktopTitle(view.id,lang)} language={lang} active={activeDesktop===view.id} hidden={!view.visible||view.minimized} minimized={view.minimized} index={desktopViews.indexOf(view)} bind:position={view.position} onfocus={()=>focusDesktop(view.id)} onclose={()=>hideDesktop(view.id)} onminimize={()=>hideDesktop(view.id,true)}>
-        {#if view.id.startsWith('reportsettings:')&&reportSettingsRequests[view.id]}<ReportSettings request={reportSettingsRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
-        {:else if view.id.startsWith("catalogedit:")}{@const parts=view.id.split(":")}<ReferenceRecordEditor project={p} kind={parts[1] as ReferenceKind} recordId={parts.slice(2).join(":")} onapply={setProject} onclose={()=>hideDesktop(view.id)}/>
+        {#if view.id.startsWith('reportinterval:')&&intervalRequests[view.id]}<ReportInterval request={intervalRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('reportlookup:')&&reportLookupRequests[view.id]}<ReportLookup project={p} onmanage={manageLookup} request={reportLookupRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('reportsettings:')&&reportSettingsRequests[view.id]}<ReportSettings request={reportSettingsRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('accountdoc:')&&accountDocumentEditors[view.id]}<AccountDocuments editorId={view.id} project={p} kind={accountDocumentEditors[view.id].kind} initial={accountDocumentEditors[view.id]} onapply={applyAndSave} onedit={editAccountDocument} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('serviceeditor:')}<ServiceRecord editorId={view.id} project={p} initial={serviceEditors[view.id]||null} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)} onreference={kind=>openDesktop('catalog:'+kind)} ontariffs={id=>{tariffServiceFilter=id;navigate('tariffs');}}/>
+        {:else if view.id.startsWith('physicaleditor:')&&physicalEditors[view.id]}<PhysicalMeters editorId={view.id} project={p} onapply={applyAndSave} editorOnly={true} initialMeter={physicalEditors[view.id].meter} initialReading={physicalEditors[view.id].reading} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('meterdoc:')&&meterDocumentEditors[view.id]}<MeterDocuments editorId={view.id} project={p} kind={meterDocumentEditors[view.id].kind} initial={meterDocumentEditors[view.id]} onapply={applyAndSave} onedit={editMeterDocument} onclose={()=>hideDesktop(view.id)}/>
+        {:else if meterDocumentKinds[view.id]}<MeterDocuments editorId={view.id} project={p} kind={meterDocumentKinds[view.id]} onapply={applyAndSave} onedit={editMeterDocument} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id==='shared-connections'}<SharedMeters project={p} onapply={setProject}/>
+        {:else if accountDocumentKinds[view.id]}<AccountDocuments editorId={view.id} project={p} kind={accountDocumentKinds[view.id]} onapply={applyAndSave} onedit={editAccountDocument} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith("catalogedit:")}{@const parts=view.id.split(":")}<ReferenceRecordEditor editorId={view.id} project={p} kind={parts[1] as ReferenceKind} recordId={parts.slice(2).join(":")} initial={referenceCopies[parts.slice(2).join(":")]} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id==='purge'}<MarkedDeletion project={p} onapply={setProject}/>
         {:else if view.id.startsWith("catalog:")}<ReferenceCatalog project={p} kind={view.id.slice(8) as ReferenceKind} onapply={setProject} onedit={id=>openDesktop("catalogedit:"+view.id.slice(8)+":"+(id==="new"?uid():id))}/>
         {:else if view.id.startsWith("chooser:")}<DesktopChooser group={view.id.slice(8)} language={lang} oncommand={action=>{hideDesktop(view.id);desktopCommand(action);}}/>
@@ -1914,7 +2010,7 @@
 </div>
 {#if workspaceLocked}<div class="workspace-lock" role="dialog" aria-modal="true" aria-label={t('Временная блокировка','Blocare temporară')} tabindex="-1"><div><h2>{t('Временная блокировка','Blocare temporară')}</h2><p>{t('Ввод временно приостановлен. Это защита от случайных нажатий, без проверки личности.','Introducerea este suspendată. Protecție împotriva apăsărilor accidentale, fără verificarea identității.')}</p><button class="button" onclick={()=>workspaceLocked=false}>{t('Продолжить работу','Continuă lucrul')}</button></div></div>{/if}
 <div class="print-only">
-  {#each receiptAccounts as a}{@html receipt(p, a, period)}{/each}
+  {#each receiptAccounts as a}{@html receipt(p, a, receiptMonth)}{/each}
 </div>
 
 {#if modal}

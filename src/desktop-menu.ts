@@ -173,7 +173,8 @@ export const documents: DesktopCommand[] = [
     "Administrare contoare comune",
   ),
 ];
-const document = (id: string) => documents.find((x) => x.id === id)!;
+for(const entry of documents)if(['open-account','close-account','account-changes','account-services','opening-balances','individual-readings','shared-readings','initial-readings','meter-status','shared-connections'].includes(entry.id))entry.action=entry.id;
+const document = (id:string)=>documents.find(x=>x.id===id)!;
 export const reportCommands: DesktopCommand[] = [
   item("receipts", "Квитанция", "Factură", "receipts"),
   item(
@@ -308,7 +309,7 @@ export const chooserGroups: Record<
   },
 };
 export const desktopMenus: DesktopCommand[] = [
-  {id:"file",ru:"Файл",ro:"Fișier",children:[item("database-home","Базы данных…","Baze de date…","file:catalog"),item("database-new","Создать базу…","Creează bază…","file:new"),item("database-open","Открыть JSON как базу…","Deschide JSON ca bază…","file:open"),item("save","Сохранить","Salvează","file:save"),item("export-json","Экспорт JSON…","Export JSON…","file:export"),{
+  {id:"file",ru:"Файл",ro:"Fișier",children:[item("database-home","Базы данных…","Baze de date…","file:catalog"),item("database-new","Создать базу…","Creează bază…","file:new"),item("database-open","Открыть базу…","Deschide baza…","file:open"),item("save","Сохранить","Salvează","file:save"),item("save-as","Сохранить базу как…","Salvează baza ca…","file:save-as"),item("import-copy","Импортировать копию JSON…","Importă o copie JSON…","file:import"),item("export-json","Экспорт JSON…","Export JSON…","file:export"),{
         id: "workspace-tools",
         ru: "Рабочие инструменты OpenHaU",
         ro: "Instrumente OpenHaU",

@@ -1,3 +1,4 @@
+import {accountOpenInMonth,accountServicesInMonth} from './account-lifecycle';
 import Decimal from "decimal.js";
 import type { Project, Account } from "./model";
 import { physicalReadings } from "./meters";
@@ -37,17 +38,14 @@ export function charges(
     (x) => x.account_id === a.id && x.period === period,
   );
   if (saved) return { ...saved, warnings: [] };
-  if (period < a.opening_period)
-    return {
-      lines: [],
-      adjustment: "0.00",
-      total: "0.00",
-      warnings: [p.settings.language==="ru"?"Счёт ещё не открыт в выбранном периоде":"Contul nu era încă deschis în perioada selectată"],
-    };
+  if (!accountOpenInMonth(a,period)){
+    const adjustment=period<a.opening_period?'0.00':money(add(p.adjustments.filter(r=>r.account_id===a.id&&r.period===period).map(r=>r.amount)),p);
+    return {lines:[],adjustment,total:adjustment,warnings:period<a.opening_period?[p.settings.language==='ru'?'Счёт ещё не открыт в выбранном периоде':'Contul nu era încă deschis în perioada selectată']:[]};
+  }
   const lines: Line[] = [],
     warnings: string[] = [];
   const groups = applicableGroups(p, period).filter(g => g.individual_meter_ids.some(mid => p.meters.find(m => m.id === mid)?.account_id === a.id));
-  for (const sid of a.service_ids) {
+  for (const sid of accountServicesInMonth(a,period)) {
     const s = p.services.find((x) => x.id === sid);
     if (!s || !s.active) continue;
     // The configured difference service is generated once by its source group.
@@ -218,7 +216,7 @@ export function statement(p: Project, a: Account, period: string) {
   let cursor = a.opening_period;
   const gaps: string[] = [];
   // Closed months supply the historical ledger; never silently recalculate history.
-  for (let i = 0; cursor < period && i < 1200; i++, cursor = monthNext(cursor))
+  for (let i = 0; cursor < period && (!a.closing_date||cursor<=a.closing_date.slice(0,7)) && i < 1200; i++, cursor = monthNext(cursor))
     if (!old.some((x) => x.period === cursor)) gaps.push(cursor);
   return {
     ...c,
@@ -231,7 +229,7 @@ export function statement(p: Project, a: Account, period: string) {
 export function closePeriod(p: Project, period: string): Project {
   if (p.closed_periods.includes(period)) throw Error(p.settings.language==="ru"?"Период уже закрыт":"Perioada este deja închisă");
   const accounts = p.accounts.filter(
-    (a) => a.active && a.opening_period <= period,
+    (a) => accountOpenInMonth(a,period),
   );
   const rows = accounts.map((a) => ({ a, s: statement(p, a, period) }));
   if (rows.some((x) => x.s.warnings.length || x.s.gaps.length))
@@ -257,6 +255,7 @@ export function reopenPeriod(p: Project, period: string): Project {
   return {
     ...p,
     closed_periods: p.closed_periods.filter((x) => x !== period),
+    charge_events:p.charge_events.filter(e=>e.period!==period),
     snapshots: p.snapshots.filter((x) => x.period !== period),
   };
 }

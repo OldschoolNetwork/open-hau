@@ -1,5 +1,5 @@
 import {invoke} from "@tauri-apps/api/core";import {native,browserStorageKey,setBrowserDatabase} from "./storage";import {uid} from "./model";
-export type DatabaseCatalog={databases:{id:string;name:string}[];auto:string|null;last:string};
+export type DatabaseCatalog={databases:{id:string;name:string;path?:string}[];auto:string|null;last:string};
 const key="openhau-database-catalog";
 export async function databaseCatalog():Promise<DatabaseCatalog>{if(native)return invoke("database_catalog");const raw=localStorage.getItem(key);return raw?JSON.parse(raw):{databases:[{id:"default",name:"OpenHaU"}],auto:null,last:"default"};}
 export async function createDatabase(name:string):Promise<string>{name=name.trim();if(!name||name.length>120)throw Error("Invalid database name");if(native)return invoke("create_database",{name});const catalog=await databaseCatalog(),id="db-"+uid();catalog.databases.push({id,name});localStorage.setItem(key,JSON.stringify(catalog));return id;}

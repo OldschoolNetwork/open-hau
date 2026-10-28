@@ -448,3 +448,5 @@
 .welcome-shell .desktop-area{padding:0;overflow:auto}
 .workspace-lock{position:fixed;inset:0;z-index:60000;display:grid;place-items:center;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(25px)}
 .workspace-lock>div{max-width:480px;padding:32px}.workspace-lock p{line-height:1.6}
+
+.receipt-period-selector{display:flex;align-items:center;gap:18px;padding:12px}.receipt-period-selector label{display:flex;gap:12px;align-items:center}.receipt-period-selector input{height:36px;box-sizing:border-box}

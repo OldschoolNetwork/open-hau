@@ -1,9 +1,14 @@
 <script lang="ts">
+ import {onDestroy} from "svelte";import {reportEditorDirty} from "./editor-drafts";
+ export let editorId="";
  import {type Project,uid} from "./model";import {catalogFields,type ReferenceKind} from "./catalog-definitions";import {referenceRows,newReferenceRecord,saveReferenceRecord,referenceOptions,type ReferenceRecord} from "./reference-catalogs";import {translator} from "./i18n";import {issueText} from "./validation-language";import {ZodError} from "zod";import {Save,X} from "@lucide/svelte";
- export let project:Project;export let kind:ReferenceKind;export let recordId:string;export let onapply:(p:Project)=>void;export let onclose:()=>void;
- let original=referenceRows(project,kind).find(r=>r.id===recordId),draft:ReferenceRecord=original?structuredClone(original):newReferenceRecord(project,kind),error="";
+ export let initial:ReferenceRecord|undefined=undefined;export let project:Project;export let kind:ReferenceKind;export let recordId:string;export let onapply:(p:Project)=>void;export let onclose:()=>void;
+ let original=referenceRows(project,kind).find(r=>r.id===recordId),draft:ReferenceRecord=initial?structuredClone(initial):original?structuredClone(original):newReferenceRecord(project,kind),error="";
  $:t=translator(project.settings.language);
- function save(){try{onapply(saveReferenceRecord(project,kind,draft));error="";onclose();}catch(e){error=e instanceof ZodError?e.issues.slice(0,3).map(i=>issueText(i,project.settings.language)).join("; "):e instanceof Error?e.message:String(e);}}
+ function save(){try{onapply(saveReferenceRecord(project,kind,draft));error="";savedDraft=JSON.stringify(draft);reportEditorDirty(editorId,false);onclose();}catch(e){error=e instanceof ZodError?e.issues.slice(0,3).map(i=>issueText(i,project.settings.language)).join("; "):e instanceof Error?e.message:String(e);}}
+ let savedDraft=JSON.stringify(draft);
+ $:reportEditorDirty(editorId,!referenceRows(project,kind).some(r=>r.id===draft.id)||JSON.stringify(draft)!==savedDraft);
+ onDestroy(()=>reportEditorDirty(editorId,false));
 </script>
 <form class="reference-editor" onsubmit={e=>{e.preventDefault();save();}}>
  {#if error}<p role="alert" class="alert error">{error}</p>{/if}

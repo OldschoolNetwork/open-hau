@@ -1,5 +1,8 @@
 <script lang="ts">
+  import {onDestroy} from "svelte";import {reportEditorDirty} from "./editor-drafts";
+  export let editorId="";
   import {displayDate,displayPeriod} from "./date-format";
+  import RecordToolbar from "./RecordToolbar.svelte";
   import { translator } from "./i18n";
   import { issueText } from "./validation-language";
   import {
@@ -13,8 +16,18 @@
   export let project: Project;
   export let onapply: (next: Project) => void;
   export let scopeFilter:"all"|"individual"|"shared"="all";
-  let meter: PhysicalMeter | null = null,
-    reading: PhysicalMeterValue | null = null,
+  export let editorOnly=false;
+  export let initialMeter:PhysicalMeter|null=null;
+  export let initialReading:PhysicalMeterValue|null=null;
+  export let onedit:((meter:PhysicalMeter)=>void)|undefined=undefined;
+  export let onreading:((reading:PhysicalMeterValue)=>void)|undefined=undefined;
+  export let onclose:()=>void=()=>{};
+  let selected='',query='',filterOpen=false;
+  $: selectedMeter=project.meters.find(m=>m.id===selected);
+  $: rows=project.meters.filter(m=>(scopeFilter==='all'||m.scope===scopeFilter)&&(m.label+' '+m.serial_number+' '+(project.accounts.find(a=>a.id===m.account_id)?.number||'')).toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  function editMeter(value:PhysicalMeter){if(onedit)onedit(structuredClone(value));else{meter=structuredClone(value);reading=null;}}
+  let meter: PhysicalMeter | null = initialMeter?structuredClone(initialMeter):null,
+    reading: PhysicalMeterValue | null = initialReading?structuredClone(initialReading):null,
     error = "";
   $: tr = translator(project.settings.language);
   function newMeter() {
@@ -33,6 +46,7 @@
     };
     reading = null;
     error = "";
+    if(onedit){onedit(meter);meter=null;}
   }
   function newReading(id: string) {
     reading = {
@@ -46,6 +60,7 @@
     };
     meter = null;
     error = "";
+    if(onreading){onreading(reading);reading=null;}
   }
   function commit(kind: "meter" | "reading") {
     try {
@@ -59,10 +74,14 @@
           retired_on: meter.retired_on || null,
         };
         const index = next.meters.findIndex((m) => m.id === value.id);
+        if(index>=0&&next.meters[index].status_history?.length&&next.meters[index].active!==value.active)throw Error(tr('Измените статус через документ «Изменение статусов приборов учёта».','Modificați starea prin documentul de modificare a stărilor contoarelor.'));
         if (index < 0) next.meters.push(value);
         else next.meters[index] = value;
       } else if (kind === "reading" && reading) {
         const old = next.meter_values.find((r) => r.id === reading!.id);
+        if(old&&next.meter_documents.some(d=>d.state==='applied'&&d.rows.some(row=>'reading-'+row.id===old.id)))throw Error(tr('Показание введено проведённым документом и доступно только для просмотра.','Indexul a fost introdus printr-un document aplicat și poate fi doar vizualizat.'));
+        const physical=next.meters.find(m=>m.id===reading!.meter_id),state=[...(physical?.status_history||[])].filter(s=>s.date<=reading!.reading_date).sort((a,b)=>b.date.localeCompare(a.date))[0];
+        if(reading.kind==='regular'&&(state?!state.active:!physical?.active))throw Error(tr('Прибор отключён на указанную дату.','Contorul este deconectat la data indicată.'));
         if (
           next.closed_periods.includes(reading.period) ||
           (old && next.closed_periods.includes(old.period))
@@ -88,27 +107,20 @@
       onapply(result.data);
       meter = null;
       reading = null;
+      reportEditorDirty(editorId,false);
+      if(editorOnly)onclose();
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
   }
+  let savedDraft=JSON.stringify([meter,reading]);
+  $:reportEditorDirty(editorId,editorOnly&&!!(meter||reading)&&JSON.stringify([meter,reading])!==savedDraft);
+  onDestroy(()=>reportEditorDirty(editorId,false));
 </script>
 
 <article class="panel meters-panel">
-  <div class="meter-heading">
-    <div>
-      <h2>{tr("Физические счётчики", "Contoare fizice")}</h2>
-      <p>
-        {tr(
-          "Номер прибора, даты и накопительные показания. Расход рассчитывается отдельно для каждого счётчика.",
-          "Numărul contorului, datele și indexurile cumulative. Consumul se calculează separat pentru fiecare contor.",
-        )}
-      </p>
-    </div>
-    <button class="button secondary" onclick={newMeter}
-      >{tr("Добавить счётчик", "Adaugă contor")}</button
-    >
-  </div>
+  {#if !editorOnly}<RecordToolbar language={project.settings.language} selected={!!selectedMeter} onadd={newMeter} onedit={()=>selectedMeter&&editMeter(selectedMeter)} oncopy={()=>{if(selectedMeter)editMeter({...structuredClone(selectedMeter),id:uid(),serial_number:'',initial_value:'0',active:true,status_history:[],installed_on:null,retired_on:null,source_metadata:undefined,account_links:[]});}} onrefresh={()=>selected=''} onfilter={()=>filterOpen=!filterOpen} onclearfilter={()=>query=''} filterActive={!!query}/>
+  {#if filterOpen}<input aria-label={tr('Поиск прибора','Căutare contor')} bind:value={query}/>{/if}{/if}
   {#if error}<p class="alert error" role="alert">{error}</p>{/if}
   {#if meter}
     <form
@@ -198,7 +210,7 @@
         ><button
           class="button secondary"
           type="button"
-          onclick={() => (meter = null)}>{tr("Отмена", "Anulare")}</button
+          onclick={()=>{if(editorOnly)onclose();else meter=null;}}>{tr("Отмена", "Anulare")}</button
         >
       </div>
     </form>
@@ -250,86 +262,23 @@
         ><button
           class="button secondary"
           type="button"
-          onclick={() => (reading = null)}>{tr("Отмена", "Anulare")}</button
+          onclick={()=>{if(editorOnly)onclose();else reading=null;}}>{tr("Отмена", "Anulare")}</button
         >
       </div>
     </form>
   {/if}
-  {#if !project.meters.length}<p class="muted">
-      {tr(
-        "Физические приборы ещё не добавлены. Сводные показания старого формата доступны ниже.",
-        "Nu au fost adăugate contoare fizice. Indexurile agregate din formatul vechi sunt disponibile mai jos.",
-      )}
-    </p>{/if}
-  {#each project.meters.filter(m=>scopeFilter==="all"||m.scope===scopeFilter) as m}
-    <section class="meter-card">
-      <div class="meter-heading">
-        <div>
-          <h3>{m.label} {m.serial_number ? `· ${m.serial_number}` : ""}</h3>
-          <p>
-            {m.scope === "shared"
-              ? tr("Общий счётчик", "Contor comun")
-              : project.accounts.find((a) => a.id === m.account_id)?.number} · {project.services.find(
-              (s) => s.id === m.service_id,
-            )?.name[project.settings.language]} · {m.unit}{!m.active
-              ? ` · ${tr("Снят / неактивен", "Demontat / inactiv")}`
-              : ""}
-          </p>
-        </div>
-        <div class="meter-actions">
-          <button
-            class="button secondary"
-            onclick={() => {
-              meter = { ...m };
-              reading = null;
-              error = "";
-            }}>{tr("Изменить прибор", "Modifică contorul")}</button
-          ><button
-            class="button secondary"
-            disabled={project.closed_periods.includes(project.settings.period)}
-            onclick={() => newReading(m.id)}
-            >{tr("Внести показание", "Adaugă index")}</button
-          >
-        </div>
-      </div>
-      <details>
-        <summary>{tr("История показаний", "Istoricul citirilor")}</summary>
-        <div class="table-wrap">
-          <table>
-            <thead
-              ><tr
-                ><th>{tr("Месяц", "Luna")}</th><th>{tr("Дата", "Data")}</th><th
-                  >{tr("Показание", "Index")}</th
-                ><th>{tr("Примечание", "Notă")}</th><th
-                  >{tr("Действие", "Acțiune")}</th
-                ></tr
-              ></thead
-            ><tbody
-              >{#each project.meter_values
-                .filter((r) => r.meter_id === m.id)
-                .sort( (a, b) => b.reading_date.localeCompare(a.reading_date) ) as r}<tr
-                  ><td>{displayPeriod(r.period,project)}</td><td>{displayDate(r.reading_date,project)}</td><td>{r.value}</td
-                  ><td>{r.notes}</td><td
-                    ><button
-                      class="button secondary"
-                      disabled={project.closed_periods.includes(r.period)}
-                      onclick={() => {
-                        reading = { ...r };
-                        meter = null;
-                        error = "";
-                      }}>{tr("Изменить показание", "Modifică indexul")}</button
-                    ></td
-                  ></tr
-                >{/each}</tbody
-            >
-          </table>
-        </div>
-      </details>
-    </section>
-  {/each}
+  {#if !editorOnly}
+  <div class="table-wrap"><table><thead><tr><th>{tr('Наименование','Denumire')}</th><th>{tr('Вид прибора','Tip contor')}</th><th>{tr('Лицевой счёт','Cont personal')}</th><th>{tr('Заводской номер','Număr de serie')}</th><th>{tr('Статус','Stare')}</th></tr></thead><tbody>{#each rows as m}<tr class:selected={selected===m.id} onclick={()=>selected=m.id} ondblclick={()=>editMeter(m)}><td>{m.label}</td><td>{project.reference_catalogs['meter-types']?.find(r=>r.id===m.type_id)?.name||m.unit}</td><td>{project.accounts.find(a=>a.id===m.account_id)?.number||'—'}</td><td>{m.serial_number}</td><td>{m.active?tr('Подключён','Conectat'):tr('Не подключён','Deconectat')}</td></tr>{/each}</tbody></table></div>
+  {#if !rows.length}<p>{tr('Приборов учёта нет.','Nu există contoare.')}</p>{/if}
+  {#if selectedMeter}{@const m=selectedMeter}<section class="selected-meter"><div class="meter-heading"><h3>{m.label}</h3><button class="button secondary" disabled={project.closed_periods.includes(project.settings.period)} onclick={()=>newReading(m.id)}>{tr('Внести показание','Adaugă index')}</button></div>
+  <details open><summary>{tr('История показаний','Istoricul citirilor')}</summary><div class="table-wrap"><table><thead><tr><th>{tr('Период','Perioada')}</th><th>{tr('Дата','Data')}</th><th>{tr('Показание','Index')}</th><th>{tr('Вид записи','Tip înregistrare')}</th><th></th></tr></thead><tbody>{#each project.meter_values.filter(r=>r.meter_id===m.id).sort((a,b)=>b.reading_date.localeCompare(a.reading_date)) as r}<tr><td>{displayPeriod(r.period,project)}</td><td>{displayDate(r.reading_date,project)}</td><td>{r.value}</td><td>{r.kind==='initial'?tr('Начальное','Inițial'):r.kind==='final'?tr('При снятии','Final'):tr('Очередное','Periodic')}</td><td><button class="button secondary" disabled={project.closed_periods.includes(r.period)||project.meter_documents.some(d=>d.state==='applied'&&d.rows.some(row=>'reading-'+row.id===r.id))} onclick={()=>{if(onreading)onreading(structuredClone(r));else{reading=structuredClone(r);meter=null;}}}>{tr('Изменить','Modifică')}</button></td></tr>{/each}</tbody></table></div></details>
+  {#if m.status_history?.length}<details><summary>{tr('История статусов','Istoricul stărilor')}</summary><table><thead><tr><th>{tr('Дата','Data')}</th><th>{tr('Статус','Stare')}</th></tr></thead><tbody>{#each [...m.status_history].reverse() as state}<tr><td>{displayDate(state.date,project)}</td><td>{state.active?tr('Подключён','Conectat'):tr('Не подключён','Deconectat')}</td></tr>{/each}</tbody></table></details>{/if}
+  {#if m.account_links?.length}<details><summary>{tr('История пользователей общего прибора','Istoricul utilizatorilor contorului comun')}</summary><div class="table-wrap"><table><thead><tr><th>{tr('Дата','Data')}</th><th>{tr('Лицевой счёт','Cont personal')}</th><th>{tr('Связь','Legătură')}</th><th>{tr('Статус','Stare')}</th></tr></thead><tbody>{#each [...m.account_links].reverse() as link}<tr><td>{displayDate(link.date,project)}</td><td>{project.accounts.find(a=>a.id===link.account_id)?.number}</td><td>{link.dependent?tr('Зависимый пользователь','Utilizator dependent'):tr('Пользователь','Utilizator')}</td><td>{link.active?tr('Подключён','Conectat'):tr('Не подключён','Deconectat')}</td></tr>{/each}</tbody></table></div></details>{/if}</section>{/if}
+  {/if}
 </article>
 
 <style>
+  table{width:100%;border-collapse:collapse}th,td{padding:8px;text-align:left}th{background:#80808020}.selected{background:#489bcb30}.selected-meter{margin-top:18px}details{margin-top:14px}
   .meters-panel {
     padding: 20px;
     margin-bottom: 24px;
@@ -341,13 +290,8 @@
     gap: 16px;
     flex-wrap: wrap;
   }
-  .meter-heading h2,
   .meter-heading h3 {
     margin: 0 0 8px;
-  }
-  .meter-heading p {
-    margin: 0 0 12px;
-    color: var(--muted);
   }
   .meter-fields {
     display: grid;
@@ -367,11 +311,6 @@
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
-  }
-  .meter-card {
-    border-top: 1px solid var(--border);
-    padding-top: 18px;
-    margin-top: 18px;
   }
   form {
     padding: 16px 0;

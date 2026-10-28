@@ -12,6 +12,7 @@ use tauri::Manager;
 mod backups;
 mod report_files;
 mod databases;
+mod portable;
 mod pdf_export;
 #[cfg(test)]
 mod report_files_tests;
@@ -19,6 +20,7 @@ mod report_files_tests;
 struct Storage {
     root: PathBuf,
     active: Mutex<String>,
+    file_versions: Mutex<std::collections::HashMap<PathBuf,u64>>,
     lock: Mutex<()>,
 }
 #[derive(Default)]
@@ -76,6 +78,7 @@ fn validate(value: &Value) -> Result<(), String> {
 #[tauri::command]
 fn load_project(storage: tauri::State<Storage>) -> Result<Option<Value>, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
+    if let Some(path)=databases::linked_path(&storage)?{let (value,hash)=portable::read(&path)?;storage.file_versions.lock().map_err(|e|e.to_string())?.insert(path,hash);return Ok(Some(value));}
     let conn = connection(&databases::current(&storage)?)?;
     let mut stmt = conn
         .prepare("SELECT name, json FROM project_sections")
@@ -100,6 +103,7 @@ fn load_project(storage: tauri::State<Storage>) -> Result<Option<Value>, String>
 #[tauri::command]
 fn save_project(value: Value, storage: tauri::State<Storage>) -> Result<Value, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
+    if let Some(path)=databases::linked_path(&storage)?{return portable::save(&storage,&path,value,&databases::current(&storage)?);}
     save_with_copy(value, &databases::current(&storage)?)
 }
 
@@ -129,6 +133,7 @@ fn configure_backups(
 #[tauri::command]
 fn backup_now(storage: tauri::State<Storage>) -> Result<Option<String>, String> {
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
+    if let Some(path)=databases::linked_path(&storage)?{return portable::backup(&path,&databases::current(&storage)?);}
     backups::copy(&databases::current(&storage)?)
 }
 
@@ -213,8 +218,8 @@ fn save_value(value: Value, root: &PathBuf) -> Result<String, String> {
 
 #[tauri::command]
 fn read_json_file(path: String) -> Result<Value, String> {
-    if fs::metadata(&path).map_err(|e| e.to_string())?.len() > 20 * 1024 * 1024 {
-        return Err("Файл больше 20 МБ".into());
+    if fs::metadata(&path).map_err(|e| e.to_string())?.len() > 64 * 1024 * 1024 {
+        return Err("Файл больше 64 МБ".into());
     }
     let content = fs::read_to_string(path).map_err(|e| e.to_string())?;
     let value: Value =
@@ -237,6 +242,7 @@ fn write_binary_file(path: String, content: Vec<u8>) -> Result<(), String> {
 
 #[tauri::command]
 fn storage_path(storage: tauri::State<Storage>) -> Result<String,String> {
+    if let Some(path)=databases::linked_path(&storage)?{return Ok(path.display().to_string());}
     Ok(databases::current(&storage)?.display().to_string())
 }
 
@@ -295,6 +301,7 @@ fn main() {
             app.manage(Storage {
                 root,
                 active: Mutex::new("default".to_string()),
+                file_versions: Mutex::new(std::collections::HashMap::new()),
                 lock: Mutex::new(()),
             });
             let window =
@@ -330,6 +337,8 @@ fn main() {
             notification_sound,
             export_pdf,
             databases::database_catalog,
+            databases::register_database_file,
+            databases::create_database_file,
             databases::create_database,
             databases::read_database,
             databases::activate_database,

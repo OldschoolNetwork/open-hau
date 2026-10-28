@@ -156,7 +156,7 @@ export async function importJson() {
     input.onchange = async () => {
       try {
         const f = input.files?.[0];
-        if (f && f.size > 20 * 1024 * 1024) throw Error("Файл больше 20 МБ");
+        if (f && f.size > 64 * 1024 * 1024) throw Error("Файл больше 64 МБ");
         resolve(f ? JSON.parse((await f.text()).replace(/^\uFEFF/, "")) : null);
       } catch (e) {
         reject(e);

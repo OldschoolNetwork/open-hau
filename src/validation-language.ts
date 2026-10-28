@@ -152,9 +152,9 @@ const messages: Record<string, [string, string]> = {
     "Дата показания вне срока эксплуатации прибора",
     "Data citirii este în afara perioadei de funcționare a contorului",
   ],
-  "Full project JSON exceeds 20 MB": [
-    "Полный JSON превышает 20 МБ",
-    "Fișierul JSON complet depășește 20 MB",
+  "Full project JSON exceeds 64 MB": [
+    "Полный JSON превышает 64 МБ",
+    "Fișierul JSON complet depășește 64 MB",
   ],
 };
 const romanian: Record<string, string> = {
@@ -179,10 +179,10 @@ const romanian: Record<string, string> = {
   "Некорректная дата": "Dată invalidă",
   "Текущие показания меньше предыдущих":
     "Indexul actual este mai mic decât cel precedent",
-  "Используй число с точкой, до 16 цифр до и после неё":
+  "Используйте число с точкой, до 16 цифр до и после неё":
     "Introduceți un număr cu punct zecimal, maximum 16 cifre înainte și după punct",
-  "Полный JSON превышает 20 МБ; уменьшите логотипы или число конфигураций":
-    "Fișierul JSON depășește 20 MB; micșorați siglele sau numărul configurațiilor",
+  "Полный JSON превышает 64 МБ; уменьшите логотипы или число конфигураций":
+    "Fișierul JSON depășește 64 MB; micșorați siglele sau numărul configurațiilor",
   "SVG с DTD или сущностями не поддерживается":
     "SVG cu DTD sau entități nu este acceptat",
   "Некорректный SVG": "Fișier SVG invalid",
@@ -190,7 +190,7 @@ const romanian: Record<string, string> = {
     "Dimensiunea maximă a siglei este 2 MB",
   "Выберите SVG, PNG, JPEG или WebP": "Selectați SVG, PNG, JPEG sau WebP",
   "Не удалось прочитать изображение": "Imaginea nu a putut fi citită",
-  "Файл больше 20 МБ": "Fișierul depășește 20 MB",
+  "Файл больше 64 МБ": "Fișierul depășește 64 MB",
   "Неподдерживаемый формат или версия данных OpenHaU":
     "Format sau versiune de date OpenHaU neacceptată",
   "Нельзя перезаписать базу более нового формата":

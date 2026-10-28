@@ -1,4 +1,8 @@
 <script lang="ts">
+  import {onDestroy} from "svelte";
+  import {ask} from "./storage";
+  import {reportEditorDirty} from "./editor-drafts";
+  export let editorId="";
   import {displayDate,displayPeriod} from "./date-format";
   import { translator } from "./i18n";
   import { uid, today, type Project, type TariffDocument } from "./model";
@@ -9,11 +13,18 @@
   export let onapply: (next: Project) => void;
   let draft: TariffDocument | null = null;
   let error = "";
+  let savedDraft=JSON.stringify(draft);
+  $: unsaved=!!draft&&(!project.tariff_documents.some(d=>d.id===draft!.id)||JSON.stringify(draft)!==savedDraft);
+  $: reportEditorDirty(editorId,unsaved);
+  onDestroy(()=>reportEditorDirty(editorId,false));
+  async function discard(){if(unsaved&&!(await ask(tr("Закрыть документ без сохранения изменений?","Închideți documentul fără salvarea modificărilor?"))))return false;draft=null;error="";reportEditorDirty(editorId,false);return true;}
+  async function openDocument(doc:TariffDocument){if(!(await discard()))return;draft=structuredClone(doc);savedDraft=JSON.stringify(draft);}
   $: tr = translator(project.settings.language);
   function addRow() {
     if (draft) draft.rows = [...draft.rows, {id: uid(), service_id: project.services[0]?.id || "", effective_from: project.settings.period + "-01", rate: "0", tariff_id: null}];
   }
-  function create() {
+  async function create() {
+    if(!(await discard()))return;
     draft = {id: uid(), number: "", date: today(), comment: "", state: "draft", rows: []};
     error = ""; addRow();
   }
@@ -43,12 +54,12 @@
       </fieldset>
       <div class="toolbar">
         {#if draft.state === "draft"}<button type="submit" class="button secondary">{tr("Сохранить черновик", "Salvare ciornă")}</button><button type="button" class="button" onclick={() => save(true)}>{tr("Применить документ", "Aplicare document")}</button>{/if}
-        <button type="button" class="text-button" onclick={() => {draft = null; error = "";}}>{tr("Закрыть", "Închidere")}</button>
+        <button type="button" class="text-button" onclick={discard}>{tr("Закрыть", "Închidere")}</button>
       </div>
     </form>
   {/if}
   <div class="table-wrap"><table><thead><tr><th>{tr("Дата", "Data")}</th><th>{tr("Номер", "Număr")}</th><th>{tr("Комментарий", "Comentariu")}</th><th>{tr("Состояние", "Stare")}</th><th></th></tr></thead><tbody>
-    {#each [...project.tariff_documents].sort((a,b) => b.date.localeCompare(a.date)) as doc}<tr><td>{displayDate(doc.date,project)}</td><td>{doc.number}</td><td>{doc.comment}</td><td>{doc.state === "applied" ? tr("Применён", "Aplicat") : tr("Черновик", "Ciornă")}</td><td><button class="text-button" onclick={() => {draft = structuredClone(doc); error = "";}}>{tr("Открыть", "Deschidere")}</button></td></tr>{:else}<tr><td colspan="5">{tr("Документов пока нет.", "Nu există documente.")}</td></tr>{/each}
+    {#each [...project.tariff_documents].sort((a,b) => b.date.localeCompare(a.date)) as doc}<tr><td>{displayDate(doc.date,project)}</td><td>{doc.number}</td><td>{doc.comment}</td><td>{doc.state === "applied" ? tr("Применён", "Aplicat") : tr("Черновик", "Ciornă")}</td><td><button class="text-button" onclick={()=>openDocument(doc)}>{tr("Открыть", "Deschidere")}</button></td></tr>{:else}<tr><td colspan="5">{tr("Документов пока нет.", "Nu există documente.")}</td></tr>{/each}
   </tbody></table></div>
 </article>
 

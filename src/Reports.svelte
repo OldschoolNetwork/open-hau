@@ -1,4 +1,6 @@
 <script lang="ts">
+  import {monthLastDay} from "./report-dates";
+  import {openInterval} from "./report-interval";
   import {displayDate,displayPeriod} from "./date-format";
   import {Download,FileJson,Printer,ReceiptText} from "@lucide/svelte";
   import { translator } from "./i18n";
@@ -19,8 +21,8 @@
   function configure(){openReportSettings({id:'balance-'+mode,filters,sort:options.sort||[],labels:filterData.labels,items:filterData.items,columns:report?.headers||[],onapply:(next,rules)=>{filters=next;options={...options,sort:rules};}});}
   let previousSignature='';
   $: {const signature=JSON.stringify([from,to,mode,serviceFilter,attentionOnly,options]);if(signature!==previousSignature){generated='';previewReady=false;previousSignature=signature;}}
-  let from = project.settings.period,
-    to = project.settings.period,
+  let from = project.settings.period+"-01",
+    to = monthLastDay(project.settings.period),
     error = "";
   let generated = "",
     generatedRange = "",
@@ -29,7 +31,7 @@
   function generate() {
     try {
       generated = accountReportHTML(project, from, to,mode,serviceFilter,attentionOnly,options);
-      generatedRange = displayPeriod(from,project) + "–" + displayPeriod(to,project);
+      generatedRange = displayDate(from,project) + "–" + displayDate(to,project);
       previewReady = false;
       error = "";
     } catch (e) {
@@ -69,7 +71,7 @@
 
 <article class="legacy-balance-report">
   <div class="report-command-row"><button onclick={generate} disabled={!report}><ReceiptText size={16}/>{tr('Сформировать','Generează')}</button><button onclick={configure}>{tr('Настройка…','Configurare…')}</button></div>
-  <div class="period-row"><span>{tr('Период с','Perioada de la')}</span><input type="month" aria-label={tr('Период с','Perioada de la')} bind:value={from}/><span>{tr('по','până la')}</span><input type="month" aria-label={tr('Период по','Perioada până la')} bind:value={to}/></div>
+  <div class="period-row"><span>{tr('Период с','Perioada de la')}</span><input type="date" aria-label={tr('Период с','Perioada de la')} bind:value={from}/><span>{tr('по','până la')}</span><input type="date" aria-label={tr('Период по','Perioada până la')} bind:value={to}/><button class="icon-button" aria-label={tr("Настройка интервала","Configurare interval")} onclick={()=>openInterval({id:"balance-"+mode,current:project.settings.period,from,to,onapply:(start,end)=>{from=start;to=end;}})}>…</button></div>
   {#each [0,3,4] as index}<ReportFilter language={project.settings.language} label={filterData.labels[index]} items={filterData.items[index]} bind:filter={filters[index]}/>{/each}
   {#if mode==='service'}<div class="group-options">
    <div><label class="check-row"><input type="checkbox" bind:checked={options.expandAccounts}/>{tr('Разворачивать по лицевым счетам','Detaliere pe conturi personale')}</label><label class="check-row"><input type="checkbox" bind:checked={options.showAddress} disabled={!options.expandAccounts}/>{tr('Выводить колонку «Адрес»','Afișează coloana „Adresă”')}</label></div>
@@ -94,8 +96,8 @@
     </section>{/if}
   {#if !report}<p class="alert" role="alert">
       {tr(
-        "Выберите корректный диапазон месяцев.",
-        "Selectați un interval valid de luni.",
+        "Выберите корректный диапазон дат.",
+        "Selectați un interval valid de date.",
       )}
     </p>
   {:else if !generated}

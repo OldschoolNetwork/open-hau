@@ -34,11 +34,11 @@ export function physicalReadings(
     .filter(
       (m) =>
         (!m.installed_on || m.installed_on.slice(0, 7) <= period) &&
-        (!m.retired_on || m.retired_on.slice(0, 7) >= period),
+        (!!m.status_history?.length || !m.retired_on || m.retired_on.slice(0, 7) >= period),
     )
     .filter(
       (m) =>
-        m.active ||
+        (m.status_history?.length?meterConnectedInMonth(m,period):m.active) ||
         m.retired_on?.slice(0, 7) === period ||
         p.meter_values.some((r) => r.meter_id === m.id && r.period === period),
     )
@@ -131,4 +131,10 @@ export function receiptReadings(
       });
   }
   return rows;
+}
+
+export function meterConnectedInMonth(m:PhysicalMeter,month:string){
+ if(!m.status_history?.length)return m.active;
+ const start=month+'-01',end=month+'-31',history=[...m.status_history].sort((a,b)=>a.date.localeCompare(b.date));
+ return !!history.filter(s=>s.date<=start).at(-1)?.active||history.some(s=>s.active&&s.date>=start&&s.date<=end);
 }

@@ -24,5 +24,8 @@ Legacy automatic XML exports remain SpreadsheetML, not XLSX.
 
 Reports with incomplete readings or allocation history are marked preliminary.
 Grouping changes presentation only; it does not recalculate or overwrite archived
-ledger entries. The current balance range is month-based. The complete legacy
-property and property-type filter set is not yet available.
+ledger entries. Report boundaries support exact dates. The interval selector offers year, quarter,
+month, day and start-of-period shortcuts. Payment dates and preserved charge events
+are placed at their original dates. Monthly records without dated events are posted
+at the end of their recorded month; amounts are never prorated by the number of days.
+Property and property-type filters use explicit links from accounts to properties.

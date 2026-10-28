@@ -17,8 +17,9 @@ export function balanceTable(p:Project,from:string,to:string,mode:'account'|'ser
   const sid='service_id'in row?row.service_id:'';
   const service=p.services.find(s=>s.id===sid);
   if(options.providerFilter&&service?.provider!==options.providerFilter)continue;
-  const type=service?.service_type|| (sid===UNALLOCATED_SERVICE?(ru?'Нераспределено':'Nerepartizat'):(ru?'Без вида услуги':'Fără tip de serviciu'));
-  if(mode==='service'&&options.typeFilter&&type!==options.typeFilter)continue;
+  const typeId=service?.service_type|| (sid===UNALLOCATED_SERVICE?(ru?'Нераспределено':'Nerepartizat'):(ru?'Без вида услуги':'Fără tip de serviciu'));
+  if(mode==='service'&&options.typeFilter&&typeId!==options.typeFilter)continue;
+  const type=p.reference_catalogs['service-types']?.find(r=>r.id===typeId)?.name||typeId;
   if(!matchesReportSelection(p,row.account_id,String(sid),options.filters||[]))continue;
   const serviceName='service'in row?String(row.service):'';
   const grouping=options.grouping||'service';

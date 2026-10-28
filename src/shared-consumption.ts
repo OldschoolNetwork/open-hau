@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 import type { Project, SharedGroup } from "./model";
-import { meterReading } from "./meters";
+import { meterReading,meterConnectedInMonth } from "./meters";
+import {accountOpenInMonth} from './account-lifecycle';
 const Q = Decimal.clone({ precision: 50 });
 export type DistributionRow = {
   account_id: string;
@@ -47,6 +48,7 @@ export function sharedDistribution(p: Project, g: SharedGroup, period: string) {
       tr("Не найден общий счётчик", "Contorul comun nu a fost găsit"),
     );
   const shared = meterReading(p, master, period);
+  if(!meterConnectedInMonth(master,period))warnings.push(tr('Общий прибор отключён в выбранном периоде.','Contorul comun este deconectat în perioada selectată.'));
   if (shared.warning)
     warnings.push(
       tr(
@@ -58,6 +60,7 @@ export function sharedDistribution(p: Project, g: SharedGroup, period: string) {
   for (const mid of g.individual_meter_ids) {
     const m = p.meters.find((m) => m.id === mid);
     if (!m) continue;
+    if(m.status_history?.length&&!meterConnectedInMonth(m,period))continue;
     if (
       (m.installed_on && m.installed_on.slice(0, 7) > period) ||
       (m.retired_on && m.retired_on.slice(0, 7) < period)
@@ -79,6 +82,7 @@ export function sharedDistribution(p: Project, g: SharedGroup, period: string) {
   const excluded = new Set(
     g.exclusions.find((e) => e.period === period)?.account_ids || [],
   );
+  for(const id of totals.keys()){const account=p.accounts.find(a=>a.id===id);if(account&&!accountOpenInMonth(account,period))excluded.add(id);}
   const individual = [...totals.values()].reduce((a, b) => a.plus(b), new Q(0));
   const difference =
     shared.consumption === null
