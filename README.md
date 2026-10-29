@@ -127,3 +127,6 @@ project-owned branding belong in public screenshots and examples.
 [Telegram](https://t.me/OldschoolNetwork)
 
 For the 26.2 account workspace, see [Personal accounts](docs/personal-accounts.md).
+
+The source checkout includes a [local database API](docs/database-api.md) for
+validated file operations and history merges over command line or JSON-RPC stdio.

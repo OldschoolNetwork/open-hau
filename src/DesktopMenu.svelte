@@ -4,6 +4,8 @@
   export let menus: DesktopCommand[];
   export let language: "ru" | "ro";
   export let oncommand: (action: string) => void;
+  export let onshortcut:(item:DesktopCommand,windows:boolean)=>void=()=>{};
+  let shortcut:DesktopCommand|null=null,shortcutX=0,shortcutY=0;
   let root: HTMLElement;
   let activeMenu:string|null=null;
   function close(){activeMenu=null;root?.querySelectorAll('.desktop-submenu[open]').forEach(d=>(d as HTMLDetailsElement).open=false);}
@@ -44,6 +46,8 @@
         <div class="desktop-dropdown">{@render entries(item.children)}</div>
       </details>
     {:else}<button
+        draggable={!!item.action} ondragend={close} ondragstart={e=>{if(item.action)e.dataTransfer?.setData('application/x-openhau-command',item.action);}}
+        oncontextmenu={e=>{if(item.action){e.preventDefault();shortcut=item;shortcutX=Math.min(e.clientX,window.innerWidth-300);shortcutY=Math.min(e.clientY,window.innerHeight-120);}}}
         onkeydown={key}
         disabled={!item.action}
         title={!item.action
@@ -69,3 +73,6 @@
       <div class="desktop-dropdown">{@render entries(menu.children || [])}</div>
     </details>{/each}
 </nav>
+
+{#if shortcut}<div class="menu-shortcut-actions" style:left={shortcutX+'px'} style:top={shortcutY+'px'}><button onclick={()=>{onshortcut(shortcut!,false);shortcut=null;close();}}>{language==='ru'?'Добавить ярлык на рабочий стол OpenHaU':'Adaugă scurtătură pe desktopul OpenHaU'}</button><button onclick={()=>{onshortcut(shortcut!,true);shortcut=null;close();}}>{language==='ru'?'Добавить ярлык на рабочий стол Windows':'Adaugă scurtătură pe desktopul Windows'}</button><button onclick={()=>shortcut=null}>{language==='ru'?'Отмена':'Anulează'}</button></div>{/if}
+<style>.menu-shortcut-actions{position:fixed;z-index:50000;background:var(--surface);box-shadow:0 8px 26px #0005;padding:6px;max-width:300px}.menu-shortcut-actions button{display:block;padding:12px;border:0;background:transparent;color:var(--text);width:100%;text-align:left}.menu-shortcut-actions button:hover{background:var(--hover)}</style>

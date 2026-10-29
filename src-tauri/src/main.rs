@@ -254,12 +254,36 @@ fn runtime_platform() -> String {
 }
 
 #[tauri::command]
+fn launch_action() -> String {
+    let args:Vec<String>=std::env::args().collect();
+    args.windows(2).find(|w|w[0]=="--open").map(|w|w[1].clone()).unwrap_or_default()
+}
+
+#[tauri::command]
+fn create_desktop_shortcut(action:String,title:String)->Result<(),String>{
+    if action.is_empty()||action.len()>120||!action.bytes().all(|c|c.is_ascii_alphanumeric()||b":-_".contains(&c)){return Err("Invalid shortcut action".into());}
+    #[cfg(target_os="windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        let name:String=title.chars().filter(|c|!c.is_control()&&!"<>:\"/\\|?*".contains(*c)).take(80).collect();
+        if name.trim().is_empty(){return Err("Invalid shortcut title".into());}
+        let script=r#"$ErrorActionPreference='Stop'; $taskDesktop=[Environment]::GetFolderPath('Desktop'); $taskPath=Join-Path $taskDesktop ('OpenHaU - '+$env:OPENHAU_SHORTCUT_NAME+'.lnk'); if(Test-Path -LiteralPath $taskPath){throw 'Shortcut already exists'}; $taskShell=New-Object -ComObject WScript.Shell; $taskLink=$taskShell.CreateShortcut($taskPath); $taskLink.TargetPath=$env:OPENHAU_SHORTCUT_EXE; $taskLink.Arguments='--open '+$env:OPENHAU_SHORTCUT_ACTION; $taskLink.IconLocation=$env:OPENHAU_SHORTCUT_EXE+',0'; $taskLink.Save()"#;
+        let status=std::process::Command::new("powershell.exe").args(["-NoProfile","-NonInteractive","-Command",script]).env("OPENHAU_SHORTCUT_EXE",std::env::current_exe().map_err(|e|e.to_string())?).env("OPENHAU_SHORTCUT_ACTION",action).env("OPENHAU_SHORTCUT_NAME",name).creation_flags(0x08000000).output().map_err(|e|e.to_string())?;
+        if !status.status.success(){return Err("Не удалось создать ярлык: проверьте папку рабочего стола и наличие одноимённого ярлыка.".into());}
+        return Ok(());
+    }
+    #[cfg(not(target_os="windows"))]
+    {let _=(action,title);Err("Windows desktop shortcuts are only available on Windows".into())}
+}
+
+#[tauri::command]
 fn notification_sound() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     unsafe {
         use windows::Win32::UI::WindowsAndMessaging::MB_OK;
         use windows::Win32::System::Diagnostics::Debug::MessageBeep;
-        MessageBeep(MB_OK).map_err(|e| e.to_string())?;
+        use windows::Win32::Media::Audio::{PlaySoundW,SND_ALIAS,SND_ASYNC,SND_SYSTEM};
+        if !PlaySoundW(windows::core::w!("Notification.Default"),None,SND_ALIAS|SND_ASYNC|SND_SYSTEM).as_bool(){MessageBeep(MB_OK).map_err(|e|e.to_string())?;}
     }
     #[cfg(target_os = "macos")]
     std::process::Command::new("/usr/bin/afplay")
@@ -335,6 +359,8 @@ fn main() {
             write_binary_file,
             storage_path,
             runtime_platform,
+            launch_action,
+            create_desktop_shortcut,
             set_workspace_mode,
             notification_sound,
             export_pdf,

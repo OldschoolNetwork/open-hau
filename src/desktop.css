@@ -450,3 +450,27 @@
 .workspace-lock>div{max-width:480px;padding:32px}.workspace-lock p{line-height:1.6}
 
 .receipt-period-selector{display:flex;align-items:center;gap:18px;padding:12px}.receipt-period-selector label{display:flex;gap:12px;align-items:center}.receipt-period-selector input{height:36px;box-sizing:border-box}
+
+/* Keep command rows aligned regardless of submenu arrows. */
+.desktop-dropdown>button,.desktop-submenu>summary{box-sizing:border-box;padding:10px 13px;min-height:38px;gap:9px;font-size:13px}
+.desktop-submenu>summary>.desktop-menu-label{flex:1}
+.desktop-window>.desktop-resize{background:transparent}
+.desktop-state{color:#25824e}.desktop-state.unsaved{color:#c63838}
+:root[data-theme="dark"] .desktop-state{color:#7acb9a}:root[data-theme="dark"] .desktop-state.unsaved{color:#f08d8d}
+.desktop-window-content:has(>.content>.receipts-layout){overflow:hidden;display:flex;flex-direction:column}
+.desktop-window-content>.content:has(>.receipts-layout){display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden}
+.receipts-layout{flex:1;min-height:0;height:100%;align-items:stretch;overflow:hidden}
+.receipt-controls.panel{min-height:0;max-height:none;position:static;overflow-x:hidden;overflow-y:auto}
+.receipt-controls .controls-body{padding-top:18px}
+.receipt-account-list{max-height:none;overflow:visible}
+.receipt-preview{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.receipt-preview .paper-stack{flex:1;min-height:0;max-height:none;overflow:auto}
+.receipt-preview .paper-stack .receipt{zoom:var(--preview-zoom,.77)}
+.receipt-preview .preview-label{align-items:center;letter-spacing:normal;gap:10px;flex-wrap:wrap}.preview-zoom{display:flex;align-items:center;gap:6px}.preview-zoom button{padding:4px 8px}
+
+body:has(.welcome-shell){min-width:0;width:100vw;overflow:hidden}.welcome-shell{width:100%;min-width:0}
+.desktop-shell select{padding-right:30px;line-height:normal;min-height:36px}
+
+.desktop-shell{display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "main" "dock";position:relative}.desktop-chrome{grid-area:head}.desktop-area{grid-area:main}.desktop-shell.dock-top{grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"head" "dock" "main"}.desktop-shell.dock-left{grid-template-columns:max-content minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"head head" "dock main"}.desktop-shell.dock-right{grid-template-columns:minmax(0,1fr) max-content;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"head head" "main dock"}.desktop-shell.welcome-shell{display:flex}
+
+.dock-top .taskbar-flyout{top:110px;bottom:auto}.dock-left .previews{left:210px;transform:none}.dock-right .previews{left:auto;right:210px;transform:none}

@@ -3,6 +3,12 @@
   import {open as chooseFile,save as chooseFileDestination} from "@tauri-apps/plugin-dialog";
   import { translator } from "./i18n";
   import { onMount,tick } from "svelte";
+  import OrganizationEditor from "./OrganizationEditor.svelte";
+  import DesktopTaskbar from "./DesktopTaskbar.svelte";
+  import DesktopShortcuts from "./DesktopShortcuts.svelte";
+  import type {DesktopCommand} from "./desktop-menu";
+  import KeyboardSettings from "./KeyboardSettings.svelte";
+  import {keyBindings,loadKeyBindings,keyChord} from "./keyboard-shortcuts";
   import DesktopMenu from "./DesktopMenu.svelte";
   import SaveChangesDialog from "./SaveChangesDialog.svelte";
   import DesktopWindow from "./DesktopWindow.svelte";
@@ -266,6 +272,7 @@
     if(meterDocumentKinds[id]||id==='shared-connections')return desktopMenus.flatMap(m=>m.children||[]).find(c=>c.id===id)?.[language]||id;
     if(id.startsWith('accountdoc:'))return language==='ru'?'Лицевой счёт · документ':'Cont personal · document';
     if(accountDocumentKinds[id])return desktopMenus.flatMap(m=>m.children||[]).find(c=>c.id===id)?.[language]||id;
+    if(id==='organization-editor')return language==='ru'?'Организация · редактирование':'Organizație · editare';
     if(id==='purge')return language==='ru'?'Удаление помеченных объектов':'Eliminare obiecte marcate';
     if(id.startsWith('reportlookup:'))return (reportLookupRequests[id]?.label||'')+(language==='ru'?' · выбор элемента':' · selectare element');
     if(id.startsWith("reportsettings:"))return language==='ru'?'Настройка отчёта':'Configurare raport';
@@ -351,7 +358,10 @@
     (x) => x.s.warnings.length || x.s.gaps.length,
   ).length;
   $: heading = pages.find((x) => x.id === page);
-  let receiptPeriod='';
+  let receiptPeriod='',receiptZoom=.77;
+  function receiptZoomEvents(node:HTMLElement){node.addEventListener('wheel',receiptWheel,{passive:false});node.addEventListener('keydown',receiptZoomKey);return{destroy(){node.removeEventListener('wheel',receiptWheel);node.removeEventListener('keydown',receiptZoomKey);}};}
+  function receiptZoomKey(e:KeyboardEvent){if(!(e.ctrlKey||e.metaKey))return;if(['+','=','-','0'].includes(e.key)){e.preventDefault();e.stopPropagation();receiptZoom=e.key==='0'?.77:Math.max(.25,Math.min(2,receiptZoom+(e.key==='-'?-.1:.1)));}}
+  function receiptWheel(e:WheelEvent){if(e.ctrlKey||e.metaKey){e.preventDefault();receiptZoom=Math.max(.25,Math.min(2,receiptZoom+(e.deltaY<0?.1:-.1)));}}
   $: receiptMonth=receiptPeriod||period;
   $: receiptEligible=p.accounts.filter(a=>a.opening_period<=receiptMonth&&(accountOpenInMonth(a,receiptMonth)||p.snapshots.some(snapshot=>snapshot.account_id===a.id&&snapshot.period===receiptMonth)));
   $: receiptAccounts=receiptEligible.filter(a=>selected.includes(a.id));
@@ -491,7 +501,13 @@
       if(queuedEditorSave){queuedEditorSave=false;void save('save',true);}
     }
   }
+  let queuedLaunchAction='',dockPosition="bottom";
+  async function createShortcut(item:DesktopCommand,windows:boolean){if(!item.action)return;if(!windows){window.dispatchEvent(new CustomEvent('openhau:desktop-shortcut',{detail:item}));return;}try{if(!native)throw Error(t('Ярлыки Windows доступны в настольной программе.','Scurtăturile Windows sunt disponibile în aplicația desktop.'));await invoke('create_desktop_shortcut',{action:item.action,title:item[lang]});notice=t('Ярлык создан.','Scurtătură creată.');}catch(e){fail(e);}}
+  $:if(queuedLaunchAction&&databaseOpened&&!loading){const action=queuedLaunchAction;queuedLaunchAction='';const walk=(items:DesktopCommand[]):boolean=>items.some(item=>item.action===action||item.children&&walk(item.children));if(walk(desktopMenus))desktopCommand(action);}
+
   let settingsCategory="home";
+  async function selectSetting(id:string,term?:string){settingsCategory=id;await tick();if(term){const label=[...document.querySelectorAll<HTMLElement>('.settings-screen label,.settings-screen .field-label')].find(el=>el.textContent?.toLocaleLowerCase().includes(term.toLocaleLowerCase()));label?.scrollIntoView({block:'center'});label?.querySelector<HTMLElement>('input,select,textarea,button')?.focus();}}
+
   function navigate(id: string) {
     if(id==="settings")settingsCategory="home";
     page = id;
@@ -500,6 +516,7 @@
     error = "";
   }
   function openEditor(kind: string, item?: unknown) {
+    if(kind==='organization'){openDesktop('organization-editor');return;}
     if(kind==='payment'||kind==='adjustment'){const record=item as Project['payments'][number]|Project['adjustments'][number]|undefined;if(kind==='payment'&&record){const batch=p.payment_batches.find(b=>b.rows.some(r=>r.payment_id===record.id));if(batch){editPaymentBatch(batch);return;}}const id='paymentrecord:'+kind+':'+(record?.id||uid());paymentRecords={...paymentRecords,[id]:{kind,record:record||null}};openDesktop(id);return;}
     if(kind==='account'){const account=item as Account|undefined;if(account&&p.accounts.some(a=>a.id===account.id))openAccountCard(account);else if(account)createAccountCopy(account);else editAccountDocument(makeAccountDocument(p,'open'));return;}
     if(kind==="service"){editServiceRecord(item as Project["services"][number]||null);return;}
@@ -1059,6 +1076,7 @@
     }
   }
   onMount(() => {
+    loadKeyBindings();
     const showReportSettings=(event:Event)=>{const request=(event as CustomEvent<ReportSettingsRequest>).detail;const id='reportsettings:'+request.id;reportSettingsRequests={...reportSettingsRequests,[id]:request};desktopViews=desktopViews.filter(v=>v.id!==id);openDesktop(id);};
     window.addEventListener('openhau:report-settings',showReportSettings);
     const showReportLookup=(event:Event)=>{const request=(event as CustomEvent<ReportLookupRequest>).detail,id='reportlookup:'+request.id;reportLookupRequests={...reportLookupRequests,[id]:request};openDesktop(id);};
@@ -1089,13 +1107,10 @@
     window.addEventListener("beforeunload", beforeUnload);
     const keydown = (e: KeyboardEvent) => {
       if(workspaceLocked||showDatabaseHome||saveChoice)return;
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        (e.code === "KeyS" || e.key.toLowerCase() === "s")
-      ) {
-        e.preventDefault();
-        void save();
-      }
+      if(e.defaultPrevented)return;
+      const chord=keyChord(e),action=Object.entries($keyBindings).find(([,value])=>value&&value===chord)?.[0];
+      const typing=e.target instanceof Element&&!!e.target.closest('input,textarea,select,[contenteditable=true]');
+      if(action&&(!typing||e.ctrlKey||e.metaKey||e.altKey||e.key==='F1')){e.preventDefault();desktopCommand(action);}
     };
     window.addEventListener("keydown", keydown);
     let unlistenClose: (() => void) | undefined;
@@ -1115,6 +1130,7 @@
     (async () => {
       try {
         document.documentElement.dataset.platform=await runtimePlatform();
+        if(native)queuedLaunchAction=await invoke<string>('launch_action');
         catalog=await databaseCatalog();
         if(catalog.auto)await switchDatabase(catalog.auto,true);
         else {const saved=await load();if(saved)p=saved;lastSavedProject=structuredClone(p);dbPath=await storagePath();selected=p.accounts.filter(a=>a.active).map(a=>a.id);}
@@ -1784,11 +1800,11 @@
               </p>
             </div>
           </aside>
-          <div class="receipt-preview">
+          <div class="receipt-preview" style:--preview-zoom={receiptZoom} use:receiptZoomEvents role="region" aria-label={t("Предпросмотр квитанций","Previzualizare facturi")}>
             <div class="preview-label">
               <span
                 >{t("КВИТАНЦИЙ", "FACTURI")} · {receiptAccounts.length}</span
-              ><span>A4</span>
+              ><div class="preview-zoom"><span>A4</span><button aria-label={t('Уменьшить масштаб','Micșorează')} onclick={()=>receiptZoom=Math.max(.25,receiptZoom-.1)}>−</button><button title={t('Сбросить масштаб','Resetează zoom')} onclick={()=>receiptZoom=.77}>{Math.round(receiptZoom*100)}%</button><button aria-label={t('Увеличить масштаб','Mărește')} onclick={()=>receiptZoom=Math.min(2,receiptZoom+.1)}>+</button></div>
             </div>
             <div class="paper-stack">
               {@html `<style>${receiptBaseCSS}\n${receiptDesignCSS}\n${p.settings.receipt_css.replace(/<\/style/gi, "")}</style>`}{#each receiptAccounts as a}{@html receipt(
@@ -1802,9 +1818,10 @@
           </div>
         </div>
       {:else if page === "settings"}
-        <div class="settings-screen">{#if settingsCategory==="home"}<SettingsHome language={lang} onselect={id=>settingsCategory=id}/>{:else}<button class="button secondary settings-back" onclick={()=>settingsCategory="home"}><ChevronRight size={16} style="transform:rotate(180deg)"/>{t("Все параметры","Toate setările")}</button>
+        <div class="settings-screen">{#if settingsCategory==="home"}<SettingsHome language={lang} onselect={selectSetting}/>{:else}<button class="button secondary settings-back" onclick={()=>settingsCategory="home"}><ChevronRight size={16} style="transform:rotate(180deg)"/>{t("Все параметры","Toate setările")}</button>
         {#if settingsCategory==="backups"}<BackupSettings language={lang} unsaved={dirty || !!Object.keys(readingEdits).length}/>{/if}
         {#if settingsCategory==="exports"}<ExportSettings project={p} unsaved={dirty || !!Object.keys(readingEdits).length}/>{/if}
+        {#if settingsCategory==="keyboard"}<KeyboardSettings language={lang} menus={desktopMenus}/>{/if}
         {#if settingsCategory==="notifications"}<NotificationSettings language={lang}/>{/if}
         {#if settingsCategory==="appearance"}<article class="panel">
             <div class="panel-heading">
@@ -1975,15 +1992,16 @@
 
     </section>
 {/snippet}
-<div class="desktop-shell no-print" class:welcome-shell={showDatabaseHome}>
+<div class="desktop-shell no-print" class:welcome-shell={showDatabaseHome} class:dock-top={dockPosition==='top'} class:dock-left={dockPosition==='left'} class:dock-right={dockPosition==='right'}>
   <Notifications {notice} {error} language={lang} onnotice={()=>notice=""}/>
   {#if !showDatabaseHome}<header class="desktop-chrome">
-    <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><span>{t("Период: ","Perioadă: ")}{displayPeriod(period,p)}</span><div class="desktop-state">{dirty||pendingEditor?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
-    <DesktopMenu menus={desktopMenus} language={lang} oncommand={desktopCommand}/>
+    <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><span>{t("Период: ","Perioadă: ")}{displayPeriod(period,p)}</span><div class="desktop-state" class:unsaved={dirty||!!pendingEditor}>{dirty||pendingEditor?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
+    <DesktopMenu menus={desktopMenus} language={lang} oncommand={desktopCommand} onshortcut={createShortcut}/>
   </header>{/if}
   <main class="desktop-area" bind:this={desktopArea}>
     {#if showDatabaseHome}<DatabaseHome {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={openExistingDatabase} onauto={configureAutoDatabase} onremove={removeDatabaseFromList}/>{:else}
     {#if !desktopViews.some(v=>v.visible&&!v.minimized)}<div class="desktop-empty"><img src="/brand/logo-full.svg" alt="OpenHaU OPEN"/></div>{/if}
+    <DesktopShortcuts language={lang} menus={desktopMenus} oncommand={desktopCommand}/>
     <DesktopWidgets language={lang} databaseId={activeDatabaseId} period={displayPeriod(period,p)} charges={totalCharges} paid={totalPaid} balance={totalBalance} attention={missing} onopen={desktopCommand}/>
     {#each desktopViews as view (view.id)}
       <DesktopWindow id={view.id} title={desktopTitle(view.id,lang)} language={lang} active={activeDesktop===view.id} hidden={!view.visible||view.minimized} minimized={view.minimized} index={desktopViews.indexOf(view)} bind:position={view.position} onfocus={()=>focusDesktop(view.id)} onclose={()=>hideDesktop(view.id)} onminimize={()=>hideDesktop(view.id,true)}>
@@ -2008,6 +2026,7 @@
         {:else if view.id==='purge'}<MarkedDeletion project={p} onapply={setProject}/>
         {:else if view.id.startsWith("catalog:")}<ReferenceCatalog project={p} kind={view.id.slice(8) as ReferenceKind} onapply={setProject} onedit={id=>openDesktop("catalogedit:"+view.id.slice(8)+":"+(id==="new"?uid():id))}/>
         {:else if view.id.startsWith("chooser:")}<DesktopChooser group={view.id.slice(8)} language={lang} oncommand={action=>{hideDesktop(view.id);desktopCommand(action);}}/>
+        {:else if view.id==="organization-editor"}<OrganizationEditor project={p} editorId={view.id} onapply={applyAndSave} onclose={()=>void hideDesktop(view.id)}/>
         {:else if view.id==="period"}<div class="desktop-simple-form"><label>{t("Расчетный период","Perioada de calcul")}<input type="month" value={period} onchange={e=>changePeriod(e.currentTarget.value)}/></label><button class="button secondary" onclick={()=>hideDesktop(view.id)}>{t("Закрыть","Închidere")}</button></div>
         {:else if view.id==="manual"}<Documentation language={lang} onopen={desktopCommand}/>
         {:else}{@render workspaceContent(view.page)}{/if}
@@ -2015,9 +2034,7 @@
     {/each}
     {/if}
   </main>
-  {#if !showDatabaseHome}<footer class="desktop-dock" aria-label={t("Панель окон","Bara ferestrelor")}>
-    <div class="desktop-open-windows">{#each desktopViews.filter(v=>v.visible) as view}{@const WindowIcon=pages.find(item=>item.id===view.id)?.icon||FolderOpen}<button data-window-id={view.id} title={desktopTitle(view.id,lang)} aria-pressed={activeDesktop===view.id&&!view.minimized} class:active={activeDesktop===view.id&&!view.minimized} onclick={()=>focusDesktop(view.id)}><WindowIcon size={18}/><span>{desktopTitle(view.id,lang)}</span></button>{/each}</div>
-  </footer>{/if}
+  {#if !showDatabaseHome}<DesktopTaskbar language={lang} menus={desktopMenus} windows={desktopViews.filter(v=>v.visible).map(v=>({id:v.id,title:desktopTitle(v.id,lang),minimized:v.minimized}))} active={activeDesktop} bind:position={dockPosition} onfocus={focusDesktop} onminimize={id=>void hideDesktop(id,true)} onclose={id=>void hideDesktop(id)} oncommand={desktopCommand}/>{/if}
 </div>
 {#if workspaceLocked}<div class="workspace-lock" role="dialog" aria-modal="true" aria-label={t('Временная блокировка','Blocare temporară')} tabindex="-1"><div><h2>{t('Временная блокировка','Blocare temporară')}</h2><p>{t('Ввод временно приостановлен. Это защита от случайных нажатий, без проверки личности.','Introducerea este suspendată. Protecție împotriva apăsărilor accidentale, fără verificarea identității.')}</p><button class="button" onclick={()=>workspaceLocked=false}>{t('Продолжить работу','Continuă lucrul')}</button></div></div>{/if}
 <div class="print-only">

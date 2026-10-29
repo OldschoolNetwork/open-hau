@@ -1,4 +1,5 @@
 <script lang="ts">
+ import {rememberNotification} from './notification-history';
  import {onMount,onDestroy} from "svelte";import {CheckCircle2,TriangleAlert,X,ChevronDown} from "@lucide/svelte";import {invoke} from "@tauri-apps/api/core";import {native} from "./storage";import {notificationPreferences,loadNotificationPreferences} from "./notification-settings";
  export let notice="",error="",language:"ru"|"ro"="ru";
  export let onnotice:()=>void=()=>{};
@@ -6,14 +7,14 @@
  let items:Toast[]=[],counter=0,lastNotice="",lastError="",lastSound=0;
  onMount(()=>{loadNotificationPreferences();const event=(e:Event)=>{const d=(e as CustomEvent).detail;if(d&&typeof d.text==="string")add(d.text,!!d.error);};window.addEventListener("openhau:notify",event);return()=>window.removeEventListener("openhau:notify",event);});
  function dismiss(id:number){const item=items.find(i=>i.id===id);if(item?.timer)clearTimeout(item.timer);items=items.filter(i=>i.id!==id);}
- function add(text:string,isError:boolean){if(!$notificationPreferences.enabled&&!isError)return;const duration=isError?0:$notificationPreferences.seconds*1000;const item:Toast={id:++counter,text,error:isError,expanded:false,timer:null,remaining:duration,until:Date.now()+duration,paused:false,duration};if(duration)item.timer=setTimeout(()=>dismiss(item.id),duration);items=[...items.slice(-3),item];if(native&&$notificationPreferences.sound&&Date.now()-lastSound>1500){lastSound=Date.now();void invoke("notification_sound").catch(()=>{});}}
+ function add(text:string,isError:boolean){rememberNotification(text,isError);if(!$notificationPreferences.enabled&&!isError)return;const duration=isError?0:$notificationPreferences.seconds*1000;const item:Toast={id:++counter,text,error:isError,expanded:false,timer:null,remaining:duration,until:Date.now()+duration,paused:false,duration};if(duration)item.timer=setTimeout(()=>dismiss(item.id),duration);items=[...items.slice(-3),item];if(native&&$notificationPreferences.sound&&Date.now()-lastSound>1500){lastSound=Date.now();void invoke("notification_sound").catch(()=>{});}}
  function pause(item:Toast){if(item.timer){clearTimeout(item.timer);item.timer=null;item.remaining=Math.max(0,item.until-Date.now());item.paused=true;items=[...items];}}
  function resume(item:Toast){if(item.duration&&item.paused){item.paused=false;item.until=Date.now()+item.remaining;item.timer=setTimeout(()=>dismiss(item.id),item.remaining);items=[...items];}}
  $: if(notice!==lastNotice){lastNotice=notice;if(notice){add(notice,false);onnotice();}}
  $: if(error!==lastError){lastError=error;if(error)add(error,true);}
  onDestroy(()=>items.forEach(item=>{if(item.timer)clearTimeout(item.timer);}));
 </script>
-<div class="notification-stack" class:no-animation={!$notificationPreferences.animation} aria-label={language==="ru"?"Уведомления":"Notificări"}>
+<div class="notification-stack no-print" class:no-animation={!$notificationPreferences.animation} aria-label={language==="ru"?"Уведомления":"Notificări"}>
  {#each items as item (item.id)}<section class="app-toast" class:error={item.error} class:paused={item.paused} role={item.error?"alert":"status"} onpointerenter={()=>pause(item)} onpointerleave={()=>resume(item)} style:--duration={item.duration+"ms"}>
  <div class="toast-icon">{#if item.error}<TriangleAlert size={24}/>{:else}<CheckCircle2 size={24}/>{/if}</div><div class="toast-content"><strong>OpenHaU · {item.error?(language==="ru"?"Требует внимания":"Necesită atenție"):(language==="ru"?"Уведомление":"Notificare")}</strong><p>{item.expanded?item.text:item.text.slice(0,180)}{!item.expanded&&item.text.length>180?"…":""}</p>{#if item.error||item.text.length>180}<button onclick={()=>{item.expanded=!item.expanded;items=[...items];}}><ChevronDown size={15}/>{language==="ru"?"Подробности":"Detalii"}</button>{/if}</div><button class="toast-close" aria-label={language==="ru"?"Закрыть уведомление":"Închide notificarea"} onclick={()=>dismiss(item.id)}><X size={17}/></button>{#if item.duration}<div class="toast-progress"></div>{/if}
  </section>{/each}

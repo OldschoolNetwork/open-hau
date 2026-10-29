@@ -17,7 +17,7 @@ rusqlite = { version = "0.32", features = ["bundled", "backup"] }
 
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.39.1"
-windows = { version = "0.62.2", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_Diagnostics_Debug"] }
+windows = { version = "0.62.2", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_Diagnostics_Debug", "Win32_Media_Audio"] }
 
 [profile.release]
 strip = true

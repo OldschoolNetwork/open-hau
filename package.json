@@ -8,7 +8,8 @@
     "build": "svelte-check --tsconfig ./tsconfig.json && vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "tsx --test tests/*.test.ts",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "database-api": "tsx tools/database-api.ts"
   },
   "dependencies": {
     "@lucide/svelte": "^1.61.0",
