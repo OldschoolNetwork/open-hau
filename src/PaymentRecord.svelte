@@ -1,0 +1,27 @@
+<script lang="ts">
+ import {onDestroy} from 'svelte';import {reportEditorDirty} from './editor-drafts';import {projectSchema,uid,today,type Project} from './model';import {D} from './engine';import {previousPaymentMonth,type PaymentShare} from './payment-allocation';import PaymentAllocation from './PaymentAllocation.svelte';import AccountLookupField from './AccountLookupField.svelte';import {translator} from './i18n';import {Save,Check,X} from '@lucide/svelte';
+ export let project:Project;export let kind:'payment'|'adjustment';export let initial:Project['payments'][number]|Project['adjustments'][number]|null=null;export let editorId:string;export let onapply:(p:Project)=>void;export let onclose:()=>void;
+ const payment=initial as Project['payments'][number]|null;
+ const adjustment=initial as Project['adjustments'][number]|null;
+ let id=initial?.id||uid();
+ let accountId=initial?.account_id||project.accounts.find(a=>a.active)?.id||'';
+ let date=payment?.payment_date||today();
+ let entered=payment?.entered_date||today();
+ let period=adjustment?.period||project.settings.period;
+ let amount=initial?.amount||'0.00',note=initial?.note||'';
+ let through=payment?.allocation_basis||previousPaymentMonth(date);
+ let balancing=payment?.allocation_balancing_service_id||project.settings.payment_balancing_service_id||'';
+ let manual=payment?.allocation_manual_amount!==undefined,manualAmount=payment?.allocation_manual_amount||'0.00',calculated=false;
+ let shares:PaymentShare[]=project.service_accounting.payments.filter(r=>r.payment_id===id).map(({service_id,amount})=>({service_id,amount}));
+ let signature=shares.length?JSON.stringify([accountId,date,amount,through,balancing]):'',error='';
+ const state=()=>JSON.stringify({accountId,date,entered,period,amount,note,through,balancing,manual,manualAmount});
+ let saved=state(),savedOnce=!!initial;
+ $:currentState=JSON.stringify({accountId,date,entered,period,amount,note,through,balancing,manual,manualAmount});
+ $:t=translator(project.settings.language);
+ $:reportEditorDirty(editorId,!savedOnce||currentState!==saved);
+ onDestroy(()=>reportEditorDirty(editorId,false));
+ function save(close=false){try{const next=structuredClone(project),month=kind==='payment'?date.slice(0,7):period,previous=kind==='payment'?(initial as Project['payments'][number])?.payment_date?.slice(0,7):(initial as Project['adjustments'][number])?.period;if(next.closed_periods.includes(month)||previous&&next.closed_periods.includes(previous))throw Error(t('Период закрыт.','Perioada este închisă.'));const account=next.accounts.find(a=>a.id===accountId);if(!account||month<account.opening_period)throw Error(t('Дата раньше открытия лицевого счёта.','Data precedă deschiderea contului.'));
+ if(kind==='payment'){if(next.payment_batches.some(b=>b.rows.some(r=>r.payment_id===id)))throw Error(t('Откройте групповой документ этой оплаты.','Deschideți documentul colectiv al plății.'));if(signature!==JSON.stringify([accountId,date,amount,through,balancing])||!shares.reduce((s,r)=>s.plus(r.amount),D(0)).eq(amount))throw Error(t('Распределите оплату по услугам.','Repartizați plata pe servicii.'));const row={...(payment||{}),id,account_id:accountId,payment_date:date,entered_date:entered,amount,note,...(calculated?{allocation_basis:through,allocation_balancing_service_id:balancing}:{}),...(calculated&&manual?{allocation_manual_amount:manualAmount}:{})};if(calculated&&!manual)delete row.allocation_manual_amount;next.payments=[...next.payments.filter(r=>r.id!==id),row];next.service_accounting.payments=[...next.service_accounting.payments.filter(r=>r.payment_id!==id),...shares.map(r=>({...r,payment_id:id}))];if(balancing)next.settings.payment_balancing_service_id=balancing;}else next.adjustments=[...next.adjustments.filter(r=>r.id!==id),{id,account_id:accountId,period,amount,note}];onapply(projectSchema.parse(next));saved=state();savedOnce=true;reportEditorDirty(editorId,false);if(close)onclose();error='';}catch(e){error=e instanceof Error?e.message:String(e);}}
+</script>
+<div class="payment-record">{#if error}<p class="alert error" role="alert">{error}</p>{/if}<label>{t('Лицевой счёт','Cont personal')}<AccountLookupField {project} parentId={editorId} kind="accounts" value={accountId} onselect={id=>accountId=id}/></label><div class="fields">{#if kind==='payment'}<label>{t('Дата платежа','Data plății')}<input type="date" bind:value={date}/></label><label>{t('Дата внесения','Data înregistrării')}<input type="date" bind:value={entered}/></label>{:else}<label>{t('Период','Perioada')}<input type="month" bind:value={period}/></label>{/if}<label>{t('Сумма, MDL','Sumă, MDL')}<input bind:value={amount}/></label></div><label>{t('Примечание / причина','Notă / motiv')}<textarea bind:value={note}></textarea></label>{#if kind==='payment'}<PaymentAllocation {project} accountId={accountId} {date} paymentId={id} {amount} bind:through bind:balancingServiceId={balancing} bind:shares bind:signature bind:manual bind:manualAmount bind:calculated/>{/if}<footer><button class="button" onclick={()=>save(true)}><Check size={16}/>OK</button><button class="button secondary" onclick={()=>save()}><Save size={16}/>{t('Сохранить','Salvează')}</button><button class="button secondary" onclick={onclose}><X size={16}/>{t('Закрыть','Închide')}</button></footer></div>
+<style>.payment-record{display:flex;flex-direction:column;gap:14px;padding:16px}label{display:flex;flex-direction:column;gap:6px}.fields{display:flex;gap:16px;flex-wrap:wrap}footer{display:flex;justify-content:flex-end;gap:8px}</style>

@@ -57,6 +57,7 @@ const account = z.object({
   active: z.boolean(),
   opening_date:date.optional(),
   closing_date:date.nullable().optional(),
+  property_id:z.string().optional(),holder_id:z.string().optional(),registration_enabled:z.boolean().optional(),residents_enabled:z.boolean().optional(),living_area_m2:nonnegative.optional(),floor:z.string().optional(),
   service_history:z.array(z.object({effective_from:period,service_ids:z.array(id)})).optional(),
   notes: z.string(),
   custom_fields: z.record(z.string(), z.string()).default({}),
@@ -357,6 +358,15 @@ const cashTransaction=z.discriminatedUnion("kind",[
   cashCommon.extend({kind:z.literal("fund_transfer"),from_fund_id:optionalId,to_fund_id:optionalId}),
 ]);
 const treasurySchema=z.object({wallets:z.array(cashAccount).max(1000),funds:z.array(reserveFund).max(1000),transactions:z.array(cashTransaction).max(100000),locked_through:date.nullable()});
+const residentEntry=z.object({id,account_id:id,citizen_id:id,date,kind:z.enum(['residence','registration']),status:z.number().int(),from:date,to:date.nullable(),document_id:z.string().optional()});
+const serviceEntry=z.object({id,account_id:id,service_id:id,tariff_type_id:z.string(),date,active:z.boolean(),document_id:z.string().optional()});
+const holderEntry=z.object({id,account_id:id,date,citizen_id:z.string(),name:z.string(),document_id:z.string().optional()});
+const additionalEntry=z.object({id,account_id:id,property_id:id,date,active:z.boolean(),document_id:z.string().optional()});
+const characteristicEntry=z.object({id,account_id:id,name:z.string(),value:z.string(),date,document_id:z.string().optional()});
+const accountHistory=z.object({residents:z.array(residentEntry).default([]),services:z.array(serviceEntry).default([]),holders:z.array(holderEntry).default([]),additional:z.array(additionalEntry).default([]),characteristics:z.array(characteristicEntry).default([]),relationships:z.array(z.object({id,date,citizen_id:id,relative_id:id,relationship_id:id})).default([])});
+const accountServiceRow=z.object({id,account_id:id,service_id:id,tariff_type_id:z.string(),date,active:z.boolean()});
+const accountResidentRow=z.object({id,citizen_id:id,registration:z.number().int(),residence:z.number().int(),from:date,to:date.nullable()});
+const accountBalanceRow=z.object({id,service_id:id,amount:decimal,penalty:nonnegative});
 const currentProjectSchema = z
   .object({
     ...legacyProjectSchema.shape,
@@ -364,8 +374,9 @@ const currentProjectSchema = z
       payments:z.array(payment.extend({allocation_basis:period.optional(),allocation_balancing_service_id:id.optional(),allocation_manual_amount:ledgerMoney.optional()})).max(100000),
       services:z.array(service.extend({provider:z.string().optional(),service_type:z.string().optional(),report_order:z.number().int().min(0).max(10000).optional(),meter_types:z.array(z.string().min(1)).max(100).optional()})).max(10000),
       reference_catalogs:z.partialRecord(z.enum(referenceKinds),z.array(z.object({id,code:z.string(),name:z.string().trim().min(1),active:z.boolean(),marked_for_deletion:z.boolean().default(false),notes:z.string(),attributes:z.record(z.string(),z.string()).default({})})).max(100000)).default({}),
-      account_documents:z.array(z.object({id,number:z.string().min(1),date,kind:z.enum(['open','close','information','services','opening-balance']),state:z.enum(['draft','applied']),account,comment:z.string(),before:account.optional()})).max(100000).default([]),
-      meter_documents:z.array(z.object({id,number:z.string().min(1),date,period,kind:z.enum(['individual','shared','initial','status']),state:z.enum(['draft','applied']),comment:z.string(),rows:z.array(z.object({id,meter_id:id,value:z.string(),active:z.boolean(),reading_date:date.optional(),reading_id:id.optional()})).max(100000)})).max(100000).default([]),
+      account_history:accountHistory.default({residents:[],services:[],holders:[],additional:[],characteristics:[],relationships:[]}),
+      account_documents:z.array(z.object({id,number:z.string().min(1),date,kind:z.enum(['open','close','information','services','opening-balance','residents','additional','characteristics']),state:z.enum(['draft','applied']),account,comment:z.string(),before:account.optional(),imported:z.boolean().optional(),marked_for_deletion:z.boolean().optional(),change_holder:z.boolean().optional(),service_rows:z.array(accountServiceRow).optional(),resident_rows:z.array(accountResidentRow).optional(),additional_rows:z.array(z.object({id,property_id:id,active:z.boolean()})).optional(),characteristic_rows:z.array(z.object({id,name:z.string(),value:z.string()})).optional(),balance_rows:z.array(accountBalanceRow).optional(),advance:nonnegative.optional(),advance_service_id:z.string().optional(),initial_readings:z.array(z.object({id,meter_id:id,value:nonnegative,date})).optional(),before_accounts:z.array(account).optional(),before_history:accountHistory.optional(),before_opening:z.array(z.object({account_id:id,service_id:id,amount:decimal})).optional(),before_occupancy:z.array(monthlyOccupancy).optional(),created_readings:z.array(id).optional(),after_state:z.string().optional()})).max(100000).default([]),
+      meter_documents:z.array(z.object({id,number:z.string().min(1),date,period,kind:z.enum(['individual','shared','initial','status']),state:z.enum(['draft','applied']),comment:z.string(),rows:z.array(z.object({id,meter_id:id,account_id:id.optional(),value:z.string(),active:z.boolean(),reading_date:date.optional(),reading_id:id.optional()})).max(100000)})).max(100000).default([]),
       charge_events:z.array(z.object({account_id:id,service_id:z.union([id,z.literal('')]),period,date,kind:z.enum(['charge','adjustment']),amount:ledgerMoney})).max(300000).default([]),
     service_accounting: z.object({
       opening:z.array(z.object({account_id:id,service_id:id,amount:ledgerMoney})).max(100000),
@@ -424,6 +435,7 @@ const currentProjectSchema = z
       payment_batches,
       reference_catalogs,
       account_documents,
+      account_history,
       meter_documents,
       charge_events,
       ...common
@@ -454,6 +466,10 @@ const currentProjectSchema = z
     const fail = (message: string) => ctx.addIssue({ code: "custom", message });
     const accountIds=new Set(p.accounts.map(a=>a.id)),serviceIds=new Set(p.services.map(s=>s.id)),paymentById=new Map(p.payments.map(pay=>[pay.id,pay]));
     if(new Set(account_documents.map(d=>d.id)).size!==account_documents.length)fail('Duplicate account documents');
+    for(const rows of [account_history.residents,account_history.services,account_history.holders,account_history.additional,account_history.characteristics]){if(new Set(rows.map(r=>r.id)).size!==rows.length)fail('Duplicate account history identifiers');for(const row of rows)if(!accountIds.has(row.account_id))fail('Unknown account history reference');}
+    for(const row of account_history.services)if(!serviceIds.has(row.service_id))fail('Unknown service history reference');
+    for(const doc of account_documents){if(doc.service_rows?.some(r=>!serviceIds.has(r.service_id)||!accountIds.has(r.account_id)&&r.account_id!==doc.account.id))fail('Unknown account document service reference');}
+
     const snapshotsByKey=new Map(p.snapshots.map(s=>[s.account_id+'|'+s.period,s]));
     const eventTotals=new Map<string,{charge:Decimal;adjustment:Decimal}>();
     for(const event of charge_events){
@@ -736,6 +752,7 @@ export function demoProject(): Project {
     tariff_documents: [],
     reference_catalogs:{},
     account_documents:[],
+    account_history:{residents:[],services:[],holders:[],additional:[],characteristics:[],relationships:[]},
     meter_documents:[],
     charge_events:[],
     payment_batches: [],

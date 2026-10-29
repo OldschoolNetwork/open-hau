@@ -125,3 +125,5 @@ project-owned branding belong in public screenshots and examples.
 [YouTube](https://www.youtube.com/@oldschoolnetwork) ·
 [X](https://x.com/oldschool_net) ·
 [Telegram](https://t.me/OldschoolNetwork)
+
+For the 26.2 account workspace, see [Personal accounts](docs/personal-accounts.md).

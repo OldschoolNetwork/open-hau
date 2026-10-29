@@ -13,6 +13,7 @@ export function saveMeterDocument(p:Project,input:MeterDocument,post=false){
   for(const row of doc.rows){
    const meter=next.meters.find(m=>m.id===row.meter_id);if(!meter)throw Error(t('Прибор учёта не найден.','Contorul nu a fost găsit.'));
    if(doc.kind==='status'){
+    if(meter.scope==='shared'&&row.account_id){if(!next.accounts.some(a=>a.id===row.account_id))throw Error(t('Лицевой счёт не найден.','Contul nu a fost găsit.'));const links=meter.account_links||[],latest=links.filter(l=>l.account_id===row.account_id).sort((a,b)=>b.date.localeCompare(a.date))[0];if(latest&&latest.date>=doc.date)throw Error(t('На эту дату уже есть статус подключения.','Există deja o stare de conectare pentru această dată.'));if((latest?.active??false)===row.active)continue;meter.account_links=[...links,{date:doc.date,account_id:row.account_id,active:row.active,dependent:latest?.dependent||false}];changed++;continue;}
     if(meter.active===row.active)continue;
     if(meter.status_history?.some(s=>s.date>=doc.date))throw Error(t('Поздний статус уже записан.','Există deja o stare ulterioară.'));
     meter.status_history=[...(meter.status_history||[{date:meter.installed_on||'0001-01-01',active:meter.active}]),{date:doc.date,active:row.active}];meter.active=row.active;meter.retired_on=row.active?null:doc.date;changed++;

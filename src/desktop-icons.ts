@@ -1,7 +1,10 @@
-import {Archive,Building2,ChartNoAxesCombined,ChevronRight,FileJson,FolderOpen,Gauge,Info,Layers3,ReceiptText,Settings,Users,Wallet} from "@lucide/svelte";
+import {LogOut,File,FilePlus,Save,SaveAll,Copy,Database,LayoutDashboard,Landmark,Archive,Building2,ChartNoAxesCombined,ChevronRight,FileJson,FolderOpen,Gauge,Info,Layers3,ReceiptText,Settings,Users,Wallet} from "@lucide/svelte";
 import type {DesktopCommand} from "./desktop-menu";
 export function commandIcon(command:DesktopCommand){
   const id=command.id;
+  if(id==='file')return File;
+  const fileIcons:Record<string,typeof File>={'exit':LogOut,'database-home':Database,'database-new':FilePlus,'database-open':FolderOpen,'save':Save,'save-as':SaveAll,'import-copy':Copy,'export-json':FileJson,'workspace-tools':LayoutDashboard,'overview':ChartNoAxesCombined,'readings':Gauge,'payments':Wallet,'treasury':Landmark};
+  if(fileIcons[id])return fileIcons[id];
   if(id==="about"||id==="help"||id==="manual")return Info;
   if(id==="operations"||id==="catalogs")return FolderOpen;
   if(id.includes("meter")||id.includes("reading")||id.includes("allocation"))return Gauge;

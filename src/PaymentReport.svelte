@@ -2,9 +2,9 @@
  import {openInterval} from "./report-interval";
  import type {Project} from './model';import {translator} from './i18n';import {monthNext} from './engine';import {exportText,exportBinary,exportPDF,native} from './storage';import {ReceiptText,Printer,Download,Settings2} from '@lucide/svelte';
  import {paymentMatrix,paymentMatrixHTML,paymentMatrixCSV,paymentMatrixXLSX,paymentMatrixDefaults} from './payment-matrix';import {emptyReportFilters,reportFilterData} from './report-filter-data';import {openReportSettings,type SortRule} from './report-settings';import ReportFilter from './ReportFilter.svelte';
- export let project:Project;
- let from=project.settings.period+'-01',to=new Date(Date.parse(monthNext(project.settings.period)+'-01T00:00:00Z')-86400000).toISOString().slice(0,10),options=paymentMatrixDefaults(),sort:SortRule[]=[],generated='',error='',ready=false,preview:HTMLIFrameElement,lastSignature='';
- options.filters=emptyReportFilters();
+ export let project:Project;export let initialAccountId="";export let initialPeriod=project.settings.period;
+ let from=initialPeriod+'-01',to=new Date(Date.parse(monthNext(initialPeriod)+'-01T00:00:00Z')-86400000).toISOString().slice(0,10),options=paymentMatrixDefaults(),sort:SortRule[]=[],generated='',error='',ready=false,preview:HTMLIFrameElement,lastSignature='';
+ options.filters=emptyReportFilters();if(initialAccountId)options.filters[0]={...options.filters[0],enabled:true,values:[initialAccountId]};
  $:t=translator(project.settings.language);$:filterData=reportFilterData(project);
  $:report=(()=>{try{return paymentMatrix(project,from,to,options);}catch{return null;}})();
  $:{const signature=JSON.stringify([from,to,options,project.settings.language]);if(signature!==lastSignature){generated='';ready=false;lastSignature=signature;}}

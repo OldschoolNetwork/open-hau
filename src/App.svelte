@@ -4,6 +4,7 @@
   import { translator } from "./i18n";
   import { onMount,tick } from "svelte";
   import DesktopMenu from "./DesktopMenu.svelte";
+  import SaveChangesDialog from "./SaveChangesDialog.svelte";
   import DesktopWindow from "./DesktopWindow.svelte";
   import DesktopChooser from "./DesktopChooser.svelte";
   import {desktopMenus,chooserGroups,catalogs} from "./desktop-menu";
@@ -19,6 +20,10 @@
   import ReportSettings from "./ReportSettings.svelte";
   import ReportLookup from "./ReportLookup.svelte";
   import AccountDocuments from "./AccountDocuments.svelte";
+  import AccountList from "./AccountList.svelte";
+  import AccountCard from "./AccountCard.svelte";
+  import AccountHistoryWindow from "./AccountHistoryWindow.svelte";
+  import {makeAccountDocument,blankAccount,residentsAt,servicesAt,holderAt} from "./account-data";
   import MeterDocuments from "./MeterDocuments.svelte";
   import type {PhysicalMeter,PhysicalMeterValue} from "./model";
   import type {MeterDocument} from "./meter-documents";
@@ -35,6 +40,7 @@
   import ServiceEditor from "./ServiceEditor.svelte";
   import ServiceRecord from "./ServiceRecord.svelte";
   import PaymentReport from "./PaymentReport.svelte";
+  import PaymentRecord from "./PaymentRecord.svelte";
   import PaymentAllocation from "./PaymentAllocation.svelte";
   import PaymentBatches from "./PaymentBatches.svelte";
   import PaymentBatchList from "./PaymentBatchList.svelte";
@@ -129,6 +135,9 @@
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   let p: Project = demoProject();
+  let lastSavedProject: Project = structuredClone(p);
+  let saveChoice: {exiting:boolean;resolve:(choice:"save"|"discard"|"cancel")=>void}|null=null;
+  let closeApproved=false,transitionPending=false;
   let page = "overview",
     query = "",
     loading = true,
@@ -195,9 +204,28 @@
   async function closePaymentDetails(parentId:string){for(const view of [...desktopViews].filter(v=>v.visible&&paymentDetails[v.id]?.parentId===parentId)){await hideDesktop(view.id);if(desktopViews.some(v=>v.id===view.id&&v.visible))return false;}return true;}
   async function prepareBatchAction(id:string){const parent='batcheditor:'+id;if(desktopViews.some(v=>v.id===parent&&v.visible)){await hideDesktop(parent);return !desktopViews.some(v=>v.id===parent&&v.visible);}return true;}
   let intervalRequests:Record<string,IntervalRequest>={};
-  const accountDocumentKinds:Record<string,AccountDocument['kind']>={'open-account':'open','close-account':'close','account-changes':'information','account-services':'services','opening-balances':'opening-balance'};
+  const accountDocumentKinds:Record<string,AccountDocument['kind']>={'open-account':'open','close-account':'close','account-changes':'information','account-services':'services','opening-balances':'opening-balance','residence-status':'residents'};
   let accountDocumentEditors:Record<string,AccountDocument>={};
-  function editAccountDocument(doc:AccountDocument){const id='accountdoc:'+doc.id;accountDocumentEditors={...accountDocumentEditors,[id]:doc};openDesktop(id);}
+  function editAccountDocument(doc:AccountDocument){const id='accountdoc:'+doc.id;accountDocumentEditors={...accountDocumentEditors,[id]:doc};openDesktop(id);if(doc.kind==='close')desktopViews=desktopViews.map(v=>v.id===id?{...v,position:{...v.position,width:560,height:300}}:v);}
+  let paymentRecords:Record<string,{kind:'payment'|'adjustment';record:Project['payments'][number]|Project['adjustments'][number]|null}>={};
+  let accountCards:Record<string,{id:string;date:string}>={},accountHistories:Record<string,{accountId:string;type:string;subject:string}>={},accountReports:Record<string,{accountId:string;kind:string;date:string}>={};
+  function openAccountCard(a:Account,date=today()){const id='accountcard:'+a.id;accountCards={...accountCards,[id]:{id:a.id,date}};openDesktop(id);}
+  function accountReference(kind:string,id:string){if(!id)return;if(kind==='accounts'){const account=p.accounts.find(a=>a.id===id);if(account)openAccountCard(account);}else if(kind==='services'){const service=p.services.find(s=>s.id===id);if(service)editServiceRecord(service);}else openDesktop('catalogedit:'+kind+':'+id);}
+  function accountHistory(accountId:string,type:string,subject=''){const id='accounthistory:'+uid();accountHistories={...accountHistories,[id]:{accountId,type,subject}};openDesktop(id);}
+  function accountMovements(doc:AccountDocument){accountHistory(doc.account.id,'document',doc.id);}
+  function accountReport(accountId:string,kind:string,date:string){if(kind==='receipts'){selected=[accountId];receiptPeriod=date.slice(0,7);navigate('receipts');return;}const id='accountreport:'+kind+':'+accountId;accountReports={...accountReports,[id]:{accountId,kind,date}};openDesktop(id);}
+  function createAccountCopy(a:Account){const doc=makeAccountDocument(p,'open'),base=blankAccount(p);doc.account={...structuredClone(a),id:base.id,number:base.number,opening_balance:'0.00',opening_period:period,opening_date:undefined,closing_date:null,active:true,service_history:undefined,marked_for_deletion:false};doc.service_rows=servicesAt(p,a,doc.date).filter(r=>r.active).map(r=>({id:uid(),account_id:doc.account.id,service_id:r.service.id,tariff_type_id:r.tariff_type_id,date:doc.date,active:true}));editAccountDocument(doc);}
+  function markAccount(a:Account){const next=structuredClone(p);next.accounts.find(r=>r.id===a.id)!.marked_for_deletion=!a.marked_for_deletion;applyAndSave(next);}
+  function accountCardDocument(kind:string,a:Account,subject?:string,date=today()){
+   if(kind==='meter-status'){const meter=p.meters.find(m=>m.id===subject);if(!meter)return;editMeterDocument({id:uid(),number:String(p.meter_documents.length+1),date,period:date.slice(0,7),kind:'status',state:'draft',comment:'',rows:[{id:uid(),meter_id:meter.id,...(meter.scope==='shared'?{account_id:a.id}:{}),value:'',active:meter.scope==='shared'?![...(meter.account_links||[])].filter(l=>l.account_id===a.id&&l.date<=date).sort((a,b)=>b.date.localeCompare(a.date))[0]?.active:!meter.active}]});return;}
+   const doc=makeAccountDocument(p,(kind==='characteristics-delete'?'characteristics':kind) as AccountDocument['kind'],a);doc.date=date;doc.account.waste_charge_persons=monthlyPersons(p,a,date.slice(0,7)).persons??a.waste_charge_persons;
+   if(kind==='residents')doc.resident_rows=residentsAt(p,a,date).filter(r=>!subject||r.id===subject).map(r=>({id:uid(),citizen_id:r.id,registration:r.registration,residence:r.residence,from:r.from||date,to:r.to}));
+   if(kind==='services'&&subject){const row=servicesAt(p,a,date).find(r=>r.service.id===subject);if(row)doc.service_rows=[{id:uid(),account_id:a.id,service_id:subject,tariff_type_id:row.tariff_type_id,date,active:!row.active}];}
+   if(kind==='additional'&&subject)doc.additional_rows=[{id:uid(),property_id:subject,active:false}];
+   if(kind==='characteristics-delete'&&subject)doc.characteristic_rows=[{id:uid(),name:subject,value:''}];
+   editAccountDocument(doc);
+  }
+  async function prepareAccountAction(id:string){const view='accountdoc:'+id;if(desktopViews.some(v=>v.id===view&&v.visible)){await hideDesktop(view);return !desktopViews.some(v=>v.id===view&&v.visible);}return true;}
   function openDesktop(id:string){
     const existing=desktopViews.find(v=>v.id===id);
     if(existing){existing.visible=true;existing.minimized=false;focusDesktop(id);return;}
@@ -223,6 +251,11 @@
   async function closeAllDesktop(){for(const view of [...desktopViews].filter(v=>v.visible)){await hideDesktop(view.id);if(desktopViews.some(v=>v.id===view.id&&v.visible))break;}}
 
   function desktopTitle(id:string,language:"ru"|"ro"){
+    if(id.startsWith('paymentrecord:adjustment:'))return language==='ru'?'Корректировка начислений':'Ajustare calcul';
+    if(id.startsWith('paymentrecord:'))return language==='ru'?'Оплата и расшифровка платежа':'Plată și repartizare';
+    if(id.startsWith('accountcard:'))return language==='ru'?'Лицевые счета · редактирование':'Conturi personale · editare';
+    if(id.startsWith('accounthistory:'))return language==='ru'?'История лицевого счёта':'Istoricul contului personal';
+    if(id.startsWith('accountreport:'))return language==='ru'?'Отчёт по лицевому счёту':'Raport pe cont personal';
     if(id.startsWith('batcheditor:'))return language==='ru'?'Групповой ввод оплаты · редактирование':'Introducere plăți în grup · editare';
     if(id.startsWith('batchdetails:'))return language==='ru'?'Расшифровка платежа':'Repartizarea plății';
     if(id.startsWith('batchmovements:'))return language==='ru'?'Движения документа оплаты':'Înregistrări document de plată';
@@ -246,7 +279,7 @@
   }
   function desktopCommand(action:string){
     if(action==='temporary-lock'){workspaceLocked=true;return;}
-    if(action.startsWith("file:")){if(action==="file:save")void save();else if(action==="file:export")void exportJson();else if(action==="file:open")void openExistingDatabase();else if(action==="file:save-as")void saveDatabaseAs();else if(action==="file:import")void importDatabase();else void requestDatabaseHome();return;}
+    if(action.startsWith("file:")){if(action==="file:save")void save();else if(action==="file:export")void exportJson();else if(action==="file:open")void openExistingDatabase();else if(action==="file:save-as")void saveDatabaseAs();else if(action==="file:import")void importDatabase();else if(action==="file:exit"){if(native)void getCurrentWindow().close().catch(fail);else void requestDatabaseHome();}else void requestDatabaseHome();return;}
     if(action.startsWith("edit:")){void editText(action.slice(5));return;}
     showDatabaseHome=false;
     if(action==="about"){modal="about";return;}
@@ -372,14 +405,30 @@
   async function editText(command:string){try{const field=lastTextField;if(!field||!field.isConnected)throw Error(t("Выберите текстовое поле для редактирования.","Selectați un câmp de text pentru editare."));field.focus();if(command==="paste"){const text=await navigator.clipboard.readText();field.setRangeText(text,field.selectionStart??field.value.length,field.selectionEnd??field.value.length,"end");field.dispatchEvent(new Event("input",{bubbles:true}));}else if(!document.execCommand(command))throw Error(t("Операция недоступна для выбранного поля. Используйте сочетание клавиш.","Operațiunea nu este disponibilă pentru câmpul selectat. Utilizați combinația de taste."));}catch(e){fail(e);}}
   async function refreshCatalog(){try{catalog=await databaseCatalog();}catch(e){fail(e);}}
   let databaseOpened=false;
-  async function prepareDatabaseChange(){
-    if(editorSaveRequired())return false;
-    if(modal||Object.keys(readingEdits).length){fail(t("Завершите редактирование и примените введённые показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));return false;}
-    if(!databaseOpened)return true;
-    if(!(await ask(t("Сохранить текущую базу и продолжить? Сначала примените изменения в открытых документах.","Salvați baza curentă și continuați? Aplicați mai întâi modificările din documentele deschise."))))return false;
-    await save();return !dirty&&!error;
+  function clearWorkspace(){
+    desktopViews=[];reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};
   }
-  async function requestDatabaseHome(){if(!(await prepareDatabaseChange()))return;showDatabaseHome=true;databaseOpened=false;await refreshCatalog();}
+  function unsavedWork(){return dirty||!!pendingEditor||!!Object.keys(readingEdits).length||["account","service","organization","payment","tariff","adjustment","json"].includes(modal);}
+  function chooseSaveAction(exiting:boolean){return new Promise<"save"|"discard"|"cancel">(resolve=>{saveChoice={exiting,resolve};});}
+  function finishSaveChoice(choice:"save"|"discard"|"cancel"){const pending=saveChoice;saveChoice=null;pending?.resolve(choice);}
+  async function prepareDeparture(exiting=false){
+    if(transitionPending)return false;
+    if(busy){fail(t('Дождитесь завершения сохранения.','Așteptați finalizarea salvării.'));return false;}
+    if(!unsavedWork()&&(exiting||!databaseOpened))return true;
+    transitionPending=true;
+    try{
+      const choice=await chooseSaveAction(exiting);
+      if(choice==='cancel')return false;
+      if(choice==='discard'){
+        queuedEditorSave=false;p=structuredClone(lastSavedProject);dirty=false;notice='';error='';clearWorkspace();return true;
+      }
+      if(editorSaveRequired())return false;
+      if(modal&&modal!=='about'||Object.keys(readingEdits).length){fail(t('Сначала примените изменения в открытой форме и введённые показания. Затем повторите выход или смену базы.','Aplicați mai întâi modificările din formular și indexurile introduse. Apoi repetați ieșirea sau schimbarea bazei.'));return false;}
+      await save(exiting?'close':'save');return !dirty&&!error;
+    }finally{transitionPending=false;}
+  }
+  async function prepareDatabaseChange(){return await prepareDeparture(false);}
+  async function requestDatabaseHome(){if(!(await prepareDatabaseChange()))return;clearWorkspace();showDatabaseHome=true;databaseOpened=false;await refreshCatalog();}
   $: if(native&&!loading)void invoke("set_workspace_mode",{welcome:showDatabaseHome}).catch(fail);
   function blankDatabase(name:string):Project {const empty=demoProject();empty.demo=false;empty.organization={id:uid(),name,association_code:"",fiscal_code:"",bank:"",iban:"",address:"",notes:""};empty.settings={...empty.settings,language:p.settings.language,theme:p.settings.theme,date_format:p.settings.date_format,period_format:p.settings.period_format};empty.accounts=[];empty.services=[];empty.tariffs=[];empty.payments=[];empty.adjustments=[];empty.quantities=[];empty.snapshots=[];empty.closed_periods=[];empty.meter_readings=[];empty.meters=[];empty.meter_values=[];return valid(empty);}
   async function switchDatabase(id:string,initial=false,prepared=false){
@@ -387,7 +436,7 @@
     const raw=await readDatabase(id),entry=catalog.databases.find(d=>d.id===id),candidate=raw?valid(raw):(id==="default"?p:blankDatabase(entry?.name||"OpenHaU"));
     if(!initial&&(modal||Object.keys(readingEdits).length))throw Error(t("Завершите открытое редактирование и примените показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));
     if(!initial&&!prepared&&!(await prepareDatabaseChange()))return;
-    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;dirty=false;loadFailed=false;receiptPeriod='';desktopViews=[];reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
+    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;lastSavedProject=structuredClone(candidate);dirty=false;loadFailed=false;receiptPeriod='';desktopViews=[];reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
   }
   async function openDatabase(id:string){try{await switchDatabase(id);}catch(e){fail(e);}}
   async function newDatabase(name:string){try{if(!(await prepareDatabaseChange()))return;if(native){const path=await chooseFileDestination({defaultPath:name+'.openhau.json',filters:[{name:'OpenHaU',extensions:['json']}]});if(!path)return;const id=await invoke<string>('create_database_file',{path,value:blankDatabase(name)});await refreshCatalog();await switchDatabase(id,true,true);return;}const id=await createDatabase(name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=blankDatabase(name);dirty=true;await save();}}catch(e){fail(e);}}
@@ -422,6 +471,7 @@
         serialized = JSON.stringify(p);
       const result = await persist(snapshot,reason);
       dbPath = result.path;
+      lastSavedProject = structuredClone(snapshot);
       dirty =
         Object.keys(readingEdits).length > 0 ||
         JSON.stringify(p) !== serialized;
@@ -450,6 +500,8 @@
     error = "";
   }
   function openEditor(kind: string, item?: unknown) {
+    if(kind==='payment'||kind==='adjustment'){const record=item as Project['payments'][number]|Project['adjustments'][number]|undefined;if(kind==='payment'&&record){const batch=p.payment_batches.find(b=>b.rows.some(r=>r.payment_id===record.id));if(batch){editPaymentBatch(batch);return;}}const id='paymentrecord:'+kind+':'+(record?.id||uid());paymentRecords={...paymentRecords,[id]:{kind,record:record||null}};openDesktop(id);return;}
+    if(kind==='account'){const account=item as Account|undefined;if(account&&p.accounts.some(a=>a.id===account.id))openAccountCard(account);else if(account)createAccountCopy(account);else editAccountDocument(makeAccountDocument(p,'open'));return;}
     if(kind==="service"){editServiceRecord(item as Project["services"][number]||null);return;}
     if(kind==="payment"&&item&&p.payment_batches.some(b=>b.state==="applied"&&b.rows.some(r=>r.payment_id===(item as {id:string}).id))){error=t("Оплата относится к проведённому групповому документу. Откройте его для просмотра расшифровки.","Plata aparține unui document de grup aplicat. Deschideți documentul pentru vizualizarea repartizării.");return;}
     if (kind === "tariff" && item && p.tariff_documents.some(d => d.state === "applied" && d.rows.some(r => r.tariff_id === (item as {id: string}).id))) {
@@ -1036,7 +1088,7 @@
     };
     window.addEventListener("beforeunload", beforeUnload);
     const keydown = (e: KeyboardEvent) => {
-      if(workspaceLocked||showDatabaseHome)return;
+      if(workspaceLocked||showDatabaseHome||saveChoice)return;
       if (
         (e.ctrlKey || e.metaKey) &&
         (e.code === "KeyS" || e.key.toLowerCase() === "s")
@@ -1050,20 +1102,12 @@
     if (native)
       void getCurrentWindow()
         .onCloseRequested(async (event) => {
-          if(pendingEditor){event.preventDefault();editorSaveRequired();return;}
-          if(["account","service","organization","payment","tariff","adjustment"].includes(modal)||Object.keys(readingEdits).length){event.preventDefault();fail(t('Завершите редактирование и примените введённые данные перед выходом.','Încheiați editarea și aplicați datele introduse înainte de ieșire.'));return;}
-          if (!dirty) return;
+          if(closeApproved)return;
+          if(!unsavedWork()&&!busy)return;
           event.preventDefault();
-          if (
-            await ask(
-              t(
-                "Сохранить изменения перед выходом? Если показания не применены, сначала примените их.",
-                "Salvați modificările înainte de ieșire? Aplicați mai întâi indexurile introduse.",
-              ),
-            )
-          ) {
-            await save();
-            if (!dirty) await getCurrentWindow().close();
+          if(await prepareDeparture(true)){
+            closeApproved=true;
+            try{await getCurrentWindow().close();}catch(e){closeApproved=false;fail(e);}
           }
         })
         .then((fn) => (unlistenClose = fn))
@@ -1073,7 +1117,7 @@
         document.documentElement.dataset.platform=await runtimePlatform();
         catalog=await databaseCatalog();
         if(catalog.auto)await switchDatabase(catalog.auto,true);
-        else {const saved=await load();if(saved)p=saved;dbPath=await storagePath();selected=p.accounts.filter(a=>a.active).map(a=>a.id);}
+        else {const saved=await load();if(saved)p=saved;lastSavedProject=structuredClone(p);dbPath=await storagePath();selected=p.accounts.filter(a=>a.active).map(a=>a.id);}
       } catch (e) {
         loadFailed = true;
         fail(e);
@@ -1338,63 +1382,7 @@
           </div>
         </article>
       {:else if page === "accounts"}
-        <div class="toolbar">
-          <label class="search"
-            ><Search size={17} /><input
-              bind:value={query}
-              placeholder={t(
-                "Имя, адрес или номер счёта",
-                "Nume, adresă sau număr de cont",
-              )}
-            /></label
-          ><button class="button" onclick={() => openEditor("account")}
-            ><Plus size={17} />{t("Новый счёт", "Cont nou")}</button
-          >
-        </div>
-        <article class="panel">
-          <div class="table-wrap">
-            <table>
-              <thead
-                ><tr
-                  ><th>{t("Лицевой счёт", "Cont personal")}</th><th
-                    >{t("Плательщик и адрес", "Plătitor și adresă")}</th
-                  ><th class="num">m²</th><th class="num"
-                    >{t("Зарегистрировано / мусор", "Înregistrați / deșeuri")} · {displayPeriod(period,p)}</th
-                  ><th>{t("Статус", "Stare")}</th><th></th></tr
-                ></thead
-              ><tbody
-                >{#each accounts as a}<tr
-                    ><td class="mono">{a.number}</td><td
-                      ><strong>{a.payer_name}</strong><small
-                        >{a.address} · {a.apartments.join(", ")}</small
-                      ></td
-                    ><td class="num">{a.total_area_m2}</td><td class="num"
-                      >{a.registered_residents} / {monthlyPersons(p, a, period).persons ?? "—"}</td
-                    ><td
-                      ><span class="badge"
-                        >{a.active
-                          ? t("Открыт", "Deschis")
-                          : t("Архив", "Arhivă")}</span
-                      ></td
-                    ><td
-                      ><button
-                        class="icon-button"
-                        aria-label={t("Редактировать счёт", "Editează contul")}
-                        onclick={() => openEditor("account", a)}
-                        ><Pencil size={16} /></button
-                      ></td
-                    ></tr
-                  >{/each}</tbody
-              >
-            </table>
-            {#if !accounts.length}<div class="empty-state">
-                {t(
-                  "Счетов пока нет. Добавим первый?",
-                  "Nu există conturi. Adăugăm primul?",
-                )}
-              </div>{/if}
-          </div>
-        </article>
+        <AccountList project={p} onadd={()=>editAccountDocument(makeAccountDocument(p,'open'))} oncopy={createAccountCopy} onedit={openAccountCard} onmark={markAccount}/>
       {:else if page === "services"}
         <ServiceCatalog project={p} onapply={setProject} onedit={service=>openEditor("service",service)}/>
       {:else if page === "tariffs"}
@@ -1992,7 +1980,6 @@
   {#if !showDatabaseHome}<header class="desktop-chrome">
     <div class="desktop-titlebar"><img src="/brand/icon.png" alt=""/><strong>OpenHaU</strong><span>{p.organization.name}</span><span>{t("Период: ","Perioadă: ")}{displayPeriod(period,p)}</span><div class="desktop-state">{dirty||pendingEditor?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")}</div></div>
     <DesktopMenu menus={desktopMenus} language={lang} oncommand={desktopCommand}/>
-    <div class="desktop-commandbar"><button class="desktop-save" onclick={()=>save()} disabled={busy||loading}><Save size={17}/>{t("Сохранить","Salvare")}</button></div>
   </header>{/if}
   <main class="desktop-area" bind:this={desktopArea}>
     {#if showDatabaseHome}<DatabaseHome {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={openExistingDatabase} onauto={configureAutoDatabase} onremove={removeDatabaseFromList}/>{:else}
@@ -2006,13 +1993,17 @@
         {:else if view.id.startsWith('batcheditor:')&&paymentEditors[view.id]}<PaymentBatches editorId={view.id} project={p} initial={paymentEditors[view.id]} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)} ondetails={openPaymentDetails} onmovements={openBatchMovements} beforeSave={()=>closePaymentDetails(view.id)}/>
         {:else if view.id.startsWith('batchdetails:')&&paymentDetails[view.id]}<PaymentBatchDetails editorId={view.id} project={p} request={paymentDetails[view.id]} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('batchmovements:')}<PaymentBatchMovements project={p} batchId={view.id.slice('batchmovements:'.length)}/>
-        {:else if view.id.startsWith('accountdoc:')&&accountDocumentEditors[view.id]}<AccountDocuments editorId={view.id} project={p} kind={accountDocumentEditors[view.id].kind} initial={accountDocumentEditors[view.id]} onapply={applyAndSave} onedit={editAccountDocument} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('paymentrecord:')&&paymentRecords[view.id]}<PaymentRecord editorId={view.id} project={p} kind={paymentRecords[view.id].kind} initial={paymentRecords[view.id].record} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('accountcard:')&&accountCards[view.id]}<AccountCard project={p} accountId={accountCards[view.id].id} initialDate={accountCards[view.id].date} onclose={()=>hideDesktop(view.id)} ondocument={accountCardDocument} onhistory={(type,subject)=>accountHistory(accountCards[view.id].id,type,subject)} onreference={accountReference} onreport={(kind,date)=>accountReport(accountCards[view.id].id,kind,date)}/>
+        {:else if view.id.startsWith('accounthistory:')&&accountHistories[view.id]}<AccountHistoryWindow project={p} {...accountHistories[view.id]} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('accountreport:')&&accountReports[view.id]}{#if accountReports[view.id].kind==='payment-report'}<PaymentReport project={p} initialAccountId={accountReports[view.id].accountId} initialPeriod={accountReports[view.id].date.slice(0,7)}/>{:else}<Reports project={p} mode={accountReports[view.id].kind==='service-reports'?'service':'account'} initialAccountId={accountReports[view.id].accountId} initialPeriod={accountReports[view.id].date.slice(0,7)}/>{/if}
+        {:else if view.id.startsWith('accountdoc:')&&accountDocumentEditors[view.id]}<AccountDocuments editorId={view.id} project={p} kind={accountDocumentEditors[view.id].kind} initial={accountDocumentEditors[view.id]} onapply={applyAndSave} onedit={editAccountDocument} onclose={()=>hideDesktop(view.id)} onreference={accountReference} onmovements={accountMovements} beforeChange={prepareAccountAction}/>
         {:else if view.id.startsWith('serviceeditor:')}<ServiceRecord editorId={view.id} project={p} initial={serviceEditors[view.id]||null} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)} onreference={kind=>openDesktop('catalog:'+kind)} ontariffs={id=>{tariffServiceFilter=id;navigate('tariffs');}}/>
         {:else if view.id.startsWith('physicaleditor:')&&physicalEditors[view.id]}<PhysicalMeters editorId={view.id} project={p} onapply={applyAndSave} editorOnly={true} initialMeter={physicalEditors[view.id].meter} initialReading={physicalEditors[view.id].reading} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('meterdoc:')&&meterDocumentEditors[view.id]}<MeterDocuments editorId={view.id} project={p} kind={meterDocumentEditors[view.id].kind} initial={meterDocumentEditors[view.id]} onapply={applyAndSave} onedit={editMeterDocument} onclose={()=>hideDesktop(view.id)}/>
         {:else if meterDocumentKinds[view.id]}<MeterDocuments editorId={view.id} project={p} kind={meterDocumentKinds[view.id]} onapply={applyAndSave} onedit={editMeterDocument} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id==='shared-connections'}<SharedMeters project={p} onapply={setProject}/>
-        {:else if accountDocumentKinds[view.id]}<AccountDocuments editorId={view.id} project={p} kind={accountDocumentKinds[view.id]} onapply={applyAndSave} onedit={editAccountDocument} onclose={()=>hideDesktop(view.id)}/>
+        {:else if accountDocumentKinds[view.id]}<AccountDocuments editorId={view.id} project={p} kind={accountDocumentKinds[view.id]} onapply={applyAndSave} onedit={editAccountDocument} onclose={()=>hideDesktop(view.id)} onreference={accountReference} onmovements={accountMovements} beforeChange={prepareAccountAction}/>
         {:else if view.id.startsWith("catalogedit:")}{@const parts=view.id.split(":")}<ReferenceRecordEditor editorId={view.id} project={p} kind={parts[1] as ReferenceKind} recordId={parts.slice(2).join(":")} initial={referenceCopies[parts.slice(2).join(":")]} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id==='purge'}<MarkedDeletion project={p} onapply={setProject}/>
         {:else if view.id.startsWith("catalog:")}<ReferenceCatalog project={p} kind={view.id.slice(8) as ReferenceKind} onapply={setProject} onedit={id=>openDesktop("catalogedit:"+view.id.slice(8)+":"+(id==="new"?uid():id))}/>
@@ -2076,93 +2067,7 @@
       </header>
       {#if error}<div class="alert error" role="alert">{error}</div>{/if}
       <div class="modal-body">
-        {#if modal === "account"}
-          <div class="two-fields">
-            <label
-              >{t("Номер счёта", "Număr de cont")}<input
-                bind:value={draft.number}
-              /></label
-            ><label
-              >{t("Начальный период", "Perioada inițială")}<input
-                type="month"
-                bind:value={draft.opening_period}
-              /></label
-            >
-          </div>
-          <label
-            >{t("Плательщик", "Plătitor")}<input
-              bind:value={draft.payer_name}
-            /></label
-          ><label
-            >{t("Адрес", "Adresa")}<input bind:value={draft.address} /></label
-          >
-          <div class="two-fields">
-            <label
-              >{t(
-                "Квартиры через запятую",
-                "Apartamente separate prin virgulă",
-              )}<input bind:value={draft.apartmentsText} /></label
-            ><label
-              >{t("Площадь, м²", "Suprafață, m²")}<input
-                bind:value={draft.total_area_m2}
-              /></label
-            ><label
-              >{t("Зарегистрировано людей", "Persoane înregistrate")}<input
-                type="number"
-                min="0"
-                bind:value={draft.registered_residents}
-              /></label
-            ><label
-              >{t(
-                "Людей для платы за мусор",
-                "Persoane pentru taxa de deșeuri",
-              )} · {displayPeriod(draft.wastePersonsPeriod,p)}<input
-                type="number"
-                min="0"
-                step="1"
-                disabled={p.closed_periods.includes(draft.wastePersonsPeriod)}
-                bind:value={draft.wastePersonsMonth}
-              /></label
-            >
-          </div>
-          <p class="quiet-note">{t(
-            "Количество для мусора сохраняется за указанный месяц. Изменение общего количества заменяет поквартирную разбивку только за этот месяц. Предыдущие месяцы сохраняются.",
-            "Numărul pentru deșeuri se salvează pentru luna indicată. Modificarea totalului înlocuiește detaliile pe apartamente doar pentru această lună. Lunile precedente se păstrează.",
-          )}</p>
-          <label
-            >{t(
-              "Начальный остаток, MDL (минус = переплата)",
-              "Sold inițial, MDL (minus = avans)",
-            )}<input bind:value={draft.opening_balance} /></label
-          ><label class="check-row"
-            ><input type="checkbox" bind:checked={draft.active} />{t(
-              "Счёт открыт",
-              "Cont deschis",
-            )}</label
-          >
-          <div class="field-label">
-            {t("Подключённые услуги", "Servicii conectate")}
-          </div>
-          <div class="service-checks">
-            {#each p.services as s}<label class="check-row"
-                ><input
-                  type="checkbox"
-                  checked={draft.service_ids.includes(s.id)}
-                  onchange={() => serviceToggle(s.id)}
-                />{s.name[lang]}</label
-              >{/each}
-          </div>
-          <label
-            >{t("Примечание", "Notă")}<textarea bind:value={draft.notes}
-            ></textarea></label
-          >
-          <p class="quiet-note">
-            {t(
-              "Дополнительные поля можно добавить через редактор JSON: custom_fields.",
-              "Câmpurile suplimentare pot fi adăugate în editorul JSON: custom_fields.",
-            )}
-          </p>
-        {:else if modal === "service"}
+        {#if modal === "service"}
           <ServiceEditor project={p} bind:draft onreference={kind=>{saveEditor();if(!modal)openDesktop("catalog:"+kind);}} ontariffs={()=>{const id=draft.id;saveEditor();if(!modal){tariffServiceFilter=id;navigate("tariffs");}}}/>
         {:else if modal === "tariff"}
           {#if !p.tariffs.some(x => x.id === draft.id)}
@@ -2389,3 +2294,5 @@
 
 
 
+
+{#if saveChoice}<SaveChangesDialog language={lang} exiting={saveChoice.exiting} onchoose={finishSaveChoice}/>{/if}

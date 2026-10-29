@@ -11,18 +11,18 @@
   import { exportText,exportBinary,exportPDF,native } from "./storage";
   import { accountReportHTML, accountReportXLSX } from "./report-exports";
   import ReportFilter from "./ReportFilter.svelte";
-  export let project: Project;
+  export let project: Project;export let initialAccountId="";export let initialPeriod=project.settings.period;
   export let mode:"account"|"service"="account";
   let serviceFilter="",attentionOnly=false;
   let options:BalanceOptions={grouping:'service',expandAccounts:false,showAddress:false,accountFilter:'',typeFilter:'',providerFilter:'',sort:[],postedOnly:true,legacyLayout:true};
-  let filters:BalanceFilter[]=emptyReportFilters();
+  let filters:BalanceFilter[]=emptyReportFilters();if(initialAccountId)filters[0]={...filters[0],enabled:true,values:[initialAccountId]};
   $: options.filters=filters;
   $: filterData=reportFilterData(project);
   function configure(){openReportSettings({id:'balance-'+mode,filters,sort:options.sort||[],labels:filterData.labels,items:filterData.items,columns:report?.headers||[],onapply:(next,rules)=>{filters=next;options={...options,sort:rules};}});}
   let previousSignature='';
   $: {const signature=JSON.stringify([from,to,mode,serviceFilter,attentionOnly,options]);if(signature!==previousSignature){generated='';previewReady=false;previousSignature=signature;}}
-  let from = project.settings.period+"-01",
-    to = monthLastDay(project.settings.period),
+  let from = initialPeriod+"-01",
+    to = monthLastDay(initialPeriod),
     error = "";
   let generated = "",
     generatedRange = "",
