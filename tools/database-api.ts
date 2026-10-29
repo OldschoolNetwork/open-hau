@@ -27,8 +27,8 @@ export async function mergeHistory(basePath:string,sourcePath:string,output:stri
 
 export async function api(method:string,params:any={}){
  if(method==='help')return {protocol:'JSON-RPC 2.0, newline-delimited over stdin/stdout',methods:['docs.list','docs.read','database.inspect','database.read','database.validate','database.patch','database.mergeHistory'],write_rule:'Close the GUI database before CLI writes. All writes validate the complete project. Patch requires the current SHA-256 revision; a backup is retained. Merge always writes a new file and preserves base financial records.'};
- if(method==='docs.list')return {documents:['personal-accounts','group-payments','database-api']};
- if(method==='docs.read'){if(!['personal-accounts','group-payments','database-api'].includes(params.name))throw Error('Unknown document');return {text:await readFile(join(root,'docs',params.name+'.md'),'utf8')};}
+ if(method==='docs.list')return {documents:['personal-accounts','group-payments','database-api','database-format','registers']};
+ if(method==='docs.read'){if(!['personal-accounts','group-payments','database-api','database-format','registers'].includes(params.name))throw Error('Unknown document');return {text:await readFile(join(root,'docs',params.name+'.md'),'utf8')};}
  if(method==='database.mergeHistory')return mergeHistory(params.path,params.source,params.output);
  const loaded=await read(params.path);
  if(method==='database.inspect')return {revision:loaded.revision,schema_version:loaded.project.schema_version,accounts:loaded.project.accounts.length,payments:loaded.project.payments.length,payment_batches:loaded.project.payment_batches.length,account_documents:loaded.project.account_documents.length};

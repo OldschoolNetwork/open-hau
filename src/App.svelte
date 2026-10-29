@@ -1,4 +1,5 @@
 <script lang="ts">
+import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './database-format';
   import {invoke} from "@tauri-apps/api/core";
   import {open as chooseFile,save as chooseFileDestination} from "@tauri-apps/plugin-dialog";
   import { translator } from "./i18n";
@@ -9,6 +10,8 @@
   import type {DesktopCommand} from "./desktop-menu";
   import KeyboardSettings from "./KeyboardSettings.svelte";
   import {keyBindings,loadKeyBindings,keyChord} from "./keyboard-shortcuts";
+  import DataRegister from "./DataRegister.svelte";
+  import {informationViews,accumulationViews} from "./register-data";
   import DesktopMenu from "./DesktopMenu.svelte";
   import SaveChangesDialog from "./SaveChangesDialog.svelte";
   import DesktopWindow from "./DesktopWindow.svelte";
@@ -23,6 +26,8 @@
   import Documentation from "./Documentation.svelte";
   import DesktopWidgets from "./DesktopWidgets.svelte";
   import MarkedDeletion from "./MarkedDeletion.svelte";
+  import RegisterFilter from './RegisterFilter.svelte';
+  import type {RegisterFilterRequest} from './register-filter';
   import ReportSettings from "./ReportSettings.svelte";
   import ReportLookup from "./ReportLookup.svelte";
   import AccountDocuments from "./AccountDocuments.svelte";
@@ -168,6 +173,7 @@
   let loadFailed = false;
   type WorkspaceView={id:string;page:string;visible:boolean;minimized:boolean;position:{x:number;y:number;width:number;height:number}};
   let desktopViews:WorkspaceView[]=[],activeDesktop="",desktopArea:HTMLElement;
+  let registerFilterRequests:Record<string,RegisterFilterRequest>={};
   let reportSettingsRequests:Record<string,ReportSettingsRequest>={};
   let reportLookupRequests:Record<string,ReportLookupRequest>={};
   let workspaceLocked=false;
@@ -246,6 +252,7 @@
     if(pages.some(x=>x.id===id))page=id;
   }
   async function hideDesktop(id:string,minimize=false){
+    if(!minimize)for(const child of [...desktopViews].filter(v=>v.visible&&registerFilterRequests[v.id]?.parentId===id))await hideDesktop(child.id);
     if(!minimize)for(const child of [...desktopViews].filter(v=>v.visible&&reportLookupRequests[v.id]?.parentId===id))await hideDesktop(child.id);
     if(!minimize&&id.startsWith("batcheditor:")&&!(await closePaymentDetails(id)))return;
     if(!minimize&&editorDirties[id]&&!(await ask(t('Закрыть это окно без сохранения введённых изменений?','Închideți această fereastră fără salvarea modificărilor introduse?'))))return;
@@ -272,6 +279,8 @@
     if(meterDocumentKinds[id]||id==='shared-connections')return desktopMenus.flatMap(m=>m.children||[]).find(c=>c.id===id)?.[language]||id;
     if(id.startsWith('accountdoc:'))return language==='ru'?'Лицевой счёт · документ':'Cont personal · document';
     if(accountDocumentKinds[id])return desktopMenus.flatMap(m=>m.children||[]).find(c=>c.id===id)?.[language]||id;
+    if(id.startsWith('registerfilter:'))return language==='ru'?'Настройка отбора':'Configurare filtru';
+    if(id.startsWith('register:'))return [...chooserGroups.information.items,...chooserGroups.accumulation.items].find(c=>c.id===id.slice(9))?.[language]||id;
     if(id==='organization-editor')return language==='ru'?'Организация · редактирование':'Organizație · editare';
     if(id==='purge')return language==='ru'?'Удаление помеченных объектов':'Eliminare obiecte marcate';
     if(id.startsWith('reportlookup:'))return (reportLookupRequests[id]?.label||'')+(language==='ru'?' · выбор элемента':' · selectare element');
@@ -416,7 +425,7 @@
   async function refreshCatalog(){try{catalog=await databaseCatalog();}catch(e){fail(e);}}
   let databaseOpened=false;
   function clearWorkspace(){
-    desktopViews=[];reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};
+    desktopViews=[];registerFilterRequests={};reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};
   }
   function unsavedWork(){return dirty||!!pendingEditor||!!Object.keys(readingEdits).length||["account","service","organization","payment","tariff","adjustment","json"].includes(modal);}
   function chooseSaveAction(exiting:boolean){return new Promise<"save"|"discard"|"cancel">(resolve=>{saveChoice={exiting,resolve};});}
@@ -446,12 +455,12 @@
     const raw=await readDatabase(id),entry=catalog.databases.find(d=>d.id===id),candidate=raw?valid(raw):(id==="default"?p:blankDatabase(entry?.name||"OpenHaU"));
     if(!initial&&(modal||Object.keys(readingEdits).length))throw Error(t("Завершите открытое редактирование и примените показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));
     if(!initial&&!prepared&&!(await prepareDatabaseChange()))return;
-    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;lastSavedProject=structuredClone(candidate);dirty=false;loadFailed=false;receiptPeriod='';desktopViews=[];reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
+    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;lastSavedProject=structuredClone(candidate);dirty=false;loadFailed=false;receiptPeriod='';desktopViews=[];registerFilterRequests={};reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
   }
   async function openDatabase(id:string){try{await switchDatabase(id);}catch(e){fail(e);}}
-  async function newDatabase(name:string){try{if(!(await prepareDatabaseChange()))return;if(native){const path=await chooseFileDestination({defaultPath:name+'.openhau.json',filters:[{name:'OpenHaU',extensions:['json']}]});if(!path)return;const id=await invoke<string>('create_database_file',{path,value:blankDatabase(name)});await refreshCatalog();await switchDatabase(id,true,true);return;}const id=await createDatabase(name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=blankDatabase(name);dirty=true;await save();}}catch(e){fail(e);}}
-  async function openExistingDatabase(){if(!native){await importDatabase();return;}try{const path=await chooseFile({multiple:false,filters:[{name:'OpenHaU',extensions:['json']}]});if(!path||typeof path!=='string')return;valid(await invoke('read_json_file',{path}));if(!(await prepareDatabaseChange()))return;const id=await invoke<string>('register_database_file',{path});await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
-  async function saveDatabaseAs(){if(editorSaveRequired())return;if(!native){await exportJson();return;}try{if(modal||Object.keys(readingEdits).length)throw Error(t('Завершите редактирование перед сохранением копии.','Încheiați editarea înainte de salvarea copiei.'));const value=valid(p),path=await chooseFileDestination({defaultPath:p.organization.name+'.openhau.json',filters:[{name:'OpenHaU',extensions:['json']}]});if(!path)return;const id=await invoke<string>('create_database_file',{path,value});await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
+  async function newDatabase(name:string){try{if(!(await prepareDatabaseChange()))return;if(native){const path=await chooseFileDestination({defaultPath:databaseFilename(name),filters:databaseSaveFilters});if(!path)return;const id=await invoke<string>('create_database_file',{path,value:blankDatabase(name)});await refreshCatalog();await switchDatabase(id,true,true);return;}const id=await createDatabase(name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=blankDatabase(name);dirty=true;await save();}}catch(e){fail(e);}}
+  async function openExistingDatabase(){if(!native){await importDatabase();return;}try{const path=await chooseFile({multiple:false,filters:databaseFileFilters});if(!path||typeof path!=='string')return;valid(await invoke('read_json_file',{path}));if(!(await prepareDatabaseChange()))return;const id=await invoke<string>('register_database_file',{path});await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
+  async function saveDatabaseAs(){if(editorSaveRequired())return;if(!native){await exportJson();return;}try{if(modal||Object.keys(readingEdits).length)throw Error(t('Завершите редактирование перед сохранением копии.','Încheiați editarea înainte de salvarea copiei.'));const value=valid(p),path=await chooseFileDestination({defaultPath:databaseFilename(p.organization.name),filters:databaseSaveFilters});if(!path)return;const id=await invoke<string>('create_database_file',{path,value});await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
   async function importDatabase(){try{const raw=await importJson();if(!raw)return;const candidate=valid(raw);if(!(await prepareDatabaseChange()))return;const id=await createDatabase(candidate.organization.name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=candidate;dirty=true;await save();}}catch(e){fail(e);}}
   async function removeDatabaseFromList(id:string){try{if(databaseOpened&&id===activeDatabaseId&&!(await prepareDatabaseChange()))return;await forgetDatabase(id);if(activeDatabaseId===id){activeDatabaseId='';databaseOpened=false;dirty=false;}await refreshCatalog();}catch(e){fail(e);}}
   async function configureAutoDatabase(id:string|null){try{await setDatabaseAuto(id);await refreshCatalog();}catch(e){fail(e);}}
@@ -1077,6 +1086,8 @@
   }
   onMount(() => {
     loadKeyBindings();
+    const showRegisterFilter=(event:Event)=>{const request=(event as CustomEvent<RegisterFilterRequest>).detail,id='registerfilter:'+request.id;registerFilterRequests={...registerFilterRequests,[id]:request};desktopViews=desktopViews.filter(v=>v.id!==id);openDesktop(id);};
+    window.addEventListener('openhau:register-filter',showRegisterFilter);
     const showReportSettings=(event:Event)=>{const request=(event as CustomEvent<ReportSettingsRequest>).detail;const id='reportsettings:'+request.id;reportSettingsRequests={...reportSettingsRequests,[id]:request};desktopViews=desktopViews.filter(v=>v.id!==id);openDesktop(id);};
     window.addEventListener('openhau:report-settings',showReportSettings);
     const showReportLookup=(event:Event)=>{const request=(event as CustomEvent<ReportLookupRequest>).detail,id='reportlookup:'+request.id;reportLookupRequests={...reportLookupRequests,[id]:request};openDesktop(id);};
@@ -1132,7 +1143,9 @@
         document.documentElement.dataset.platform=await runtimePlatform();
         if(native)queuedLaunchAction=await invoke<string>('launch_action');
         catalog=await databaseCatalog();
-        if(catalog.auto)await switchDatabase(catalog.auto,true);
+        const launchPath=native?await invoke<string|null>('launch_database_path'):null;
+        if(launchPath){const id=await invoke<string>('register_database_file',{path:launchPath});await refreshCatalog();await switchDatabase(id,true,true);}
+        else if(catalog.auto)await switchDatabase(catalog.auto,true);
         else {const saved=await load();if(saved)p=saved;lastSavedProject=structuredClone(p);dbPath=await storagePath();selected=p.accounts.filter(a=>a.active).map(a=>a.id);}
       } catch (e) {
         loadFailed = true;
@@ -1142,6 +1155,7 @@
       }
     })();
     return () => {
+      window.removeEventListener('openhau:register-filter',showRegisterFilter);
       window.removeEventListener('openhau:report-settings',showReportSettings);
       window.removeEventListener('openhau:report-lookup',showReportLookup);
       window.removeEventListener('openhau:report-interval',showInterval);
@@ -2007,6 +2021,7 @@
       <DesktopWindow id={view.id} title={desktopTitle(view.id,lang)} language={lang} active={activeDesktop===view.id} hidden={!view.visible||view.minimized} minimized={view.minimized} index={desktopViews.indexOf(view)} bind:position={view.position} onfocus={()=>focusDesktop(view.id)} onclose={()=>hideDesktop(view.id)} onminimize={()=>hideDesktop(view.id,true)}>
         {#if view.id.startsWith('reportinterval:')&&intervalRequests[view.id]}<ReportInterval request={intervalRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('reportlookup:')&&reportLookupRequests[view.id]}<ReportLookup project={p} onmanage={manageLookup} request={reportLookupRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('registerfilter:')&&registerFilterRequests[view.id]}<RegisterFilter request={registerFilterRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('reportsettings:')&&reportSettingsRequests[view.id]}<ReportSettings request={reportSettingsRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('batcheditor:')&&paymentEditors[view.id]}<PaymentBatches editorId={view.id} project={p} initial={paymentEditors[view.id]} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)} ondetails={openPaymentDetails} onmovements={openBatchMovements} beforeSave={()=>closePaymentDetails(view.id)}/>
         {:else if view.id.startsWith('batchdetails:')&&paymentDetails[view.id]}<PaymentBatchDetails editorId={view.id} project={p} request={paymentDetails[view.id]} onclose={()=>hideDesktop(view.id)}/>
@@ -2026,6 +2041,7 @@
         {:else if view.id==='purge'}<MarkedDeletion project={p} onapply={setProject}/>
         {:else if view.id.startsWith("catalog:")}<ReferenceCatalog project={p} kind={view.id.slice(8) as ReferenceKind} onapply={setProject} onedit={id=>openDesktop("catalogedit:"+view.id.slice(8)+":"+(id==="new"?uid():id))}/>
         {:else if view.id.startsWith("chooser:")}<DesktopChooser group={view.id.slice(8)} language={lang} oncommand={action=>{hideDesktop(view.id);desktopCommand(action);}}/>
+        {:else if view.id.startsWith('register:')}<DataRegister project={p} kind={{...informationViews,...accumulationViews}[view.id.slice(9)]} title={desktopTitle(view.id,lang)} parentId={view.id}/>
         {:else if view.id==="organization-editor"}<OrganizationEditor project={p} editorId={view.id} onapply={applyAndSave} onclose={()=>void hideDesktop(view.id)}/>
         {:else if view.id==="period"}<div class="desktop-simple-form"><label>{t("Расчетный период","Perioada de calcul")}<input type="month" value={period} onchange={e=>changePeriod(e.currentTarget.value)}/></label><button class="button secondary" onclick={()=>hideDesktop(view.id)}>{t("Закрыть","Închidere")}</button></div>
         {:else if view.id==="manual"}<Documentation language={lang} onopen={desktopCommand}/>

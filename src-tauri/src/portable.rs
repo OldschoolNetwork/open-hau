@@ -30,7 +30,7 @@ pub fn create(path:&Path,value:&Value)->Result<(),String>{
 }
 #[cfg(test)]
 pub fn remember(storage:&Storage,path:&Path)->Result<(),String>{let (_,hash)=read(path)?;storage.file_versions.lock().map_err(|e|e.to_string())?.insert(path.to_path_buf(),hash);Ok(())}
-pub fn backup(path:&Path,settings_root:&PathBuf)->Result<Option<String>,String>{let config=crate::backups::settings(settings_root)?;let Some(folder)=config["directory"].as_str()else{return Ok(None)};let folder=PathBuf::from(folder);if !folder.is_dir(){return Err("Backup destination is unavailable".into());}let (value,_)=read(path)?;let target=folder.join(format!("OpenHaU-{}.openhau.json",stamp()?));create(&target,&value)?;Ok(Some(target.display().to_string()))}
+pub fn backup(path:&Path,settings_root:&PathBuf)->Result<Option<String>,String>{let config=crate::backups::settings(settings_root)?;let Some(folder)=config["directory"].as_str()else{return Ok(None)};let folder=PathBuf::from(folder);if !folder.is_dir(){return Err("Backup destination is unavailable".into());}let (value,_)=read(path)?;let target=folder.join(format!("OpenHaU-{}.odb",stamp()?));create(&target,&value)?;Ok(Some(target.display().to_string()))}
 pub fn save(storage:&Storage,path:&Path,value:Value,settings_root:&PathBuf)->Result<Value,String>{
  let _file_lock=lock_file(path)?;
  let (stored,current)=read(path)?;
@@ -47,7 +47,7 @@ pub fn save(storage:&Storage,path:&Path,value:Value,settings_root:&PathBuf)->Res
  if fingerprint(&old)!=current{return Err("Database changed during save; reopen it before saving".into());}
  previous.write_all(&old).and_then(|_|previous.sync_all()).map_err(|e|e.to_string())?;
  fs::rename(&staged,path).map_err(|e|format!("Cannot replace database file: {e}"))?;versions.insert(path.to_path_buf(),fingerprint(&data));
- let external=(||->Result<Option<String>,String>{let config=crate::backups::settings(settings_root)?;let Some(folder)=config["directory"].as_str()else{return Ok(None)};let folder=PathBuf::from(folder);if !folder.is_dir(){return Err("Backup destination is unavailable".into());}let target=folder.join(format!("OpenHaU-{}.openhau.json",stamp()?));create(&target,&value)?;Ok(Some(target.display().to_string()))})();
+ let external=(||->Result<Option<String>,String>{let config=crate::backups::settings(settings_root)?;let Some(folder)=config["directory"].as_str()else{return Ok(None)};let folder=PathBuf::from(folder);if !folder.is_dir(){return Err("Backup destination is unavailable".into());}let target=folder.join(format!("OpenHaU-{}.odb",stamp()?));create(&target,&value)?;Ok(Some(target.display().to_string()))})();
  let (backup_path,warning)=match external{Ok(Some(p))=>(p,None),Ok(None)=>(backup.display().to_string(),None),Err(e)=>(backup.display().to_string(),Some(e))};
  Ok(json!({"path":path.display().to_string(),"backup_path":backup_path,"backup_warning":warning}))
 }
@@ -63,6 +63,8 @@ pub fn save(storage:&Storage,path:&Path,value:Value,settings_root:&PathBuf)->Res
   remember(&storage,&path).unwrap();let mut next=original.clone();next["organization"]["name"]=json!("Updated example");next["settings"]["date_format"]=json!("dmy");
   let result=save(&storage,&path,next.clone(),&settings).unwrap();assert_eq!(read(&path).unwrap().0,next);assert_eq!(read(Path::new(result["backup_path"].as_str().unwrap())).unwrap().0,original);
   let portable_copy=root.join("moved.openhau.json");fs::copy(&path,&portable_copy).unwrap();assert_eq!(read(&portable_copy).unwrap().0,next);
+  let odb_copy=root.join("association.odb");create(&odb_copy,&next).unwrap();assert_eq!(read(&odb_copy).unwrap().0,next);
+  let foreign=root.join("foreign.odb");fs::write(&foreign,b"PK\x03\x04not an OpenHaU JSON database").unwrap();assert!(read(&foreign).is_err());assert_eq!(fs::read(&foreign).unwrap(),b"PK\x03\x04not an OpenHaU JSON database");
   let mut external=next.clone();external["organization"]["name"]=json!("External edit");fs::write(&path,serde_json::to_vec(&external).unwrap()).unwrap();assert!(save(&storage,&path,next,&settings).is_err());assert_eq!(read(&path).unwrap().0,external);
  }
 }

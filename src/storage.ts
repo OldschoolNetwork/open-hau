@@ -1,3 +1,4 @@
+import {databaseFileFilters} from './database-format';
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { open, save, confirm } from "@tauri-apps/plugin-dialog";
 import { projectSchema, type Project } from "./model";
@@ -145,14 +146,14 @@ export async function importJson() {
   if (native) {
     const path = await open({
       multiple: false,
-      filters: [{ name: "OpenHaU JSON", extensions: ["json"] }],
+      filters: databaseFileFilters,
     });
     return path ? await invoke("read_json_file", { path }) : null;
   }
   return await new Promise<unknown>((resolve, reject) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = ".json";
+    input.accept = ".odb,.json";
     input.onchange = async () => {
       try {
         const f = input.files?.[0];

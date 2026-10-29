@@ -1,3 +1,4 @@
+import {informationViews,accumulationViews} from "./register-data";
 import {referenceKinds} from "./catalog-definitions";
 export type DesktopCommand = {
   id: string;
@@ -289,6 +290,8 @@ export const accumulationRegisters: DesktopCommand[] = [
     ][i],
   ),
 );
+for(const entry of informationRegisters)if(informationViews[entry.id])entry.action='register:'+entry.id;
+for(const entry of accumulationRegisters)if(accumulationViews[entry.id])entry.action='register:'+entry.id;
 export const chooserGroups: Record<
   string,
   { ru: string; ro: string; items: DesktopCommand[] }

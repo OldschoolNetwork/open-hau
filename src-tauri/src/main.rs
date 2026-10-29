@@ -24,7 +24,7 @@ struct Storage {
     lock: Mutex<()>,
 }
 #[derive(Default)]
-struct WorkspaceSize(Mutex<Option<(tauri::PhysicalSize<u32>,bool)>>);
+struct WorkspaceSize(Mutex<Option<(tauri::Size,bool)>>);
 
 #[tauri::command]
 fn set_workspace_mode(app:tauri::AppHandle,state:tauri::State<WorkspaceSize>,welcome:bool)->Result<(),String>{
@@ -36,7 +36,7 @@ fn set_workspace_mode(app:tauri::AppHandle,state:tauri::State<WorkspaceSize>,wel
         let size=window.inner_size().map_err(|e|e.to_string())?;
         let maximized=window.is_maximized().map_err(|e|e.to_string())?;
         let logical=size.to_logical::<f64>(window.scale_factor().map_err(|e|e.to_string())?);
-        *saved=Some((size,maximized));
+        *saved=Some((size.into(),maximized));
         if maximized{window.unmaximize().map_err(|e|e.to_string())?;}
         window.set_min_size(Some(tauri::LogicalSize::new(600.0,400.0))).map_err(|e|e.to_string())?;
         window.set_size(tauri::LogicalSize::new((logical.width/2.0).clamp(600.0,900.0),(logical.height/2.0).clamp(420.0,600.0))).map_err(|e|e.to_string())?;
@@ -259,6 +259,18 @@ fn launch_action() -> String {
     args.windows(2).find(|w|w[0]=="--open").map(|w|w[1].clone()).unwrap_or_default()
 }
 
+fn database_argument(args:impl Iterator<Item=String>)->Option<String>{
+    let mut args=args.skip(1);
+    while let Some(arg)=args.next(){
+        if arg=="--open" { args.next(); continue; }
+        if arg.starts_with('-'){continue;}
+        if std::path::Path::new(&arg).extension().and_then(|e|e.to_str()).is_some_and(|e|e.eq_ignore_ascii_case("odb")||e.eq_ignore_ascii_case("json")) {return Some(arg);}
+    }
+    None
+}
+#[tauri::command]
+fn launch_database_path()->Option<String>{database_argument(std::env::args())}
+
 #[tauri::command]
 fn create_desktop_shortcut(action:String,title:String)->Result<(),String>{
     if action.is_empty()||action.len()>120||!action.bytes().all(|c|c.is_ascii_alphanumeric()||b":-_".contains(&c)){return Err("Invalid shortcut action".into());}
@@ -320,7 +332,8 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            app.manage(WorkspaceSize::default());
+            let window_config=&app.config().app.windows[0];
+            app.manage(WorkspaceSize(Mutex::new(Some((tauri::LogicalSize::new(window_config.width,window_config.height).into(),false)))));
             let root = std::env::var_os("OPENHAU_DATA_DIR")
                 .map(PathBuf::from)
                 .unwrap_or(app.path().app_data_dir()?);
@@ -331,7 +344,9 @@ fn main() {
                 lock: Mutex::new(()),
             });
             let window =
-                tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?;
+                tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?
+                    .inner_size(640.0,420.0).min_inner_size(600.0,400.0)
+                    .resizable(false).maximizable(false).center();
             // WebView2: preserve the PDF destination but suppress Edge's download flyout.
             #[cfg(target_os = "windows")]
             let window = window.on_download(|_, _| true);
@@ -360,6 +375,7 @@ fn main() {
             storage_path,
             runtime_platform,
             launch_action,
+            launch_database_path,
             create_desktop_shortcut,
             set_workspace_mode,
             notification_sound,
