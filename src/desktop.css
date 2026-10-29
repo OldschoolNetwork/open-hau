@@ -474,3 +474,7 @@ body:has(.welcome-shell){min-width:0;width:100vw;overflow:hidden}.welcome-shell{
 .desktop-shell{display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "main" "dock";position:relative}.desktop-chrome{grid-area:head}.desktop-area{grid-area:main}.desktop-shell.dock-top{grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"head" "dock" "main"}.desktop-shell.dock-left{grid-template-columns:max-content minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"head head" "dock main"}.desktop-shell.dock-right{grid-template-columns:minmax(0,1fr) max-content;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"head head" "main dock"}.desktop-shell.welcome-shell{display:flex}
 
 .dock-top .taskbar-flyout{top:110px;bottom:auto}.dock-left .previews{left:210px;transform:none}.dock-right .previews{left:auto;right:210px;transform:none}
+
+.desktop-submenu.opens-left>summary>.submenu-arrow{transform:rotate(180deg)}
+
+.receipt-preview .paper-stack .receipt{zoom:1}.receipt-preview .paper-stack .receipt-sheet{zoom:var(--preview-zoom,1)}

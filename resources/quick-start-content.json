@@ -1,0 +1,125 @@
+{
+  "ru": {
+    "title": "Быстрый старт",
+    "intro": "От открытия базы до первой квитанции.",
+    "toc": "Содержание",
+    "steps": [
+      [
+        "Откройте базу",
+        "На приветственном экране выберите «Создать базу» или «Добавить существующую». Перед обновлением рабочей базы сохраните отдельную копию.",
+        "Новая база хранится в файле ODB. После открытия проверьте организацию, расчётный период и банковские реквизиты."
+      ],
+      [
+        "Проверьте счета и услуги",
+        "Откройте «Лицевые счета». В карточке проверьте ответственного, адрес, услуги и приборы учёта.",
+        "Месячное количество людей для расчёта мусора вводится отдельно от зарегистрированных и проживающих. Тарифы меняются датированными документами."
+      ],
+      [
+        "Введите показания",
+        "Откройте «Приборы учёта → Ввод показаний индивидуальных приборов учёта». Создайте документ на нужную дату и выберите «Заполнить» или «Подбор».",
+        "Введите последние накопленные показания воды и электричества и фактическую дату снятия. Прочерк означает отсутствие данных; не заменяйте его вымышленным нулём."
+      ],
+      [
+        "Начислите услуги и внесите оплаты",
+        "Проверьте общий расход воды и света, связи индивидуальных приборов и исключения для распределения за месяц. Затем выполните начисление.",
+        "В групповом вводе оплат укажите фактические суммы и даты. Откройте расшифровку платежа, чтобы проверить распределение по услугам."
+      ],
+      [
+        "Подготовьте квитанции",
+        "Выберите нужный месяц и счета. Проверьте предупреждения, показания, срок оплаты, логотип и реквизиты.",
+        "Выберите дизайн, ориентацию и одну или две квитанции на A4. «Печать» отправляет документ на принтер, «Сохранить PDF» создаёт файл. Линии для обрезки настраиваются отдельно."
+      ],
+      [
+        "Сохраните и сделайте копию",
+        "Примените открытые документы, затем нажмите Ctrl+S. Для переноса на другой компьютер скопируйте сохранённый файл базы.",
+        "В параметрах можно выбрать папку резервных копий и установить пароль. Старые копии не шифруются автоматически. Сохраните пароль: восстановление пока не предусмотрено."
+      ]
+    ],
+    "api": "API и командная строка",
+    "apiText": "Дополнительный консольный API работает с Node.js 24.7 или новее. Обычная программа Node.js не требует. Перед записью через API закройте базу в интерфейсе. Команды и примеры приведены в API-справке.",
+    "images": "Программа на Windows и macOS",
+    "online": "Онлайн документация"
+  },
+  "ro": {
+    "title": "Ghid rapid",
+    "intro": "De la deschiderea bazei la prima factură.",
+    "toc": "Cuprins",
+    "steps": [
+      [
+        "Deschideți baza",
+        "În ecranul de pornire selectați «Creează o bază» sau «Adaugă o bază existentă». Păstrați o copie separată înainte de actualizare.",
+        "Bazele noi se păstrează în fișiere ODB. Verificați organizația, perioada de calcul și datele bancare."
+      ],
+      [
+        "Verificați conturile și serviciile",
+        "Deschideți «Conturi personale». Verificați titularul, adresa, serviciile și contoarele în fișa contului.",
+        "Numărul lunar de persoane pentru deșeuri este separat de persoanele înregistrate și locatari. Tarifele se schimbă prin documente datate."
+      ],
+      [
+        "Introduceți indexurile",
+        "Deschideți «Contoare → Introducere indexuri contoare individuale». Creați documentul pentru data necesară și alegeți «Completează» sau «Selectare».",
+        "Introduceți indexurile cumulative noi pentru apă și electricitate și data citirii. Linia indică date lipsă; nu o înlocuiți cu un zero presupus."
+      ],
+      [
+        "Calculați serviciile și înregistrați plățile",
+        "Verificați consumul comun, legăturile contoarelor și excepțiile lunare de distribuire, apoi efectuați calculul.",
+        "În documentul plăților de grup introduceți sumele și datele reale. Deschideți detaliile pentru a verifica repartizarea pe servicii."
+      ],
+      [
+        "Pregătiți facturile",
+        "Selectați luna și conturile. Verificați avertismentele, indexurile, termenul de plată, sigla și datele bancare.",
+        "Alegeți designul, orientarea și una sau două facturi pe A4. «Imprimare» trimite documentul la imprimantă, iar «Salvează PDF» creează fișierul. Liniile de tăiere se configurează separat."
+      ],
+      [
+        "Salvați și creați o copie",
+        "Aplicați documentele deschise, apoi apăsați Ctrl+S. Pentru transfer copiați fișierul salvat al bazei.",
+        "Setările permit alegerea dosarului de copii și protejarea cu parolă. Copiile vechi nu se criptează automat. Păstrați parola: recuperarea nu este disponibilă."
+      ]
+    ],
+    "api": "API și linia de comandă",
+    "apiText": "API-ul opțional necesită Node.js 24.7 sau mai nou; aplicația obișnuită nu necesită Node.js. Închideți baza în interfață înainte de scriere prin API. Referința API conține comenzile și exemplele.",
+    "images": "Aplicația pe Windows și macOS",
+    "online": "Documentație online"
+  },
+  "en": {
+    "title": "Quick start",
+    "intro": "From opening a database to the first receipt.",
+    "toc": "Contents",
+    "steps": [
+      [
+        "Open a database",
+        "Choose Create database or Add existing database on the welcome screen. Keep an independent copy before upgrading a working database.",
+        "New databases use ODB files. Check the organization, billing period and bank details after opening."
+      ],
+      [
+        "Review accounts and services",
+        "Open Personal accounts and check the holder, address, connected services and meters.",
+        "Monthly waste-billing persons are separate from registered residents and people living in the apartment. Change tariffs through dated documents."
+      ],
+      [
+        "Enter meter readings",
+        "Open Meters → Individual meter readings. Create a document for the required date and choose Fill or Select.",
+        "Enter the latest cumulative water and electricity readings and actual reading date. A dash means missing data; do not replace it with an assumed zero."
+      ],
+      [
+        "Calculate charges and record payments",
+        "Check shared consumption, individual-meter connections and monthly allocation exceptions before calculation.",
+        "Enter actual received amounts and dates in batch payments. Open payment details to review allocation by service."
+      ],
+      [
+        "Prepare receipts",
+        "Select the month and accounts. Review warnings, readings, due date, organization logo and bank details.",
+        "Choose a design, orientation and one or two receipts per A4 sheet. Print sends a document to the printer; Save PDF creates a file. Cutting guides are optional."
+      ],
+      [
+        "Save and keep a backup",
+        "Apply open document editors, then press Ctrl+S. Copy the saved database file to transfer it to another computer.",
+        "Settings provide an optional backup directory and password protection. Older copies are not encrypted automatically. Keep the password securely: recovery is not available."
+      ]
+    ],
+    "api": "API and command line",
+    "apiText": "The optional API companion requires Node.js 24.7 or newer; the desktop app does not require Node.js. Close the GUI database before API writes. The API reference includes commands and examples.",
+    "images": "OpenHaU on Windows and macOS",
+    "online": "Online documentation"
+  }
+}

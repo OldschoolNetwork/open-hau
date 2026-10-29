@@ -25,6 +25,12 @@ pub async fn render(app:tauri::AppHandle,html:String,path:String,landscape:bool)
                 settings.SetOrientation(if landscape{COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE}else{COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT})?;
                 settings.SetShouldPrintBackgrounds(true)?;
                 settings.SetShouldPrintHeaderAndFooter(false)?;
+                settings.SetMarginTop(0.0)?;
+                settings.SetMarginBottom(0.0)?;
+                settings.SetMarginLeft(0.0)?;
+                settings.SetMarginRight(0.0)?;
+                settings.SetPageWidth(210.0/25.4)?;
+                settings.SetPageHeight(297.0/25.4)?;
                 let completed=tx.clone();
                 core.PrintToPdf(&HSTRING::from(pdf_path.to_string_lossy().as_ref()),&settings,&PrintToPdfCompletedHandler::create(Box::new(move |status,success|{let result=if success{status.map_err(|e|e.to_string())}else{Err("PDF rendering failed".into())};let _=completed.send(result);Ok(())})))?;
                 Ok(())

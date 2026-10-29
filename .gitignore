@@ -8,3 +8,4 @@ src-tauri/icons/ios/
 *.key
 .env*
 !.env.example
+resources/OpenHaU-API.mjs

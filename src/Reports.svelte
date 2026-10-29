@@ -1,4 +1,6 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
+ import {printDocument} from "./print-dialog";
   import {monthLastDay} from "./report-dates";
   import {openInterval} from "./report-interval";
   import {displayDate,displayPeriod} from "./date-format";
@@ -41,14 +43,13 @@
   function printReport() {
     if (!generated || !previewReady) return;
     try {
-      preview.contentWindow?.focus();
-      preview.contentWindow?.print();
+      void printDocument(generated,true);
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
   }
   async function savePDF(){try{if(!generated)generate();if(generated)await exportPDF(`OpenHaU-${mode}-balances-${from}-${to}.pdf`,generated,true);}catch(e){error=e instanceof Error?e.message:String(e);}}
-  $: tr = translator(project.settings.language);
+  $: tr = translator(project.settings.language,$languageOverrides);
   $: report = (() => {
     try {
       return balanceTable(project,from,to,mode,serviceFilter,attentionOnly,options);

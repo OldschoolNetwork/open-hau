@@ -1,3 +1,4 @@
+import {translatedName} from './localization';
 import Decimal from "decimal.js";
 import type { Project, PhysicalMeter } from "./model";
 import { canonicalUnit } from "./units";
@@ -116,7 +117,7 @@ export function receiptReadings(
       rows.push({
         meter_id: legacy.id,
         service_id: service.id,
-        label: service.name[p.settings.language],
+        label: translatedName(service.name,p.settings.language),
         serial_number: "",
         unit: service.unit,
         previous: legacy.previous,

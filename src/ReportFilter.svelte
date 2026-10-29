@@ -1,10 +1,11 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
  import {X} from '@lucide/svelte';
  import type {BalanceFilter} from './balance-view';
  import {translator} from './i18n';
  import {openReportLookup} from './report-settings';
- export let language:'ru'|'ro';export let label:string;export let items:{id:string;code:string;name:string;address?:string}[];export let filter:BalanceFilter;
- $:t=translator(language);
+ export let language:'ru'|'ro'|"en";export let label:string;export let items:{id:string;code:string;name:string;address?:string}[];export let filter:BalanceFilter;
+ $:t=translator(language,$languageOverrides);
  function choose(){const kinds={account:'accounts',property:'properties','property-type':'property-types',service:'services',type:'service-types',provider:'counterparties'} as const;openReportLookup({id:crypto.randomUUID(),label,items,kind:kinds[filter.field],selected:[...filter.values],multiple:filter.operator==='in'||filter.operator==='not-in',onchoose:values=>filter={...filter,enabled:true,values}});}
 </script>
 <div class="filter-line"><label><input type="checkbox" bind:checked={filter.enabled}/>{label}</label><select aria-label={t('Тип сравнения','Tip comparație')} bind:value={filter.operator} onchange={()=>{if(filter.operator==='eq'||filter.operator==='ne')filter={...filter,values:filter.values.slice(0,1)};}}><option value="eq">{t('Равно','Egal')}</option><option value="ne">{t('Не равно','Diferit')}</option><option value="in">{t('В списке','În listă')}</option><option value="not-in">{t('Не в списке','Nu în listă')}</option></select><input aria-label={label} readonly value={filter.values.map(id=>items.find(r=>r.id===id)?.name||id).join('; ')}/><button class="lookup" aria-label={t('Выбрать из справочника','Selectează din catalog')} onclick={choose}>…</button><button class="lookup" aria-label={t('Очистить','Șterge')} onclick={()=>filter={...filter,values:[]}}><X size={14}/></button></div>

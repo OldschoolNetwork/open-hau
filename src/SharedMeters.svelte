@@ -1,4 +1,7 @@
 <script lang="ts">
+import {translatedName} from './localization';
+
+ import {languageOverrides} from "./localization";
   import { translator } from "./i18n";
   import { issueText } from "./validation-language";
   import { projectSchema, uid, type Project, type SharedGroup } from "./model";
@@ -7,7 +10,7 @@
   export let onapply: (next: Project) => void;
   let draft: SharedGroup | null = null,
     error = "";
-  $: tr = translator(project.settings.language);
+  $: tr = translator(project.settings.language,$languageOverrides);
   function create() {
     draft = {
       id: uid(),
@@ -167,7 +170,7 @@
         ><label
           >{tr("Услуга для начисления расхождений", "Serviciu pentru facturarea diferențelor")}<select bind:value={draft.difference_service_id}>
             <option value="">{tr("Тариф основной услуги", "Tariful serviciului de bază")}</option>
-            {#each project.services.filter(s => !project.meters.some(m => m.service_id === s.id)) as s}<option value={s.id}>{s.name[project.settings.language]} · {s.unit}</option>{/each}
+            {#each project.services.filter(s => !project.meters.some(m => m.service_id === s.id)) as s}<option value={s.id}>{translatedName(s.name,project.settings.language,$languageOverrides)} · {s.unit}</option>{/each}
           </select></label><label
           >{tr("С месяца", "Din luna")}<input
             required

@@ -1,37 +1,48 @@
-# OpenHaU 26.1 First Preview
+# OpenHaU 26.2
 
-An early offline billing workspace for small housing associations, with Russian
-and Romanian interfaces and configurable receipts.
+Windows x64 utility accounting with an account-oriented desktop workspace,
+document journals and configurable receipts.
 
-## Included
+## Changes
 
-- Accounts, services, dated tariffs, meter/manual quantities, payments and adjustments.
-- Closed charge snapshots and decimal arithmetic.
-- System, light and dark appearance.
-- Studio, Compact and Classic receipts with colours, logos and saved configurations.
-- SQLite storage, backups before saving an existing database, full JSON exchange,
-  monthly CSV summaries and printable HTML.
+- Account opening and closing documents, residents, service connections and
+  dated changes.
+- Individual/shared meter histories, monthly allocation exceptions and
+  resident-based waste charges.
+- Group payments, service allocations, tariff changes and dated administration
+  documents.
+- Account/service turnover reports and payment reports with filters, preview,
+  XLSX/CSV/HTML export and separate Windows PDF/print actions.
+- Nine receipt designs, an editable receipt canvas, saved logos, SVG tinting,
+  date formats and previous/current meter readings with dates and consumption.
+- File-based ODB saving, schema 1–3 migration to schema 4, password encryption
+  and a bundled local JSON-RPC API companion.
+- English language selection, editable translations, refreshed settings,
+  desktop widgets, menu positioning and notifications.
 
 ## Downloads
 
-- Windows x64 installer or standalone EXE; Microsoft Edge WebView2 is required.
-- Universal Intel/Apple Silicon DMG targeting macOS Monterey 12.6 or later.
-- SHA-256 checksums are attached to the release.
+Choose the Windows installer or the standalone executable. The installer includes
+a multilingual Quick Start Guide and an optional API companion. WebView2 is
+required; Node.js is needed only for the API companion.
 
-The Mac preview is unsigned and not notarized. A download quarantine flag can
-block first launch. Monterey launch and a superficial check were reported
-successful after app-specific quarantine removal; full acceptance is pending.
-See the user guide for diagnostics instead of disabling system protection.
+Windows installation is per user and does not require administrator privileges.
+The installer has an updater package signature. This is separate from a Windows
+Authenticode certificate.
 
-## Limitations
+## Compatibility and limits
 
-This is a preview for evaluation and parallel reconciliation, not certified
-accounting software. There is no general legacy importer, automatic common-area
-allocation, regulated reporting, turnover/balance report suite, custom layout
-editor or automatic updater. PDF uses the system print dialog.
+Saved databases use schema 4. Older versions that do not support this schema
+cannot reopen them. Keep a pre-upgrade copy. Earlier backups may remain
+unencrypted after enabling a password. Password recovery and biometric unlocking
+are not included.
 
-The Mac icon currently appears oversized. The Windows PDF download-panel fix
-still requires a complete post-save regression check.
+Some legacy labels still need translation. Long/custom receipts and physical
+printers require layout review. macOS 26.2 and direct macOS PDF export are not
+part of this Windows package. The prior 26.1 Mac preview remains available in
+its existing release.
 
-[User guide](https://github.com/OldschoolNetwork/open-hau/blob/main/docs/guide/index.md)
-and [known limitations](https://github.com/OldschoolNetwork/open-hau/blob/main/docs/guide/troubleshooting.md).
+Automated checks cover 120 tests, frontend diagnostics and native compilation.
+They do not establish full accounting or target-device acceptance. The Windows
+signed update feed is published separately; end-to-end installation of a later
+update has not yet been verified.

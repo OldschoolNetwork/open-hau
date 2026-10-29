@@ -1,4 +1,5 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
   import { translator } from "./i18n";
   import { onMount } from "svelte";
   import {
@@ -9,9 +10,9 @@
     chooseBackupDirectory,
     backupNow,
   } from "./storage";
-  export let language: "ru" | "ro";
+  export let language: "ru" | "ro"|"en";
   export let unsaved = false;
-  $: tr = translator(language);
+  $: tr = translator(language,$languageOverrides);
   let directory: string | null = null,
     error = "",
     message = "",

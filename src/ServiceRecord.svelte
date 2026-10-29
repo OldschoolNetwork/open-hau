@@ -1,9 +1,10 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
  import {onDestroy} from "svelte";import {reportEditorDirty} from "./editor-drafts";
  export let editorId="";
  import {projectSchema,uid,type Project} from './model';import ServiceEditor from './ServiceEditor.svelte';import type {ReferenceKind} from './catalog-definitions';import {translator} from './i18n';import {Save,Check,X} from '@lucide/svelte';
  export let project:Project;export let initial:Project['services'][number]|null=null;export let onapply:(p:Project)=>void;export let onclose:()=>void;export let onreference:(kind:ReferenceKind)=>void;export let ontariffs:(id:string)=>void;
- let draft:Project['services'][number]=initial?structuredClone(initial):{id:uid(),name:{ru:'',ro:''},calculation_type:'fixed',unit:'',active:true,default_quantity:'1',notes:''},error='';$:t=translator(project.settings.language);
+ let draft:Project['services'][number]=initial?structuredClone(initial):{id:uid(),name:{ru:'',ro:''},calculation_type:'fixed',unit:'',active:true,default_quantity:'1',notes:''},error='';$:t=translator(project.settings.language,$languageOverrides);
  function save(close=false){try{const record=structuredClone(draft);record.name.ru=record.name.ru||record.name.ro;record.name.ro=record.name.ro||record.name.ru;const next=structuredClone(project),i=next.services.findIndex(s=>s.id===record.id);if(i<0)next.services.push(record);else next.services[i]=record;onapply(projectSchema.parse(next));draft=record;error='';savedDraft=JSON.stringify(draft);reportEditorDirty(editorId,false);if(close)onclose();return true;}catch(e){error=e instanceof Error?e.message:String(e);return false;}}
  let savedDraft=JSON.stringify(draft);
  $:reportEditorDirty(editorId,!project.services.some(s=>s.id===draft.id)||JSON.stringify(draft)!==savedDraft);

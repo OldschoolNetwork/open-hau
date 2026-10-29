@@ -1,3 +1,4 @@
+import {uiText} from "./english";
 import type {
   Project,
   CashTransaction,
@@ -34,9 +35,7 @@ export function treasuryReport(p: Project, from: string, to: string) {
     new Date(value + "T00:00:00Z").toISOString().slice(0, 10) === value;
   if (!validDate(from) || !validDate(to) || from > to)
     throw Error(
-      p.settings.language === "ru"
-        ? "Укажите корректный диапазон дат"
-        : "Indicați un interval corect de date",
+      uiText("Укажите корректный диапазон дат","Indicați un interval corect de date",p.settings.language),
     );
   const transactions = p.treasury.transactions.filter((tx) => tx.date <= to);
   const wallets = p.treasury.wallets
@@ -147,9 +146,7 @@ export function saveTreasuryItem(
         (item.opening_date <= lock || (old && old.opening_date <= lock))))
   )
     throw Error(
-      p.settings.language === "ru"
-        ? "Начальные данные защищены: есть операции или зафиксированная история. Название и активность можно изменить."
-        : "Datele inițiale sunt protejate: există operațiuni sau istoric blocat. Denumirea și starea activă pot fi modificate.",
+      uiText("Начальные данные защищены: есть операции или зафиксированная история. Название и активность можно изменить.","Datele inițiale sunt protejate: există operațiuni sau istoric blocat. Denumirea și starea activă pot fi modificate.",p.settings.language),
     );
   if (index < 0) items.push(structuredClone(item));
   else items[index] = structuredClone(item);
@@ -165,9 +162,7 @@ export function applyCashTransaction(p: Project, tx: CashTransaction) {
     lock = p.treasury.locked_through;
   if (lock && (tx.date <= lock || (old && old.date <= lock)))
     throw Error(
-      p.settings.language === "ru"
-        ? "Финансовый журнал за эту дату зафиксирован"
-        : "Registrul financiar pentru această dată este blocat",
+      uiText("Финансовый журнал за эту дату зафиксирован","Registrul financiar pentru această dată este blocat",p.settings.language),
     );
   const next = structuredClone(p),
     index = next.treasury.transactions.findIndex((x) => x.id === tx.id);

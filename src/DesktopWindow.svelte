@@ -1,11 +1,13 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
+ import {uiText} from "./english";
   import {Minus,Square,X} from "@lucide/svelte";
   import {commandIcon} from "./desktop-icons";
   import {onMount,tick} from "svelte";
   import {fitWindow} from "./window-bounds";
   export let id: string,
     title: string,
-    language: "ru" | "ro",
+    language: "ru" | "ro"|"en",
     active = false,
     hidden = false,
     minimized = false,
@@ -114,18 +116,14 @@
     >
     <div class="desktop-window-actions">
       <button
-        aria-label={language === "ru"
-          ? "Свернуть окно"
-          : "Minimizare fereastră"}
+        aria-label={uiText("Свернуть окно","Minimizare fereastră",language,$languageOverrides)}
         onclick={onminimize}><Minus size={15}/></button
       ><button
-        aria-label={language === "ru"
-          ? "Развернуть / восстановить окно"
-          : "Maximizare / restaurare fereastră"}
+        aria-label={uiText("Развернуть / восстановить окно","Maximizare / restaurare fereastră",language,$languageOverrides)}
         onclick={toggleMaximize}><Square size={13}/></button
       ><button
         class="window-close"
-        aria-label={language === "ru" ? "Закрыть окно" : "Închidere fereastră"}
+        aria-label={uiText("Закрыть окно","Închidere fereastră",language,$languageOverrides)}
         onclick={onclose}><X size={17}/></button
       >
     </div>
@@ -133,9 +131,7 @@
   <div class="desktop-window-content"><slot /></div>
   <button
     class="desktop-resize"
-    aria-label={language === "ru"
-      ? "Изменить размер окна"
-      : "Redimensionare fereastră"}
+    aria-label={uiText("Изменить размер окна","Redimensionare fereastră",language,$languageOverrides)}
     onpointerdown={(e) => {
       onfocus();
       if (!maximized) {

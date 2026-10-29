@@ -1,4 +1,5 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
  import {onDestroy} from 'svelte';import {reportEditorDirty} from './editor-drafts';import {projectSchema,uid,today,type Project} from './model';import {D} from './engine';import {previousPaymentMonth,type PaymentShare} from './payment-allocation';import PaymentAllocation from './PaymentAllocation.svelte';import AccountLookupField from './AccountLookupField.svelte';import {translator} from './i18n';import {Save,Check,X} from '@lucide/svelte';
  export let project:Project;export let kind:'payment'|'adjustment';export let initial:Project['payments'][number]|Project['adjustments'][number]|null=null;export let editorId:string;export let onapply:(p:Project)=>void;export let onclose:()=>void;
  const payment=initial as Project['payments'][number]|null;
@@ -17,7 +18,7 @@
  const state=()=>JSON.stringify({accountId,date,entered,period,amount,note,through,balancing,manual,manualAmount});
  let saved=state(),savedOnce=!!initial;
  $:currentState=JSON.stringify({accountId,date,entered,period,amount,note,through,balancing,manual,manualAmount});
- $:t=translator(project.settings.language);
+ $:t=translator(project.settings.language,$languageOverrides);
  $:reportEditorDirty(editorId,!savedOnce||currentState!==saved);
  onDestroy(()=>reportEditorDirty(editorId,false));
  function save(close=false){try{const next=structuredClone(project),month=kind==='payment'?date.slice(0,7):period,previous=kind==='payment'?(initial as Project['payments'][number])?.payment_date?.slice(0,7):(initial as Project['adjustments'][number])?.period;if(next.closed_periods.includes(month)||previous&&next.closed_periods.includes(previous))throw Error(t('Период закрыт.','Perioada este închisă.'));const account=next.accounts.find(a=>a.id===accountId);if(!account||month<account.opening_period)throw Error(t('Дата раньше открытия лицевого счёта.','Data precedă deschiderea contului.'));

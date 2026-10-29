@@ -1,3 +1,4 @@
+import {uiText} from "./english";
 import {reportRange,monthChargeEvents,chargeEventIndex} from './report-dates';
 import {accountOpenInMonth} from './account-lifecycle';
 import type { Project } from "./model";
@@ -42,14 +43,14 @@ export function accountBalanceReport(p: Project, from: string, to: string,attent
             warnings.add(`${month}: ${warning}`);
         } else if (month < p.settings.period&&!postedOnly) {
           warnings.add(
-            `${month}: ${p.settings.language === "ru" ? "у закрытого счёта нет сохранённого начисления" : "contul închis nu are un calcul păstrat"}`,
+            `${month}: ${uiText("у закрытого счёта нет сохранённого начисления","contul închis nu are un calcul păstrat",p.settings.language)}`,
           );
         }
         adjustments = adjustments.plus(s.adjustment);
         paid = paid.plus(s.paid);
         if (s.gaps.length)
           warnings.add(
-            `${month}: ${p.settings.language === "ru" ? "пропущена закрытая история" : "istoricul închis lipsește"} ${s.gaps.join(", ")}`,
+            `${month}: ${uiText("пропущена закрытая история","istoricul închis lipsește",p.settings.language)} ${s.gaps.join(", ")}`,
           );
       }
       // Move only dated boundary transactions; complete-month results remain unchanged.

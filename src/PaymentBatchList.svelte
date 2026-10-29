@@ -1,4 +1,5 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
  import type {Project,PaymentBatch} from './model';
  import {uid,today} from './model';
  import {previousPaymentMonth} from './payment-allocation';
@@ -12,7 +13,7 @@
  export let beforeChange:(id:string)=>Promise<boolean>=async()=>true;
  export let onmovements:(id:string)=>void;
  let selected='',filterOpen=false,search='',state='all',error='';
- $:t=translator(project.settings.language);
+ $:t=translator(project.settings.language,$languageOverrides);
  $:current=project.payment_batches.find(b=>b.id===selected);
  $:rows=[...project.payment_batches].reverse().filter(b=>(state==='all'||b.state===state)&&[b.number,b.method,b.comment,b.date].join(' ').toLocaleLowerCase().includes(search.toLocaleLowerCase()));
  function create(){onedit({id:uid(),number:String(project.payment_batches.length+1),date:today(),billing_through:previousPaymentMonth(today()),balancing_service_id:project.settings.payment_balancing_service_id||'',method:'',comment:'',state:'draft',rows:[]});}

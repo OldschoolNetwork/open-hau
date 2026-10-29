@@ -1,4 +1,5 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
   import {displayDate,displayPeriod} from "./date-format";
   import { translator } from "./i18n";
   import { ZodError } from "zod";
@@ -29,7 +30,7 @@
     itemKind: "wallets" | "funds" = "wallets",
     lockDate = "",
     linkPeriod = project.settings.period;
-  $: tr = translator(project.settings.language);
+  $: tr = translator(project.settings.language,$languageOverrides);
   $: operationLabels = {
       income: tr("Поступление", "Încasare"),
       expense: tr("Расход", "Cheltuială"),

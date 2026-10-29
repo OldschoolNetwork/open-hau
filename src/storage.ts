@@ -1,3 +1,4 @@
+import {withDatabasePassword} from "./password-prompt";
 import {databaseFileFilters} from './database-format';
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { open, save, confirm } from "@tauri-apps/plugin-dialog";
@@ -28,8 +29,8 @@ export async function load() {
     : JSON.parse(localStorage.getItem(browserStorageKey(browserDatabase)) || "null");
   return value ? projectSchema.parse(value) : null;
 }
-export async function persist(p: Project, reason: "save" | "close" = "save") {
-  const data = projectSchema.parse(p);
+export async function persist(p: Project, reason: "save" | "close" = "save",validated=false) {
+  const data = validated?p:projectSchema.parse(p);
   if (native) {
     const result = await invoke<{
       path: string;
@@ -148,7 +149,7 @@ export async function importJson() {
       multiple: false,
       filters: databaseFileFilters,
     });
-    return path ? await invoke("read_json_file", { path }) : null;
+    return typeof path==='string' ? await withDatabasePassword(path,()=>invoke("read_json_file", { path })) : null;
   }
   return await new Promise<unknown>((resolve, reject) => {
     const input = document.createElement("input");

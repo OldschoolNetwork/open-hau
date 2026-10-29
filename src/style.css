@@ -1216,3 +1216,7 @@ hr {
     zoom: 1;
   }
 }
+
+select{padding-right:36px!important;background-position:right 12px center!important}.record-toolbar,.line-tools{position:sticky;top:0;z-index:12;background:var(--surface);backdrop-filter:blur(20px)}.record-toolbar~.table-wrap{max-height:calc(100vh - 235px);overflow:auto}.table-wrap thead th{position:sticky;top:0;z-index:2;background:var(--surface)}
+
+.welcome-manual-backdrop{position:fixed;inset:0;z-index:25000;background:var(--surface);overflow:auto}.welcome-manual-backdrop>section>header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;position:sticky;top:0;background:var(--surface);z-index:1}.welcome-manual-backdrop h2{margin:0;font-size:20px}

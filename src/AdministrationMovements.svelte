@@ -1,7 +1,8 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
  import type {Project} from './model';import type {AdministrationDocument} from './administration-schema';import {displayDate} from './date-format';import {D,money} from './engine';import {translator} from './i18n';
  export let project:Project;export let doc:AdministrationDocument;
- $:t=translator(project.settings.language);$:records=movements();
+ $:t=translator(project.settings.language,$languageOverrides);$:records=movements();
  function movements(){if(doc.state!=='applied')return [];const before=JSON.parse(doc.before||'{}'),after=JSON.parse(doc.after||'{}'),rows:{kind:string;account:string;service:string;date:string;value:string}[]=[];
   const add=(kind:string,account:string,service:string,date:string,value:string)=>rows.push({kind,account,service,date,value});
   if(doc.imported){

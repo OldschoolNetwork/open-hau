@@ -13,7 +13,9 @@ mod backups;
 mod report_files;
 mod databases;
 mod portable;
+mod encrypted;
 mod pdf_export;
+mod printing;
 #[cfg(test)]
 mod report_files_tests;
 
@@ -64,7 +66,7 @@ fn validate(value: &Value) -> Result<(), String> {
     if value.get("format").and_then(Value::as_str) != Some("openhau")
         || !matches!(
             value.get("schema_version").and_then(Value::as_u64),
-            Some(1 | 2 | 3)
+            Some(1 | 2 | 3 | 4)
         )
     {
         return Err("Неподдерживаемый формат или версия данных OpenHaU".into());
@@ -103,10 +105,13 @@ fn load_project(storage: tauri::State<Storage>) -> Result<Option<Value>, String>
 }
 
 #[tauri::command]
-fn save_project(value: Value, storage: tauri::State<Storage>) -> Result<Value, String> {
+async fn save_project(value:Value,app:tauri::AppHandle)->Result<Value,String>{
+ tauri::async_runtime::spawn_blocking(move||{let storage=app.state::<Storage>();
     let _guard = storage.lock.lock().map_err(|e| e.to_string())?;
     if let Some(path)=databases::linked_path(&storage)?{return portable::save(&storage,&path,value,&databases::current(&storage)?);}
     save_with_copy(value, &databases::current(&storage)?)
+
+ }).await.map_err(|e|e.to_string())?
 }
 
 fn save_with_copy(value: Value, root: &PathBuf) -> Result<Value, String> {
@@ -219,16 +224,7 @@ fn save_value(value: Value, root: &PathBuf) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn read_json_file(path: String) -> Result<Value, String> {
-    if fs::metadata(&path).map_err(|e| e.to_string())?.len() > 64 * 1024 * 1024 {
-        return Err("Файл больше 64 МБ".into());
-    }
-    let content = fs::read_to_string(path).map_err(|e| e.to_string())?;
-    let value: Value =
-        serde_json::from_str(content.trim_start_matches('\u{feff}')).map_err(|e| e.to_string())?;
-    validate(&value)?;
-    Ok(value)
-}
+fn read_json_file(path:String)->Result<Value,String>{Ok(portable::read(std::path::Path::new(&path))?.0)}
 
 #[tauri::command]
 fn write_text_file(path: String, content: String) -> Result<(), String> {
@@ -294,8 +290,11 @@ fn notification_sound() -> Result<(), String> {
     unsafe {
         use windows::Win32::UI::WindowsAndMessaging::MB_OK;
         use windows::Win32::System::Diagnostics::Debug::MessageBeep;
-        use windows::Win32::Media::Audio::{PlaySoundW,SND_ALIAS,SND_ASYNC,SND_SYSTEM};
-        if !PlaySoundW(windows::core::w!("Notification.Default"),None,SND_ALIAS|SND_ASYNC|SND_SYSTEM).as_bool(){MessageBeep(MB_OK).map_err(|e|e.to_string())?;}
+        use windows::Win32::Media::Audio::{PlaySoundW,SND_FILENAME,SND_ASYNC};
+        let folder=PathBuf::from(std::env::var_os("WINDIR").unwrap_or_else(||"C:\\Windows".into())).join("Media");
+        let tone=["Windows Notify System Generic.wav","Windows Notify.wav","Windows Notify Calendar.wav"].iter().map(|name|folder.join(name)).find(|path|path.is_file());
+        let played=if let Some(tone)=tone{let path=windows::core::HSTRING::from(tone.to_string_lossy().as_ref());PlaySoundW(windows::core::PCWSTR(path.as_ptr()),None,SND_FILENAME|SND_ASYNC).as_bool()}else{false};
+        if !played{MessageBeep(MB_OK).map_err(|e|e.to_string())?;}
     }
     #[cfg(target_os = "macos")]
     std::process::Command::new("/usr/bin/afplay")
@@ -331,6 +330,8 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let window_config=&app.config().app.windows[0];
             app.manage(WorkspaceSize(Mutex::new(Some((tauri::LogicalSize::new(window_config.width,window_config.height).into(),false)))));
@@ -367,6 +368,8 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            printing::available_printers,printing::print_document,
+            encrypted::unlock_database_file,encrypted::forget_database_passwords,encrypted::database_protection,encrypted::change_database_password,
             load_project,
             save_project,
             read_json_file,

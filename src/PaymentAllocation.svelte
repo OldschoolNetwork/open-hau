@@ -1,4 +1,6 @@
 <script lang="ts">
+import {translatedName,languageOverrides} from './localization';
+
   import type {Project} from "./model";
   import {D} from "./engine";
   import {allocatePayment,paymentServiceDebts,type PaymentShare} from "./payment-allocation";
@@ -31,7 +33,7 @@
   <legend>{ru?"Расшифровка платежа":"Repartizarea plății"}</legend>
   <div class="two-fields">
     <label>{ru?"Долг по месяц включительно":"Datorie până la luna inclusiv"}<input type="month" bind:value={through}/></label>
-    <label>{ru?"Обслуживание дома · услуга для разницы":"Deservirea blocului · serviciul diferenței"}<select bind:value={balancingServiceId}><option value="">{ru?"Выберите услугу":"Selectați serviciul"}</option>{#each project.services as s}<option value={s.id}>{s.name[project.settings.language]}</option>{/each}</select></label>
+    <label>{ru?"Обслуживание дома · услуга для разницы":"Deservirea blocului · serviciul diferenței"}<select bind:value={balancingServiceId}><option value="">{ru?"Выберите услугу":"Selectați serviciul"}</option>{#each project.services as s}<option value={s.id}>{translatedName(s.name,project.settings.language,$languageOverrides)}</option>{/each}</select></label>
   </div>
   <p class="quiet-note">{ru?"Автоматически — пропорционально положительному долгу. Переплата сверх долга относится на обслуживание дома. Уже внесённые оплаты учитываются по дату платежа.":"Automat — proporțional datoriei pozitive. Excedentul se atribuie deservirii blocului. Plățile anterioare sunt luate în calcul până la data plății."}</p>
   <label class="check-row"><input type="checkbox" bind:checked={manual} onchange={()=>signature=""}/>{ru?"Указать часть оплаты за обслуживание вручную":"Indicați manual plata deservirii"}</label>

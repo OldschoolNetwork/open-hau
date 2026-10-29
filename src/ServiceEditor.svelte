@@ -1,14 +1,16 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
+ import {uiLabel} from "./english";
  import type {Project} from "./model";import {translator} from "./i18n";import {displayDate} from "./date-format";import {Layers3,ReceiptText,Gauge,Plus,Trash2,Save} from "@lucide/svelte";
  export let project:Project;export let draft:any;export let ontariffs:()=>void;
  import ReferencePicker from "./ReferencePicker.svelte";import type {ReferenceKind} from "./catalog-definitions";
  export let onreference:(kind:ReferenceKind)=>void;
- let tab="main",meterType="";$:t=translator(project.settings.language);$:language=project.settings.language;
+ let tab="main",meterType="";$:t=translator(project.settings.language,$languageOverrides);$:language=project.settings.language;
  const tabs=[{id:"main",ru:"Основное",ro:"General",icon:Layers3},{id:"tariffs",ru:"Тарифы",ro:"Tarife",icon:ReceiptText},{id:"meters",ru:"Приборы учёта",ro:"Contoare",icon:Gauge}];
 </script>
 <div class="service-editor">
  <label class="service-field">{t("Наименование","Denumire")}<input bind:value={draft.name[language]}/></label>
- <div class="service-tabs" role="tablist" aria-label={t("Карточка услуги","Fișa serviciului")}>{#each tabs as item}<button type="button" role="tab" aria-selected={tab===item.id} onclick={()=>tab=item.id}><item.icon size={16}/>{item[language]}</button>{/each}</div>
+ <div class="service-tabs" role="tablist" aria-label={t("Карточка услуги","Fișa serviciului")}>{#each tabs as item}<button type="button" role="tab" aria-selected={tab===item.id} onclick={()=>tab=item.id}><item.icon size={16}/>{uiLabel(item,language,$languageOverrides)}</button>{/each}</div>
  <div class="service-tab-content" role="tabpanel">
  {#if tab==="main"}
   <div class="service-field"><span>{t("Вид услуги","Tip de serviciu")}</span><ReferencePicker {project} kind="service-types" bind:value={draft.service_type} onopen={onreference}/></div>

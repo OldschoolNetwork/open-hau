@@ -1,11 +1,14 @@
 <script lang="ts">
+import {translatedName} from './localization';
+
+ import {languageOverrides} from "./localization";
  import {Search,X} from '@lucide/svelte';import {translator} from './i18n';
  import AccountList from "./AccountList.svelte";
  import RecordToolbar from './RecordToolbar.svelte';import type {Project} from './model';
  import type {ReportLookupRequest} from './report-settings';
- export let project:Project;export let onmanage:(action:'add'|'copy'|'edit'|'mark',kind:NonNullable<ReportLookupRequest['kind']>,id?:string)=>void;export let request:ReportLookupRequest;export let language:'ru'|'ro';export let onclose:()=>void;
- let query='',selected=[...request.selected],current=request.selected[0]||'';$:t=translator(language);
- $:liveItems=request.kind==='accounts'?project.accounts.map(a=>({id:a.id,code:a.number,name:a.payer_name,address:a.address})):request.kind==='services'?project.services.map((s,i)=>({id:s.id,code:String(s.report_order??i+1),name:s.name[language]})):request.kind?(project.reference_catalogs[request.kind]||[]).map(r=>({id:r.id,code:r.code,name:r.name})):request.items;
+ export let project:Project;export let onmanage:(action:'add'|'copy'|'edit'|'mark',kind:NonNullable<ReportLookupRequest['kind']>,id?:string)=>void;export let request:ReportLookupRequest;export let language:'ru'|'ro'|"en";export let onclose:()=>void;
+ let query='',selected=[...request.selected],current=request.selected[0]||'';$:t=translator(language,$languageOverrides);
+ $:liveItems=request.kind==='accounts'?project.accounts.map(a=>({id:a.id,code:a.number,name:a.payer_name,address:a.address})):request.kind==='services'?project.services.map((s,i)=>({id:s.id,code:String(s.report_order??i+1),name:translatedName(s.name,language,$languageOverrides)})):request.kind?(project.reference_catalogs[request.kind]||[]).map(r=>({id:r.id,code:r.code,name:r.name})):request.items;
  $:matches=liveItems.filter(r=>(r.code+' '+r.name+' '+('address' in r?r.address||'':'')).toLocaleLowerCase().includes(query.toLocaleLowerCase()));
  function choose(id:string){selected=request.multiple?(selected.includes(id)?selected.filter(v=>v!==id):[...selected,id]):[id];request.onchoose(selected);if(!request.multiple)onclose();}
 </script>

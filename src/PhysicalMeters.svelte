@@ -1,4 +1,7 @@
 <script lang="ts">
+import {translatedName} from './localization';
+
+ import {languageOverrides} from "./localization";
   import {onDestroy} from "svelte";import {reportEditorDirty} from "./editor-drafts";
   export let editorId="";
   import {displayDate,displayPeriod} from "./date-format";
@@ -29,7 +32,7 @@
   let meter: PhysicalMeter | null = initialMeter?structuredClone(initialMeter):null,
     reading: PhysicalMeterValue | null = initialReading?structuredClone(initialReading):null,
     error = "";
-  $: tr = translator(project.settings.language);
+  $: tr = translator(project.settings.language,$languageOverrides);
   function newMeter() {
     meter = {
       id: uid(),
@@ -162,7 +165,7 @@
             required
             bind:value={meter.service_id}
             >{#each project.services as s}<option value={s.id}
-                >{s.name[project.settings.language]}</option
+                >{translatedName(s.name,project.settings.language,$languageOverrides)}</option
               >{/each}</select
           ></label
         >

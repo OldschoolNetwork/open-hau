@@ -1,4 +1,4 @@
-type Language = "ru" | "ro";
+type Language = "ru" | "ro"|"en";
 const messages: Record<string, [string, string]> = {
   "Duplicate reference catalog records":["Повторяющиеся записи справочника","Înregistrări duplicate în catalog"],
   "Unknown reference catalog link":["Связанная запись справочника не найдена","Înregistrarea asociată a catalogului nu a fost găsită"],

@@ -1,7 +1,9 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
+ import {uiText} from "./english";
  import {rememberNotification} from './notification-history';
  import {onMount,onDestroy} from "svelte";import {CheckCircle2,TriangleAlert,X,ChevronDown} from "@lucide/svelte";import {invoke} from "@tauri-apps/api/core";import {native} from "./storage";import {notificationPreferences,loadNotificationPreferences} from "./notification-settings";
- export let notice="",error="",language:"ru"|"ro"="ru";
+ export let notice="",error="",language:"ru"|"ro"|"en"="ru";
  export let onnotice:()=>void=()=>{};
  type Toast={id:number;text:string;error:boolean;expanded:boolean;timer:ReturnType<typeof setTimeout>|null;remaining:number;until:number;paused:boolean;duration:number};
  let items:Toast[]=[],counter=0,lastNotice="",lastError="",lastSound=0;
@@ -14,9 +16,9 @@
  $: if(error!==lastError){lastError=error;if(error)add(error,true);}
  onDestroy(()=>items.forEach(item=>{if(item.timer)clearTimeout(item.timer);}));
 </script>
-<div class="notification-stack no-print" class:no-animation={!$notificationPreferences.animation} aria-label={language==="ru"?"Уведомления":"Notificări"}>
+<div class="notification-stack no-print" class:no-animation={!$notificationPreferences.animation} aria-label={uiText("Уведомления","Notificări",language,$languageOverrides)}>
  {#each items as item (item.id)}<section class="app-toast" class:error={item.error} class:paused={item.paused} role={item.error?"alert":"status"} onpointerenter={()=>pause(item)} onpointerleave={()=>resume(item)} style:--duration={item.duration+"ms"}>
- <div class="toast-icon">{#if item.error}<TriangleAlert size={24}/>{:else}<CheckCircle2 size={24}/>{/if}</div><div class="toast-content"><strong>OpenHaU · {item.error?(language==="ru"?"Требует внимания":"Necesită atenție"):(language==="ru"?"Уведомление":"Notificare")}</strong><p>{item.expanded?item.text:item.text.slice(0,180)}{!item.expanded&&item.text.length>180?"…":""}</p>{#if item.error||item.text.length>180}<button onclick={()=>{item.expanded=!item.expanded;items=[...items];}}><ChevronDown size={15}/>{language==="ru"?"Подробности":"Detalii"}</button>{/if}</div><button class="toast-close" aria-label={language==="ru"?"Закрыть уведомление":"Închide notificarea"} onclick={()=>dismiss(item.id)}><X size={17}/></button>{#if item.duration}<div class="toast-progress"></div>{/if}
+ <div class="toast-icon">{#if item.error}<TriangleAlert size={24}/>{:else}<CheckCircle2 size={24}/>{/if}</div><div class="toast-content"><strong>OpenHaU · {item.error?(uiText("Требует внимания","Necesită atenție",language,$languageOverrides)):(uiText("Уведомление","Notificare",language,$languageOverrides))}</strong><p>{item.expanded?item.text:item.text.slice(0,180)}{!item.expanded&&item.text.length>180?"…":""}</p>{#if item.error||item.text.length>180}<button onclick={()=>{item.expanded=!item.expanded;items=[...items];}}><ChevronDown size={15}/>{uiText("Подробности","Detalii",language,$languageOverrides)}</button>{/if}</div><button class="toast-close" aria-label={uiText("Закрыть уведомление","Închide notificarea",language,$languageOverrides)} onclick={()=>dismiss(item.id)}><X size={17}/></button>{#if item.duration}<div class="toast-progress"></div>{/if}
  </section>{/each}
 </div>
 <style>

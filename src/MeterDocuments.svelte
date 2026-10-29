@@ -1,4 +1,7 @@
 <script lang="ts">
+import {translatedName} from './localization';
+
+ import {languageOverrides} from "./localization";
  import {onDestroy} from 'svelte';
  import {reportEditorDirty} from './editor-drafts';
  import {uid,today,type Project} from './model';
@@ -12,7 +15,7 @@
  export let editorId='';export let project:Project;export let kind:MeterDocument['kind'];export let initial:MeterDocument|null=null;
  export let onapply:(p:Project)=>void;export let onedit:(d:MeterDocument)=>void;export let onclose:()=>void;
  let draft=initial?structuredClone(initial):null,selected='',selectedRow='',error='',filterOpen=false,query='',service='';
- $:t=translator(project.settings.language);$:locked=draft?.state==='applied';
+ $:t=translator(project.settings.language,$languageOverrides);$:locked=draft?.state==='applied';
  $:allDocuments=meterDocumentHistory(project,kind);
  $:documents=allDocuments.filter(d=>(d.number+' '+d.comment+' '+d.date).toLocaleLowerCase().includes(query.toLocaleLowerCase()));
  $:current=allDocuments.find(d=>d.id===selected);
@@ -45,7 +48,7 @@
     <button title={t('Добавить','Adaugă')} onclick={add}><Plus size={17}/></button><button disabled={!selectedRow} title={t('Копировать строку','Copiază rândul')} onclick={copyRow}><Copy size={17}/></button><button disabled={!selectedRow} title={t('Удалить строку','Elimină rândul')} onclick={()=>{if(draft)draft.rows=draft.rows.filter(r=>r.id!==selectedRow);selectedRow='';}}><Trash2 size={17}/></button>
     <button disabled={!selectedRow} title={t('Вверх','Sus')} onclick={()=>move(-1)}><ArrowUp size={17}/></button><button disabled={!selectedRow} title={t('Вниз','Jos')} onclick={()=>move(1)}><ArrowDown size={17}/></button>
     <button onclick={pick}><Users size={16}/>{t('Подбор','Selectare')}</button><button onclick={()=>addMeters()}><Plus size={16}/>{t('Заполнить','Completează')}</button><button onclick={()=>{if(draft)draft.rows=[];selectedRow='';}}><X size={16}/>{t('Очистить','Golește')}</button>
-    <label class="service-filter">{t('Услуга','Serviciu')}<select bind:value={service}><option value="">{t('Все','Toate')}</option>{#each project.services as s}<option value={s.id}>{s.name[project.settings.language]}</option>{/each}</select></label>
+    <label class="service-filter">{t('Услуга','Serviciu')}<select bind:value={service}><option value="">{t('Все','Toate')}</option>{#each project.services as s}<option value={s.id}>{translatedName(s.name,project.settings.language,$languageOverrides)}</option>{/each}</select></label>
    </div>
   </fieldset>
   <div class="table-wrap readings-table"><table><thead><tr><th>№</th><th>{t('Лицевой счёт','Cont personal')}</th><th>{t('Прибор учёта','Contor')}</th>{#if kind==='status'}<th>{t('Подключён','Conectat')}</th>{:else}<th>{t('Предыдущее показание','Index precedent')}</th><th>{t('Показание','Index')}</th><th>{t('Разница','Diferență')}</th><th>{t('Дата показания','Data indexului')}</th>{/if}</tr></thead><tbody>

@@ -1,7 +1,8 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
  import type {Project} from './model';import {displayDate} from './date-format';import {translator} from './i18n';
  export let project:Project;export let batchId:string;
- $:t=translator(project.settings.language);
+ $:t=translator(project.settings.language,$languageOverrides);
  $:batch=project.payment_batches.find(b=>b.id===batchId);
  $:rows=(batch?.rows||[]).flatMap(row=>{const payment=project.payments.find(p=>p.id===row.payment_id),shares=row.historical_shares||(payment?project.service_accounting.payments.filter(s=>s.payment_id===row.payment_id):[]);const account=project.accounts.find(a=>a.id===row.account_id);return shares.map(share=>({date:payment?.payment_date||batch!.date,correction:row.amount.startsWith('-'),account:account?.number||'',service:project.services.find(s=>s.id===share.service_id)?.name[project.settings.language]||share.service_id,amount:share.amount,payment:payment?.id||'—'}));});
 </script>

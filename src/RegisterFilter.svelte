@@ -2,7 +2,7 @@
  import type {RegisterFilterRequest} from './register-filter';
  import {openReportLookup} from './report-settings';
  import {Check,X,ListChecks} from '@lucide/svelte';
- export let request:RegisterFilterRequest;export let language:'ru'|'ro';export let onclose:()=>void;
+ export let request:RegisterFilterRequest;export let language:'ru'|'ro'|"en";export let onclose:()=>void;
  let filters=structuredClone(request.filters);
  const t=(ru:string,ro:string)=>language==='ru'?ru:ro;
  function choose(i:number){const filter=filters[i];openReportLookup({id:request.id+'-value-'+i,parentId:'registerfilter:'+request.id,label:request.labels[i],items:request.items[i].map((v,j)=>({id:v,code:String(j+1),name:v})),selected:filter.values,multiple:filter.comparison==='in'||filter.comparison==='not-in',onchoose:ids=>{filters[i]={...filter,enabled:true,values:ids};filters=[...filters];}});}

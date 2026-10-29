@@ -1,3 +1,4 @@
+import {uiText} from "./english";
 import {reportRange,monthChargeEvents,chargeEventIndex} from './report-dates';
 import {accountOpenInMonth} from './account-lifecycle';
 import type {Project} from "./model";
@@ -52,5 +53,5 @@ export function serviceBalanceReport(p:Project,from:string,to:string,serviceFilt
 }
 export function serviceReportCSV(p:Project,from:string,to:string,serviceFilter="",attentionOnly=false){
   const report=serviceBalanceReport(p,from,to,serviceFilter,attentionOnly);
-  return csv([p.settings.language==="ru"?["Услуга","Счёт","Плательщик","На начало","Начислено","Корректировки","Оплачено","На конец","Проверка"]:["Serviciu","Cont","Plătitor","Sold inițial","Calculat","Ajustări","Achitat","Sold final","Verificare"],...report.rows.map(r=>[r.service,r.number,r.payer,r.opening,r.charges,r.adjustments,r.paid,r.closing,r.warnings.join("; ")]),[p.settings.language==="ru"?"Итого, MDL":"Total, MDL","","",report.totals.opening,report.totals.charges,report.totals.adjustments,report.totals.paid,report.totals.closing,""]]);
+  return csv([p.settings.language==="ru"?["Услуга","Счёт","Плательщик","На начало","Начислено","Корректировки","Оплачено","На конец","Проверка"]:["Serviciu","Cont","Plătitor","Sold inițial","Calculat","Ajustări","Achitat","Sold final","Verificare"],...report.rows.map(r=>[r.service,r.number,r.payer,r.opening,r.charges,r.adjustments,r.paid,r.closing,r.warnings.join("; ")]),[uiText("Итого, MDL","Total, MDL",p.settings.language),"","",report.totals.opening,report.totals.charges,report.totals.adjustments,report.totals.paid,report.totals.closing,""]]);
 }

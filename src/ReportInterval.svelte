@@ -1,7 +1,8 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
  import {translator} from './i18n';import {intervalRange,type IntervalRequest,type IntervalChoice} from './report-interval';import {Check,X} from '@lucide/svelte';
- export let request:IntervalRequest;export let language:'ru'|'ro';export let onclose:()=>void;
- const initial=request.to.slice(0,7)||request.current;let choice:IntervalChoice={mode:'month',year:Number(initial.slice(0,4)),quarter:Math.ceil(Number(initial.slice(5,7))/3),month:Number(initial.slice(5,7)),day:request.to,yearToDate:false,quarterToDate:false,monthToDate:false};let error='';$:t=translator(language);$:range=(()=>{try{return intervalRange(choice,request.current);}catch{return null;}})();
+ export let request:IntervalRequest;export let language:'ru'|'ro'|"en";export let onclose:()=>void;
+ const initial=request.to.slice(0,7)||request.current;let choice:IntervalChoice={mode:'month',year:Number(initial.slice(0,4)),quarter:Math.ceil(Number(initial.slice(5,7))/3),month:Number(initial.slice(5,7)),day:request.to,yearToDate:false,quarterToDate:false,monthToDate:false};let error='';$:t=translator(language,$languageOverrides);$:range=(()=>{try{return intervalRange(choice,request.current);}catch{return null;}})();
  function apply(){if(!range){error=t('Укажите корректный интервал.','Indicați un interval valid.');return;}request.onapply(range.from,range.to);onclose();}
 </script>
 <div class="interval-dialog"><p>{t('Устанавливаемый интервал','Interval selectat')}: {range?range.from+' — '+range.to:'—'}</p><label class="check-row"><input type="radio" value="current" bind:group={choice.mode}/>{t('Текущий расчётный период','Perioada curentă de calcul')}</label>

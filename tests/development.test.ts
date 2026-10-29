@@ -18,7 +18,7 @@ test("schema 1 migrates without mutating or changing financial history", () => {
   const original = JSON.stringify(source);
   assert(legacyProjectSchema.safeParse(source).success);
   const migrated = projectSchema.parse(source);
-  assert.equal(migrated.schema_version, 3);
+  assert.equal(migrated.schema_version, 4);
   assert.deepEqual(migrated.meters, []);
   assert.deepEqual(migrated.meter_values, []);
   assert.deepEqual(migrated.accounts, source.accounts);

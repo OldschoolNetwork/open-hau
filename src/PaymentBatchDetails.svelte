@@ -1,4 +1,5 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
  import {onDestroy} from 'svelte';
  import {reportEditorDirty} from './editor-drafts';
  import type {Project} from './model';
@@ -11,7 +12,7 @@
  const original=request.batch.rows.find(r=>r.id===request.rowId)!;
  let amount=original.amount,automatic=original.source_automatic??original.manual_maintenance===null,manual=original.manual_maintenance||'',shares:PaymentShare[]=[],error='';
  const baseline=JSON.stringify({amount,automatic,manual});
- $:t=translator(project.settings.language);$:locked=request.batch.state==='applied';
+ $:t=translator(project.settings.language,$languageOverrides);$:locked=request.batch.state==='applied';
  $:account=project.accounts.find(a=>a.id===original.account_id);
  $:total=shares.reduce((sum,row)=>sum.plus(row.amount),D(0)).toFixed(2);
  $:reportEditorDirty(editorId,!locked&&JSON.stringify({amount,automatic,manual})!==baseline);

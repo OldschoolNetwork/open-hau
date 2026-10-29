@@ -1,10 +1,11 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
  import {Plus,X,ArrowUp,ArrowDown,Check,Save,Eraser} from '@lucide/svelte';import {translator} from './i18n';import ReportFilter from './ReportFilter.svelte';import type {ReportSettingsRequest} from './report-settings';
- export let request:ReportSettingsRequest;export let language:'ru'|'ro';export let onclose:()=>void;
+ export let request:ReportSettingsRequest;export let language:'ru'|'ro'|"en";export let onclose:()=>void;
  let tab:'filter'|'sort'='filter',filters=structuredClone(request.filters),sort=structuredClone(request.sort);
  let previousRequest=request;
  $: if(request!==previousRequest){filters=structuredClone(request.filters);sort=structuredClone(request.sort);previousRequest=request;}
- $:t=translator(language);
+ $:t=translator(language,$languageOverrides);
  function move(i:number,delta:number){const j=i+delta;if(j<0||j>=sort.length)return;const copy=[...sort];[copy[i],copy[j]]=[copy[j],copy[i]];sort=copy;}
  function save(close=false){request.onapply(structuredClone(filters),structuredClone(sort));if(close)onclose();}
 </script>

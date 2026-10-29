@@ -1,7 +1,8 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
  import {onDestroy} from 'svelte';import {Save,Check,X} from '@lucide/svelte';import {translator} from './i18n';import {projectSchema,type Project} from './model';import {reportEditorDirty} from './editor-drafts';
  export let project:Project;export let editorId:string;export let onapply:(p:Project)=>void;export let onclose:()=>void;
- let draft=structuredClone(project.organization),baseline=JSON.stringify(draft),error='';$:t=translator(project.settings.language);
+ let draft=structuredClone(project.organization),baseline=JSON.stringify(draft),error='';$:t=translator(project.settings.language,$languageOverrides);
  $:reportEditorDirty(editorId,JSON.stringify(draft)!==baseline);
  onDestroy(()=>reportEditorDirty(editorId,false));
  function save(close=false){try{const next=projectSchema.parse({...project,organization:draft});onapply(next);baseline=JSON.stringify(draft);error='';if(close)onclose();}catch(e){error=t('Проверьте название и реквизиты организации.','Verificați denumirea și datele organizației.');}}

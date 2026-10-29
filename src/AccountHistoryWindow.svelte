@@ -1,8 +1,9 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
  import type {Project} from './model';import {translator} from './i18n';import {displayDate} from './date-format';import {statusLabel,citizenName} from './account-data';import {entryConsumption} from './meter-entry';import {RefreshCw,X} from '@lucide/svelte';
  export let project:Project;export let accountId:string;export let type:string;export let subject='';export let onclose:()=>void;
  function formatEnd(value:string){return /^\d{4}-\d{2}-\d{2}$/.test(value)?displayDate(value,project):value;}
- $:t=translator(project.settings.language);let revision=0;
+ $:t=translator(project.settings.language,$languageOverrides);let revision=0;
  $:rows=(()=>{revision;const h=project.account_history,ro=project.settings.language==='ro';
  if(type==='holder')return h.holders.filter(r=>r.account_id===accountId).map(r=>[r.date,r.name||citizenName(project,r.citizen_id),'']);
  if(type==='registration'||type==='residence')return h.residents.filter(r=>r.account_id===accountId&&r.kind===type&&(!subject||r.citizen_id===subject)).map(r=>[r.from,statusLabel(r.status,type,ro),r.to||'']);

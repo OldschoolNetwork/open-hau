@@ -1,34 +1,45 @@
 # Releases and updates
 
-## 26.1 Preview
+## Windows 26.2
 
-Updates are installed manually. The application does not poll GitHub in the
-background. Its releases link opens the release page in the system browser.
+Update settings provide a manual check, an optional startup check and a prompt
+when a newer version is available. Downloads are verified against the public
+updater key embedded in the application. Installing an update requires saving
+or discarding current edits first. Offline accounting remains available when
+the update service cannot be reached.
 
-Manual dispatch of `.github/workflows/build.yml` builds Windows and universal
-macOS artifacts. Artifact generation is separate from publishing a checked
-release. Mac distribution still needs complete target-system testing and Apple
-Developer ID signing/notarization.
+The release feed is the `latest.json` asset on the latest GitHub Release. It
+contains the version, release date and platform-specific installer URL and
+signature. A signature authenticates the installer; it does not establish
+accounting correctness or replace a Windows Authenticode certificate.
+End-to-end installation of a later update still requires target-device testing.
 
-## Planned updater design
+## Building and signing
 
-1. Use this repository's GitHub Releases and a signed update manifest.
-2. Keep stable and preview channels distinct. Product versions begin with the two-digit year; technical package versions use compatible three-part version strings.
-3. Verify update package signatures with a public key shipped in the app. Keep private signing material out of source and application binaries.
-4. Make checks and installation user-controlled. Offline work must remain usable without the update service.
-5. Save changes and create a consistent database backup before installation or migration.
-6. Run explicit versioned schema migrations in transactions. Reject unsupported newer schemas without writing.
-7. Keep application installation separate from database storage.
+Normal release builds generate updater artifacts. Supply
+`TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` through the
+environment. Never commit private keys or passwords. Only the public verification
+key belongs in the application configuration.
 
-A Tauri updater signing key and an Apple Developer ID certificate have different
-purposes. The preview does not simulate a secure updater by downloading arbitrary
-unsigned executables.
+For local/CI builds without updater signing artifacts, add
+`--config src-tauri/tauri.ci.conf.json`. Manual GitHub Actions builds use this
+configuration; generating an artifact is separate from publishing a release.
+
+## macOS and older versions
+
+26.1 Preview updates are installed manually. Its releases link opens the browser;
+that version does not poll the update feed. Its existing universal Mac preview
+targets Monterey 12.6 or later and is unsigned and not notarized.
+
+The Windows 26.2 release does not include a macOS 26.2 installer. A Tauri updater
+key and an Apple Developer ID certificate have different purposes. macOS release
+verification, signing and notarization remain separate steps.
 
 ## Database compatibility
 
-A newer release must retain a tested path from supported older databases.
-An older application may reject a newer schema; it must not overwrite it.
-Restoring the older application after migration requires restoring the matching
-pre-migration backup, not simply replacing the executable.
+A newer release retains a migration path from supported older databases.
+An older application may reject a newer schema and must not overwrite it.
+Restoring an older application after migration requires the matching
+pre-migration database backup. Application updates do not replace database backups.
 
 [Tauri updater documentation](https://v2.tauri.app/plugin/updater/)

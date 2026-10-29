@@ -1,11 +1,13 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
+ import {uiLabel} from "./english";
  import {onMount,tick} from 'svelte';import {Search,Bell,X,GripVertical,ChevronLeft,ChevronRight} from '@lucide/svelte';import {translator} from './i18n';import {commandIcon} from './desktop-icons';import {notificationHistory} from './notification-history';import type {DesktopCommand} from './desktop-menu';
- export let language:'ru'|'ro';export let windows:{id:string;title:string;minimized:boolean}[]=[];export let active='';export let menus:DesktopCommand[];export let onfocus:(id:string)=>void;export let onminimize:(id:string)=>void;export let onclose:(id:string)=>void;export let oncommand:(id:string)=>void;export let position='bottom';
+ export let language:'ru'|'ro'|"en";export let windows:{id:string;title:string;minimized:boolean}[]=[];export let active='';export let menus:DesktopCommand[];export let onfocus:(id:string)=>void;export let onminimize:(id:string)=>void;export let onclose:(id:string)=>void;export let oncommand:(id:string)=>void;export let position='bottom';
  let locked=true,labels=true,searchMode='icon',query='',panel='',context=false,hover='',timer:ReturnType<typeof setTimeout>,dragging=false,now=new Date(),month=new Date(),contextX=0,contextY=0;
- $:t=translator(language);$:locale=language==='ru'?'ru-RU':'ro-RO';
+ $:t=translator(language,$languageOverrides);$:locale=language==='ru'?'ru-RU':'ro-RO';
  function group(id:string){const prefix=id.split(':')[0];return /^(account|open-account|close-account|opening-balances)/.test(prefix)?'accounts':/^(batch|paymentrecord)/.test(prefix)?'payments':/^(meterdoc|physicaleditor|individual|shared)/.test(prefix)?'meters':prefix;}
  $:groups=[...new Set(windows.map(w=>group(w.id)))].map(id=>({id,windows:windows.filter(w=>group(w.id)===id)}));
- function flatten(items:DesktopCommand[],parent=''): {id:string;title:string;group:string}[]{return items.flatMap(item=>item.children?flatten(item.children,item[language]):item.action?[{id:item.action,title:item[language],group:parent}]:[]);}
+ function flatten(items:DesktopCommand[],parent=''): {id:string;title:string;group:string}[]{return items.flatMap(item=>item.children?flatten(item.children,uiLabel(item,language,$languageOverrides)):item.action?[{id:item.action,title:uiLabel(item,language,$languageOverrides),group:parent}]:[]);}
  $:commands=flatten(menus);$:results=query.trim()?commands.filter(c=>(c.title+' '+c.group).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())):commands.slice(0,8);
  $:if(hover&&!groups.some(g=>g.id===hover))hover='';
  function save(){localStorage.setItem('openhau-taskbar',JSON.stringify({locked,labels,searchMode,position}));}

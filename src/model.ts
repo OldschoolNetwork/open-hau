@@ -1,3 +1,4 @@
+import {receiptCanvasSchema,defaultReceiptCanvas} from "./receipt-canvas";
 import {administrationSchema} from './administration-schema';
 import { z } from "zod";
 import Decimal from "decimal.js";
@@ -33,7 +34,7 @@ const names = z.object({
   ru: z.string().min(1),
   ro: z.string().min(1),
   en: z.string().optional(),
-});
+}).catchall(z.string().max(4000));
 const logo = z
   .string()
   .max(3000000)
@@ -330,6 +331,7 @@ export const receiptDesigns = [
   "ribbon",
   "botanical",
   "heritage",
+  "original",
   "aero",
   "custom",
 ] as const;
@@ -372,7 +374,7 @@ const accountBalanceRow=z.object({id,service_id:id,amount:decimal,penalty:nonneg
 const currentProjectSchema = z
   .object({
     ...legacyProjectSchema.shape,
-    schema_version: z.literal(3),
+    schema_version: z.literal(4),
     administration:administrationSchema,
       payments:z.array(payment.extend({allocation_basis:period.optional(),allocation_balancing_service_id:id.optional(),allocation_manual_amount:ledgerMoney.optional()})).max(100000),
       services:z.array(service.extend({provider:z.string().optional(),service_type:z.string().optional(),report_order:z.number().int().min(0).max(10000).optional(),meter_types:z.array(z.string().min(1)).max(100).optional()})).max(10000),
@@ -394,6 +396,16 @@ const currentProjectSchema = z
     payment_batches:z.array(z.object({id,imported:z.boolean().optional(),marked_for_deletion:z.boolean().optional(),number:z.string().min(1),date,billing_through:period,balancing_service_id:z.string(),method:z.string(),comment:z.string(),state:z.enum(["draft","applied"]),rows:z.array(z.object({id,account_id:id,amount:ledgerMoney,manual_maintenance:ledgerMoney.nullable(),payment_id:id.nullable(),source_automatic:z.boolean().optional(),source_advance:z.boolean().optional(),historical_shares:z.array(z.object({service_id:id,amount:ledgerMoney})).optional()})).min(1).max(1000)})).max(50000).default([]),
     treasury:treasurySchema.default({wallets:[],funds:[],transactions:[],locked_through:null}),
     settings: legacyProjectSchema.shape.settings.extend({
+      language:z.enum(["ru","ro","en"]),
+      translation_locale:z.string().max(35).nullable().default(null),
+      custom_languages:z.array(z.object({code:z.string().regex(/^[a-z]{2,8}(?:-[A-Za-z0-9]{2,8})*$/),name:z.string().min(1).max(80)})).max(30).default([]),
+      translations:z.record(z.string().max(35),z.record(z.string().max(4000),z.string().max(12000))).default({}),
+      receipt_canvas:receiptCanvasSchema,
+      receipt_paper:z.enum(['half','full']).default('half'),
+      receipt_orientation:z.enum(['portrait','landscape']).default('portrait'),
+      receipt_cut_lines:z.boolean().default(true),
+      logo_tint:z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().default(null),
+      organization_logos:z.array(z.object({name:z.string().max(120),data:logo})).max(30).default([]),
       date_format:z.enum(dateFormats).default("iso"),
       period_format:z.enum(periodFormats).default("auto"),
       payment_balancing_service_id: id.optional(),
@@ -409,6 +421,7 @@ const currentProjectSchema = z
             font_size: z.number().min(9).max(16),
             logo,
             custom: customReceipt.optional(),
+            canvas:receiptCanvasSchema.optional(),
           }),
         )
         .max(20)
@@ -450,6 +463,7 @@ const currentProjectSchema = z
       closed_periods:[...new Set([...p.closed_periods,...administration.documents.filter(d=>d.state==='applied'&&['service-charges','recalculation'].includes(d.kind)).map(d=>d.period)])],
       settings: {
         ...p.settings,
+        language:p.settings.language==='en'?'ro':p.settings.language,
         receipt_language:
           p.settings.receipt_language === "en"
             ? "ro"
@@ -709,12 +723,12 @@ export const projectSchema = z.preprocess((input) => {
     if (previous.success)
       return {
         ...previous.data,
-        schema_version: 3,
+        schema_version: 4,
         meters: [],
         meter_values: [],
       };
   }
-  if(input&&typeof input==='object'&&'schema_version' in input&&input.schema_version===2)return {...input,schema_version:3};
+  if(input&&typeof input==='object'&&'schema_version' in input&&(input.schema_version===2||input.schema_version===3))return {...input,schema_version:4};
   return input;
 }, currentProjectSchema);
 
@@ -734,7 +748,7 @@ export type Tariff = z.infer<typeof tariff>;
 export type Payment = z.infer<typeof payment>;
 export type Adjustment = z.infer<typeof adjustment>;
 export const uid = () => crypto.randomUUID();
-export function unitLabel(unit: string, lang: "ru" | "ro" | "both" | "en") {
+export function unitLabel(unit: string, lang: "ru" | "ro"|"en" | "both" | "en") {
   const labels: Record<string, [string, string, string]> = {
     person: ["чел.", "pers.", "persons"],
     "чел. / pers.": ["чел.", "pers.", "persons"],
@@ -757,7 +771,7 @@ export function demoProject(): Project {
   const month = today().slice(0, 7);
   return {
     format: "openhau",
-    schema_version: 3,
+    schema_version: 4,
     administration:{documents:[],benefit_allocations:[]},
     service_accounting:{opening:[],payments:[],adjustments:[]},
     tariff_documents: [],
@@ -784,6 +798,7 @@ export function demoProject(): Project {
       date_format:"iso",
       period_format:"auto",
       language: "ru",
+      translation_locale:null,custom_languages:[],translations:{},receipt_canvas:defaultReceiptCanvas(),receipt_paper:"half",receipt_orientation:"portrait",receipt_cut_lines:true,logo_tint:null,organization_logos:[],
       theme: "system",
       period: month,
       receipt_language: "ro",

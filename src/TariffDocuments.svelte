@@ -1,4 +1,7 @@
 <script lang="ts">
+import {translatedName} from './localization';
+
+ import {languageOverrides} from "./localization";
   import {onDestroy} from "svelte";
   import {ask} from "./storage";
   import {reportEditorDirty} from "./editor-drafts";
@@ -19,7 +22,7 @@
   onDestroy(()=>reportEditorDirty(editorId,false));
   async function discard(){if(unsaved&&!(await ask(tr("Закрыть документ без сохранения изменений?","Închideți documentul fără salvarea modificărilor?"))))return false;draft=null;error="";reportEditorDirty(editorId,false);return true;}
   async function openDocument(doc:TariffDocument){if(!(await discard()))return;draft=structuredClone(doc);savedDraft=JSON.stringify(draft);}
-  $: tr = translator(project.settings.language);
+  $: tr = translator(project.settings.language,$languageOverrides);
   function addRow() {
     if (draft) draft.rows = [...draft.rows, {id: uid(), service_id: project.services[0]?.id || "", effective_from: project.settings.period + "-01", rate: "0", tariff_id: null}];
   }
@@ -48,7 +51,7 @@
         <div class="two-fields"><label>{tr("Номер", "Număr")}<input bind:value={draft.number} required/></label><label>{tr("Дата документа", "Data documentului")}<input type="date" bind:value={draft.date} required/></label></div>
         <label>{tr("Комментарий", "Comentariu")}<textarea bind:value={draft.comment}></textarea></label>
         <div class="table-wrap"><table><thead><tr><th>{tr("Услуга", "Serviciu")}</th><th>{tr("Действует с первого числа", "Valabil din prima zi a lunii")}</th><th>{tr("Тариф, MDL", "Tarif, MDL")}</th><th></th></tr></thead><tbody>
-          {#each draft.rows as row (row.id)}<tr><td><select bind:value={row.service_id} aria-label={tr("Услуга", "Serviciu")}>{#each project.services as s}<option value={s.id}>{s.name[project.settings.language]}</option>{/each}</select></td><td><input type="date" bind:value={row.effective_from} aria-label={tr("Действует с", "Valabil din")}/></td><td><input bind:value={row.rate} aria-label={tr("Тариф", "Tarif")}/></td><td><button type="button" class="text-button" disabled={draft.rows.length === 1} onclick={() => {if(draft) draft.rows = draft.rows.filter(r => r.id !== row.id);}}>{tr("Убрать строку", "Eliminare rând")}</button></td></tr>{/each}
+          {#each draft.rows as row (row.id)}<tr><td><select bind:value={row.service_id} aria-label={tr("Услуга", "Serviciu")}>{#each project.services as s}<option value={s.id}>{translatedName(s.name,project.settings.language,$languageOverrides)}</option>{/each}</select></td><td><input type="date" bind:value={row.effective_from} aria-label={tr("Действует с", "Valabil din")}/></td><td><input bind:value={row.rate} aria-label={tr("Тариф", "Tarif")}/></td><td><button type="button" class="text-button" disabled={draft.rows.length === 1} onclick={() => {if(draft) draft.rows = draft.rows.filter(r => r.id !== row.id);}}>{tr("Убрать строку", "Eliminare rând")}</button></td></tr>{/each}
         </tbody></table></div>
         <button type="button" class="button secondary small" onclick={addRow}>{tr("Добавить строку", "Adăugare rând")}</button>
       </fieldset>

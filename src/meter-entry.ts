@@ -1,3 +1,4 @@
+import {uiText} from "./english";
 import Decimal from 'decimal.js';
 import type {Project,PhysicalMeter,PhysicalMeterValue} from './model';
 import type {MeterDocument} from './meter-documents';
@@ -25,7 +26,7 @@ export function meterDocumentHistory(p:Project,kind:MeterDocument['kind']):Meter
   const meter=meters.get(reading.meter_id);if(!meter||claimed.has(reading.id))continue;
   if(kind==='initial'?reading.kind!=='initial':reading.kind==='initial'||meter.scope!==kind)continue;
   const key=`history:${kind}:${reading.reading_date}:${meter.service_id}`;
-  let group=groups.get(key);if(!group){group={id:key,number:'—',date:reading.reading_date,period:reading.period,kind,state:'applied',comment:p.settings.language==='ru'?'История показаний':'Istoricul citirilor',rows:[]};groups.set(key,group);}
+  let group=groups.get(key);if(!group){group={id:key,number:'—',date:reading.reading_date,period:reading.period,kind,state:'applied',comment:uiText('История показаний','Istoricul citirilor',p.settings.language),rows:[]};groups.set(key,group);}
   group.rows.push({id:reading.id,meter_id:meter.id,value:reading.value,active:meterConnectedOn(meter,reading.reading_date),reading_date:reading.reading_date,reading_id:reading.id});
  }
  return [...actual,...groups.values()].sort((a,b)=>b.date.localeCompare(a.date));

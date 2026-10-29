@@ -1,0 +1,5 @@
+!define MUI_FINISHPAGE_LINK "$(OpenHaUQuickStart)"
+!define MUI_FINISHPAGE_LINK_LOCATION "$INSTDIR\OpenHaU-Quick-Start.html"
+LangString OpenHaUQuickStart 1033 "Open the Quick Start Guide"
+LangString OpenHaUQuickStart 1049 "Открыть краткое руководство"
+LangString OpenHaUQuickStart 1048 "Deschideți ghidul de pornire"

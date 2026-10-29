@@ -1,8 +1,9 @@
+import {uiText} from "./english";
 import {projectSchema,uid,today,type Project,type PaymentBatch} from "./model";
 import {D} from "./engine";
 import {allocatePayment,paymentServiceDebts} from "./payment-allocation";
 export function previewBatchRow(p:Project,batch:PaymentBatch,row:PaymentBatch["rows"][number]){
-  if(D(row.amount).isZero()){if(row.manual_maintenance!==null&&!D(row.manual_maintenance).isZero())throw Error(p.settings.language==='ru'?'Для нулевой оплаты сумма обслуживания тоже должна быть нулевой':'Pentru o plată nulă suma deservirii trebuie să fie nulă');return [];}
+  if(D(row.amount).isZero()){if(row.manual_maintenance!==null&&!D(row.manual_maintenance).isZero())throw Error(uiText('Для нулевой оплаты сумма обслуживания тоже должна быть нулевой','Pentru o plată nulă suma deservirii trebuie să fie nulă',p.settings.language));return [];}
   return allocatePayment(p,paymentServiceDebts(p,row.account_id,batch.billing_through,batch.date),row.amount,batch.balancing_service_id,row.manual_maintenance??undefined);
 }
 export function savePaymentBatch(p:Project,input:PaymentBatch,post=false){
@@ -44,12 +45,12 @@ export function unpostPaymentBatch(p:Project,id:string){
  const draft=next.payment_batches.find(b=>b.id===id)!;draft.state='draft';for(const row of draft.rows)row.payment_id=null;
  return projectSchema.parse(next);
 }
-export function markPaymentBatch(p:Project,id:string){const next=structuredClone(p),batch=next.payment_batches.find(b=>b.id===id);if(!batch)throw Error('Payment document not found');if(batch.state==='applied')throw Error(p.settings.language==='ru'?'Сначала отмените проведение документа':'Anulați mai întâi aplicarea documentului');batch.marked_for_deletion=!batch.marked_for_deletion;return projectSchema.parse(next);}
+export function markPaymentBatch(p:Project,id:string){const next=structuredClone(p),batch=next.payment_batches.find(b=>b.id===id);if(!batch)throw Error('Payment document not found');if(batch.state==='applied')throw Error(uiText('Сначала отмените проведение документа','Anulați mai întâi aplicarea documentului',p.settings.language));batch.marked_for_deletion=!batch.marked_for_deletion;return projectSchema.parse(next);}
 export type PaymentDetailRequest={parentId:string;batch:PaymentBatch;rowId:string;onapply:(amount:string,manual:string|null)=>void};
 export function applyPaymentDetail(p:Project,current:PaymentBatch,expected:PaymentBatch,rowId:string,amount:string,manual:string|null){
  const context=(b:PaymentBatch)=>JSON.stringify({date:b.date,through:b.billing_through,balancing:b.balancing_service_id,row:b.rows.find(r=>r.id===rowId)});
- if(current.state!=='draft'||p.payment_batches.find(b=>b.id===current.id)?.state==='applied'||!current.rows.some(r=>r.id===rowId)||context(current)!==context(expected))throw Error(p.settings.language==='ru'?'Строка документа изменилась. Откройте расшифровку заново.':'Rândul documentului a fost modificat. Redeschideți repartizarea.');
- if(!/^\d+(\.\d{1,2})?$/.test(amount)||manual!==null&&!/^-?\d+(\.\d{1,2})?$/.test(manual))throw Error(p.settings.language==='ru'?'Введите суммы с точностью до банов':'Introduceți sumele cu precizie de bani');
+ if(current.state!=='draft'||p.payment_batches.find(b=>b.id===current.id)?.state==='applied'||!current.rows.some(r=>r.id===rowId)||context(current)!==context(expected))throw Error(uiText('Строка документа изменилась. Откройте расшифровку заново.','Rândul documentului a fost modificat. Redeschideți repartizarea.',p.settings.language));
+ if(!/^\d+(\.\d{1,2})?$/.test(amount)||manual!==null&&!/^-?\d+(\.\d{1,2})?$/.test(manual))throw Error(uiText('Введите суммы с точностью до банов','Introduceți sumele cu precizie de bani',p.settings.language));
  const row={...current.rows.find(r=>r.id===rowId)!,amount,manual_maintenance:manual};previewBatchRow(p,current,row);
  return {...current,rows:current.rows.map(r=>r.id===rowId?row:r)};
 }

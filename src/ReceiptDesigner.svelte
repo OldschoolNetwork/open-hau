@@ -1,4 +1,5 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
   import { translator } from "./i18n";
   import { defaultCustomReceipt, type Project } from "./model";
   export let project: Project;
@@ -7,7 +8,7 @@
     ...defaultCustomReceipt,
   };
   $: design = { ...defaultCustomReceipt, ...project.settings.custom_receipt };
-  $: tr = translator(project.settings.language);
+  $: tr = translator(project.settings.language,$languageOverrides);
   function apply() {
     onapply({
       ...project,

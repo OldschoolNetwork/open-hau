@@ -14,7 +14,7 @@
       {
         "label": "main",
         "create": false,
-        "title": "OpenHaU · 26.2 Development",
+        "title": "OpenHaU \u00b7 26.2",
         "width": 1280,
         "height": 840,
         "minWidth": 980,
@@ -27,6 +27,17 @@
   },
   "bundle": {
     "active": true,
+    "resources": {
+      "../resources/OpenHaU-Quick-Start.html": "OpenHaU-Quick-Start.html",
+      "../resources/OpenHaU-API.mjs": "OpenHaU-API.mjs",
+      "../docs/database-api.md": "docs/database-api.md",
+      "../docs/data-format.md": "docs/data-format.md",
+      "../docs/openhau-v4.schema.json": "docs/openhau-v4.schema.json",
+      "../docs/personal-accounts.md": "docs/personal-accounts.md",
+      "../docs/group-payments.md": "docs/group-payments.md",
+      "../docs/registers.md": "docs/registers.md",
+      "../docs/administration.md": "docs/administration.md"
+    },
     "targets": [
       "nsis"
     ],
@@ -42,6 +53,8 @@
     },
     "windows": {
       "nsis": {
+        "installerIcon": "icons/installer.ico",
+        "installerHooks": "installer-hooks.nsh",
         "displayLanguageSelector": true,
         "languages": [
           "Russian",
@@ -67,6 +80,18 @@
         ],
         "role": "Editor"
       }
-    ]
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU5OUE0Q0Q4RjU1REFDNzIKUldSeXJGMzEyRXlhNlpJWEFEUTRGcXo5cWFoSHM2bjdkclRHV054ckhQVmE1VmRKRW5qL0c0NVoK",
+      "endpoints": [
+        "https://github.com/OldschoolNetwork/open-hau/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

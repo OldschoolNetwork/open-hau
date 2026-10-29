@@ -1,0 +1,4 @@
+import {ZodError} from 'zod';import {projectSchema,type Project} from './model';
+let worker:Worker|null=null,nextId=0;
+const pending=new Map<number,{resolve:(p:Project)=>void;reject:(e:Error)=>void}>();
+export function validateBackground(project:Project):Promise<Project>{if(typeof Worker==='undefined')return Promise.resolve(projectSchema.parse(project));if(!worker){worker=new Worker(new URL('./validation-worker.ts',import.meta.url),{type:'module'});worker.onmessage=event=>{const request=pending.get(event.data.id);if(!request)return;pending.delete(event.data.id);if(event.data.issues)request.reject(new ZodError(event.data.issues));else request.resolve(event.data.project);};worker.onerror=()=>{for(const request of pending.values())request.reject(Error('Background validation failed'));pending.clear();worker?.terminate();worker=null;};}const id=++nextId;return new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});worker!.postMessage({id,project});});}

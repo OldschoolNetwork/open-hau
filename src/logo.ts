@@ -68,3 +68,5 @@ export async function loadLogo(file: File) {
     r.readAsDataURL(file);
   });
 }
+
+export function tintLogo(data:string,color:string|null){if(!color||!/^#[0-9a-f]{6}$/i.test(color)||!data.startsWith('data:image/svg+xml;base64,'))return data;try{const raw=new TextDecoder().decode(Uint8Array.from(atob(data.slice(data.indexOf(',')+1)),c=>c.charCodeAt(0)));const changed=raw.replace(/\b(fill|stroke|stop-color)\s*=\s*(["'])(?!none\2)([^"']*)\2/gi,(_m,key,quote)=>key+'='+quote+color+quote).replace(/<svg\b([^>]*)>/,(_m,attrs)=>'<svg'+attrs.replace(/\scolor\s*=\s*(["'])[^"']*\1/gi,'')+' color="'+color+'"'+(/\bfill\s*=/.test(attrs)?'':' fill="'+color+'"')+'>');return 'data:image/svg+xml;base64,'+btoa(Array.from(new TextEncoder().encode(changed),byte=>String.fromCharCode(byte)).join(''));}catch{return data;}}

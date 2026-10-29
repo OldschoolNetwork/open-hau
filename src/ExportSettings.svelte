@@ -1,4 +1,5 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
   import { translator } from "./i18n";
   import { onMount } from "svelte";
   import type { Project } from "./model";
@@ -13,7 +14,7 @@
   } from "./storage";
   export let project: Project;
   export let unsaved = false;
-  $: tr = translator(project.settings.language);
+  $: tr = translator(project.settings.language,$languageOverrides);
   let config: ReportExportSettings = {
       directory: null,
       trigger: "close",

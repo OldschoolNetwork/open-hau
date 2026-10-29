@@ -1,3 +1,4 @@
+import {translatedName} from './localization';
 import type {Project} from './model';
 import {displayDate,displayPeriod} from './date-format';
 import {citizenName,statusLabel} from './account-data';
@@ -38,7 +39,7 @@ export function registerTable(p:Project,kind:string):RegisterTable{
   for(const meter of p.meters.filter(m=>m.scope===scope)){let previous:string|null=meter.installed_on?meter.initial_value:null,previousDate='',previousRegular=false;for(const value of (byMeter.get(meter.id)||[]).sort((a,b)=>a.reading_date.localeCompare(b.reading_date)||Number(isInitial(b))-Number(isInitial(a)))){const initial=isInitial(value),difference=initial||previous===null?'':D(value.value).minus(previous).toFixed(),ambiguous=previousRegular&&previousDate===value.reading_date;if(!consumption||!initial)add(value.reading_date,meter.account_id,[day(value.reading_date),account(meter.account_id),meter.label,service(meter.service_id),initial?'':previous||'',value.value,difference],!initial&&(previous===null||ambiguous||!!difference&&D(difference).lt(0)));previous=value.value;previousDate=value.reading_date;previousRegular=!initial;}}
 
  }else if(kind==='charges'||kind==='service-volume'){
-  headers=[t('Расчётный месяц','Luna de calcul'),t('Лицевой счёт','Cont personal'),t('Услуга','Serviciu'),kind==='charges'?t('Начислено','Calculat'):t('Объём','Volum')];numericStart=3;numericCount=1;if(kind==='charges')numberFormat='#,##0.00';for(const snapshot of p.snapshots)for(const line of snapshot.lines)add(snapshot.period+'-01',snapshot.account_id,[displayPeriod(snapshot.period,p),account(snapshot.account_id),line.name[p.settings.language],kind==='charges'?line.amount:line.quantity],false,true);
+  headers=[t('Расчётный месяц','Luna de calcul'),t('Лицевой счёт','Cont personal'),t('Услуга','Serviciu'),kind==='charges'?t('Начислено','Calculat'):t('Объём','Volum')];numericStart=3;numericCount=1;if(kind==='charges')numberFormat='#,##0.00';for(const snapshot of p.snapshots)for(const line of snapshot.lines)add(snapshot.period+'-01',snapshot.account_id,[displayPeriod(snapshot.period,p),account(snapshot.account_id),translatedName(line.name,p.settings.language),kind==='charges'?line.amount:line.quantity],false,true);
  }else throw Error(t('Регистр не поддерживается.','Registrul nu este acceptat.'));
  if(kind==='individual-readings'){
   headers=[t('Дата','Data'),t('Прибор учёта','Contor'),t('Показание','Index')];

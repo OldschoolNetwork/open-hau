@@ -1,16 +1,38 @@
 # Exchange formats
 
 The published 26.1 preview uses schema version 1. Current 26.2 development
-uses schema version 3 and validates and migrates version 1 and 2 files in memory.
+uses schema version 4 and validates and migrates version 1, 2 and 3 files in memory.
 Version 1 migration adds empty `meters` and `meter_values` arrays; version 3
 adds an empty administration journal. Existing accounting records are preserved.
 Loading does not rewrite the source file. Native saving backs up an existing
 working database before storing the migrated project. Older applications that do
-not support version 3 must reject it instead of rewriting it.
+not support version 4 must reject it instead of rewriting it.
 
-New database files use `.odb`; the content remains indented UTF-8 JSON with
+New database files use `.odb`. Unprotected files contain indented UTF-8 JSON with
 `format: "openhau"`. Existing `.json` and `.openhau.json` files are supported.
 The extension does not imply encryption or compatibility with LibreOffice Base.
+Protected files use the encrypted envelope described below.
+
+Version 4 adds receipt page size, orientation and cutting guides, a reusable logo
+library with optional SVG tinting, editable receipt canvas layers and element
+styles, and custom language packs. These settings travel with the database.
+Migration preserves financial records, meter history and existing settings.
+
+## Password protection
+
+Protected files contain a JSON envelope with `format: "openhau-encrypted"`,
+`version: 1`, `cipher: "aes-256-gcm"` and
+`kdf: "argon2id-v19-m65536-t3-p1"`. The salt (16 bytes), nonce (12 bytes) and
+authenticated ciphertext are Base64-encoded. The key is derived with Argon2id
+using 64 MiB of memory, three iterations and one lane. The authenticated data is
+the UTF-8 string `OpenHaU encrypted database v1`. The decrypted payload uses the
+normal project schema; envelope version and project schema version are distinct.
+
+The application keeps an unlocked key only for the session. Locking the database
+forgets cached keys. Encryption does not alter earlier backups. The safety copy
+created when a password is first installed retains the original unencrypted
+format. Keep such copies in a protected location. Password recovery and biometric
+unlocking are not implemented.
 
 Version 2 adds individual/shared meter identities, serial numbers, installation
 and retirement dates, initial values, and dated initial/regular/final readings.
@@ -30,7 +52,7 @@ Version 2 development also includes optional-at-import `monthly_occupancy`,
 older projects. They record dated resident counts, shared meter connections and
 monthly exceptions, and due-date overrides. Receipt settings include additional
 designs, custom appearance controls and English labels. English names are optional.
-The version 3 machine-readable schema describes current normalized exports.
+The version 4 machine-readable schema describes current normalized exports.
 
 `tariff_documents` defaults to an empty array when absent. It stores document
 numbers, dates, comments, draft/applied state and service-rate rows. Applied rows
@@ -47,7 +69,7 @@ records do not replace or automatically change resident financial records.
 
 `*.openhau.json` is indented UTF-8 JSON. The machine-readable schema is
 `openhau.schema.json` for version 1, `openhau-v2.schema.json` for version 2 and
-`openhau-v3.schema.json` for version 3;
+`openhau-v3.schema.json` for version 3 and `openhau-v4.schema.json` for version 4;
 additional relational checks are implemented in
 `src/model.ts`. `examples/demo.openhau.json` contains only fictional records.
 

@@ -1,10 +1,11 @@
+import {uiText} from "./english";
 import type {Project} from "./model";
 import {D,money,csv} from "./engine";
 import {displayDate} from "./date-format";
 import {esc} from "./receipt";
 import {tableXLSX} from './xlsx';
 export function paymentReport(p:Project,from:string,to:string,accountId="",attentionOnly=false){
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||from>to)throw Error(p.settings.language==="ru"?"Проверьте диапазон дат":"Verificați intervalul de date");
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||from>to)throw Error(uiText("Проверьте диапазон дат","Verificați intervalul de date",p.settings.language));
   const batches=new Map(p.payment_batches.flatMap(b=>b.state==="applied"?b.rows.filter(r=>r.payment_id).map(r=>[r.payment_id!,b] as const):[]));
   const allocations=new Map<string,ReturnType<typeof D>>();for(const share of p.service_accounting.payments)allocations.set(share.payment_id,(allocations.get(share.payment_id)||D(0)).plus(share.amount));
   const rows=p.payments.filter(pay=>pay.payment_date>=from&&pay.payment_date<=to&&(!accountId||pay.account_id===accountId)).map(pay=>{const a=p.accounts.find(a=>a.id===pay.account_id)!,batch=batches.get(pay.id),allocated=allocations.get(pay.id)||D(0);return {...pay,number:a.number,payer:a.payer_name,method:batch?.method||"",document:batch?.number||"",unallocated:money(D(pay.amount).minus(allocated),p)};}).filter(row=>!attentionOnly||!D(row.unallocated).isZero()).sort((a,b)=>a.payment_date.localeCompare(b.payment_date)||a.number.localeCompare(b.number));

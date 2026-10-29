@@ -1,0 +1,4 @@
+import {writable} from 'svelte/store';import {invoke} from '@tauri-apps/api/core';
+export const passwordRequest=writable<{title:string;confirm:boolean;resolve:(value:string|null)=>void}|null>(null);
+export function requestPassword(title:string,confirm=false){return new Promise<string|null>(resolve=>passwordRequest.set({title,confirm,resolve}));}
+export async function withDatabasePassword<T>(path:string,action:()=>Promise<T>):Promise<T>{try{return await action();}catch(error){if(!String(error).includes('OPENHAU_PASSWORD_REQUIRED'))throw error;const password=await requestPassword(document.documentElement.lang==='ro'?'Parola bazei de date':document.documentElement.lang==='en'?'Database password':'Пароль базы данных');if(password===null)throw Error(document.documentElement.lang==='ro'?'Deschidere anulată.':document.documentElement.lang==='en'?'Opening cancelled.':'Открытие отменено.');await invoke('unlock_database_file',{path,password});return await action();}}

@@ -1,12 +1,13 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
   import { onMount } from 'svelte';
   import { Save, LogOut, X } from '@lucide/svelte';
   import { translator } from './i18n';
-  export let language: 'ru'|'ro';
+  export let language: 'ru'|'ro'|"en";
   export let exiting = false;
   export let onchoose: (choice: 'save'|'discard'|'cancel') => void;
   let cancelButton: HTMLButtonElement, dialog: HTMLDialogElement;
-  $: t = translator(language);
+  $: t = translator(language,$languageOverrides);
   onMount(() => { dialog.showModal(); cancelButton?.focus(); });
 </script>
   <dialog bind:this={dialog} class="save-dialog" aria-labelledby="save-question" oncancel={e=>{e.preventDefault();onchoose('cancel');}}>

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "svelte-check --tsconfig ./tsconfig.json && vite build",
+    "build": "svelte-check --tsconfig ./tsconfig.json && vite build && node scripts/build-api.mjs && node scripts/build-quick-start.mjs",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "tsx --test tests/*.test.ts",
     "tauri": "tauri",
@@ -16,6 +16,8 @@
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.0.0",
     "@tauri-apps/plugin-opener": "^2.7.2",
+    "@tauri-apps/plugin-process": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.14.1",
     "decimal.js": "^10.6.0",
     "svelte": "^5.0.0",
     "zod": "^4.6.7"
@@ -23,7 +25,8 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tauri-apps/cli": "^2.0.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "^24.19.2",
+    "esbuild": "^0.28.2",
     "prettier": "^3.9.10",
     "prettier-plugin-svelte": "^4.1.1",
     "svelte-check": "^4.0.0",

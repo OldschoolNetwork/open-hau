@@ -1,10 +1,13 @@
 <script lang="ts">
+ import {languageOverrides} from "./localization";
+ import {uiText} from "./english";
+ import {uiLabel} from "./english";
   import {LayoutGrid,List} from "@lucide/svelte";
   import {commandIcon} from "./desktop-icons";
   import {onMount} from "svelte";
   import { chooserGroups } from "./desktop-menu";
   export let group: string,
-    language: "ru" | "ro",
+    language: "ru" | "ro"|"en",
     oncommand: (action: string) => void;
   let selected = "",
     query = "";
@@ -13,7 +16,7 @@
   function toggleView(){tiles=!tiles;localStorage.setItem("openhau-catalog-view",tiles?"tiles":"list");}
   $: items =
     chooserGroups[group]?.items.filter((item) =>
-      item[language].toLocaleLowerCase().includes(query.toLocaleLowerCase()),
+      uiLabel(item,language,$languageOverrides).toLocaleLowerCase().includes(query.toLocaleLowerCase()),
     ) || [];
   $: chosen = items.find((item) => item.id === selected);
 </script>
@@ -22,17 +25,17 @@
   <div class="desktop-chooser-list">
     <div class="chooser-toolbar">
     <input
-      aria-label={language === "ru" ? "Поиск в списке" : "Căutare în listă"}
-      placeholder={language === "ru" ? "Поиск" : "Căutare"}
+      aria-label={uiText("Поиск в списке","Căutare în listă",language,$languageOverrides)}
+      placeholder={uiText("Поиск","Căutare",language,$languageOverrides)}
       bind:value={query}
     />
-    <button class="button secondary" aria-pressed={tiles} onclick={toggleView}>{#if tiles}<List size={17}/>{:else}<LayoutGrid size={17}/>{/if}{language==="ru"?"Вид":"Vizualizare"} · {tiles?(language==="ru"?"Плитки":"Dale"):(language==="ru"?"Список":"Listă")}</button>
+    <button class="button secondary" aria-pressed={tiles} onclick={toggleView}>{#if tiles}<List size={17}/>{:else}<LayoutGrid size={17}/>{/if}{uiText("Вид","Vizualizare",language,$languageOverrides)} · {tiles?(uiText("Плитки","Dale",language,$languageOverrides)):(uiText("Список","Listă",language,$languageOverrides))}</button>
     </div>
     <div
       class="desktop-list"
       class:desktop-tiles={tiles}
       role="listbox"
-      aria-label={chooserGroups[group]?.[language]}
+      aria-label={chooserGroups[group]?.[language==='en'?'ru':language]}
     >
       {#each items as item}{@const Icon=commandIcon(item)}<button
           role="option"
@@ -46,7 +49,7 @@
               e.preventDefault();
               oncommand(item.action);
             }
-          }}><Icon size={tiles?30:17}/><span>{item[language]}</span></button
+          }}><Icon size={tiles?30:17}/><span>{uiLabel(item,language,$languageOverrides)}</span></button
         >{/each}
     </div>
   </div>

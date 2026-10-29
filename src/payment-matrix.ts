@@ -1,3 +1,4 @@
+import {uiText} from "./english";
 import type {Project} from './model';
 import {D,money,csv} from './engine';
 import {displayDate} from './date-format';
@@ -10,7 +11,7 @@ export type PaymentMatrixOptions={grouping:'method'|'date';expandAccounts:boolea
 export const paymentMatrixDefaults=():PaymentMatrixOptions=>({grouping:'method',expandAccounts:true,showAddress:false,groupServiceTypes:true,filters:[]});
 export function paymentMatrix(p:Project,from:string,to:string,options=paymentMatrixDefaults()){
  const valid=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T00:00:00Z'))&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s;
- if(!valid(from)||!valid(to)||from>to)throw Error(p.settings.language==='ru'?'Проверьте диапазон дат':'Verificați intervalul de date');
+ if(!valid(from)||!valid(to)||from>to)throw Error(uiText('Проверьте диапазон дат','Verificați intervalul de date',p.settings.language));
  const ru=p.settings.language==='ru',unknown=ru?'Нераспределено':'Nerepartizat';
  const methods=new Map(p.payment_batches.flatMap(b=>b.state==='applied'?b.rows.filter(r=>r.payment_id).map(r=>[r.payment_id!,b.method] as const):[]));
  const shares=new Map<string,{service_id:string;amount:string}[]>();for(const share of p.service_accounting.payments){if(!shares.has(share.payment_id))shares.set(share.payment_id,[]);shares.get(share.payment_id)!.push(share);}

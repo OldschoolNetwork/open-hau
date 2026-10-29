@@ -1,0 +1,11 @@
+<script lang="ts">
+ import {languageOverrides} from "./localization";
+ import {version} from "../package.json";
+ import {translator} from "./i18n";
+ import {BookOpen,Globe,Code2} from '@lucide/svelte';
+ export let language:'ru'|'ro'|"en";$:ru=language==='ru';
+
+ $:t=translator(language,$languageOverrides);
+</script>
+<section class="program-about"><header><img src="/brand/icon.png" alt="" width="64" height="64"/><div><h1>OpenHaU</h1><p>House &amp; Utilities · {version}</p></div></header><p>{t('Учёт коммунальных услуг для ассоциаций жильцов. Лицевые счета, приборы учёта, начисления, оплаты, квитанции и отчёты в одной программе.','Evidența serviciilor comunale pentru asociații de locatari. Conturi personale, contoare, calcule, plăți, facturi și rapoarte într-o singură aplicație.')}</p><p>{t('Базы хранятся на компьютере. Для расчётов и работы с документами подключение к интернету не требуется.','Bazele se păstrează pe calculator. Calculele și lucrul cu documentele nu necesită conexiune la internet.')}</p><nav><a href="https://oldschoolnetwork.online/openhau/" target="_blank" rel="noreferrer"><Globe size={18}/>{t('Сайт программы','Site-ul aplicației')}</a><a href="https://oldschoolnetwork.online/openhau/wiki/" target="_blank" rel="noreferrer"><BookOpen size={18}/>{t('Документация','Documentație')}</a><a href="https://github.com/OldschoolNetwork/open-hau" target="_blank" rel="noreferrer"><Code2 size={18}/>GitHub</a></nav><p class="publisher">Oldschool Network</p><nav><a href="https://bsky.app/profile/oldnet.bsky.social" target="_blank" rel="noreferrer">Bluesky</a><a href="https://www.youtube.com/@oldschoolnetwork" target="_blank" rel="noreferrer">YouTube</a><a href="https://x.com/oldschool_net" target="_blank" rel="noreferrer">X</a><a href="https://t.me/OldschoolNetwork" target="_blank" rel="noreferrer">Telegram</a></nav></section>
+<style>.program-about{padding:24px;max-width:760px;line-height:1.65}.program-about header{display:flex;gap:20px;align-items:center;margin-bottom:24px}.program-about h1{margin:0;font-size:30px;font-weight:500}.program-about header p{margin:4px 0;color:var(--muted)}.program-about nav{display:flex;flex-wrap:wrap;gap:22px;margin:26px 0}.program-about nav a{display:inline-flex;align-items:center;gap:8px}.publisher{color:var(--muted)}</style>
