@@ -64,7 +64,7 @@ fn validate(value: &Value) -> Result<(), String> {
     if value.get("format").and_then(Value::as_str) != Some("openhau")
         || !matches!(
             value.get("schema_version").and_then(Value::as_u64),
-            Some(1 | 2)
+            Some(1 | 2 | 3)
         )
     {
         return Err("Неподдерживаемый формат или версия данных OpenHaU".into());

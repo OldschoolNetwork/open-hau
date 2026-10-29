@@ -7,8 +7,10 @@ export function monthChargeEvents(p:Project,a:Account,month:string,postedOnly=fa
  if(saved&&dated.length)return dated;
  const calculated=saved||charges(p,a,month),date=monthLastDay(month);
  const result:Project['charge_events']=(postedOnly&&!saved?[]:calculated.lines.map(l=>({account_id:a.id,service_id:l.service_id,period:month,date,kind:'charge' as const,amount:l.amount})));
- const shares=p.service_accounting.adjustments.filter(s=>s.account_id===a.id&&s.period===month);let assigned=D(0);
- for(const share of shares){assigned=assigned.plus(share.amount);result.push({...share,date,kind:'adjustment'});}
+ const shares=p.service_accounting.adjustments.filter(s=>s.account_id===a.id&&s.period===month),datedAdjustments=p.adjustments.filter(r=>r.account_id===a.id&&r.period===month&&r.date);let assigned=D(0);
+ const byService=new Map<string,ReturnType<typeof D>>();
+ for(const row of datedAdjustments){result.push({account_id:a.id,service_id:row.service_id||'',period:month,date:row.date!,kind:'adjustment',amount:row.amount});assigned=assigned.plus(row.amount);byService.set(row.service_id||'',(byService.get(row.service_id||'')||D(0)).plus(row.amount));}
+ for(const share of shares){const rest=D(share.amount).minus(byService.get(share.service_id)||0);if(!rest.isZero())result.push({...share,amount:money(rest,p),date,kind:'adjustment'});assigned=assigned.plus(rest);}
  const remainder=D(calculated.adjustment).minus(assigned);if(!remainder.isZero())result.push({account_id:a.id,service_id:'',period:month,date,kind:'adjustment',amount:money(remainder,p)});
  return result;
 }

@@ -1,15 +1,20 @@
 # Exchange formats
 
-The published 26.1 preview uses version 1. The 26.2 development branch uses
-version 2 and accepts validated version 1 files through an explicit migration.
-Migration preserves existing accounting sections and adds empty `meters` and
-`meter_values` arrays; it does not invent physical readings from billed quantities.
-Loading does not rewrite the source exchange file. Native saving backs up an
-existing working database before storing the migrated project.
+The published 26.1 preview uses schema version 1. Current 26.2 development
+uses schema version 3 and validates and migrates version 1 and 2 files in memory.
+Version 1 migration adds empty `meters` and `meter_values` arrays; version 3
+adds an empty administration journal. Existing accounting records are preserved.
+Loading does not rewrite the source file. Native saving backs up an existing
+working database before storing the migrated project. Older applications that do
+not support version 3 must reject it instead of rewriting it.
+
+New database files use `.odb`; the content remains indented UTF-8 JSON with
+`format: "openhau"`. Existing `.json` and `.openhau.json` files are supported.
+The extension does not imply encryption or compatibility with LibreOffice Base.
 
 Version 2 adds individual/shared meter identities, serial numbers, installation
 and retirement dates, initial values, and dated initial/regular/final readings.
-Shared-meter allocation is not implemented yet. Several individual meters may
+Shared-meter allocation supports equal shares across eligible accounts, with dated connections and monthly exceptions. Several individual meters may
 contribute to one service; incomplete or decreasing readings produce a warning.
 An explicit billed-quantity override remains separate from physical consumption.
 Meter units must match the service unit before automatic billing. Common cubic
@@ -25,7 +30,7 @@ Version 2 development also includes optional-at-import `monthly_occupancy`,
 older projects. They record dated resident counts, shared meter connections and
 monthly exceptions, and due-date overrides. Receipt settings include additional
 designs, custom appearance controls and English labels. English names are optional.
-The version 2 machine-readable schema describes normalized exported documents.
+The version 3 machine-readable schema describes current normalized exports.
 
 `tariff_documents` defaults to an empty array when absent. It stores document
 numbers, dates, comments, draft/applied state and service-rate rows. Applied rows
@@ -41,7 +46,8 @@ is validated; the same payment cannot belong to two income entries. Treasury
 records do not replace or automatically change resident financial records.
 
 `*.openhau.json` is indented UTF-8 JSON. The machine-readable schema is
-`openhau.schema.json` for version 1 and `openhau-v2.schema.json` for version 2;
+`openhau.schema.json` for version 1, `openhau-v2.schema.json` for version 2 and
+`openhau-v3.schema.json` for version 3;
 additional relational checks are implemented in
 `src/model.ts`. `examples/demo.openhau.json` contains only fictional records.
 
@@ -80,8 +86,7 @@ snapshots minus earlier payments after the opening date. Closing balance adds
 current charges and subtracts current payments. Missing history or readings
 produce warnings and prevent closing.
 
-Tariffs start on a month's first day. Common-consumption allocation is manual
-in the preview. Closed snapshots retain historical values rather than silently
+Tariffs start on a month's first day. Shared consumption differences are distributed equally among eligible accounts; monthly exclusions change the eligible count. Closed snapshots retain historical values rather than silently
 recalculating them.
 
 ## Validation and import
@@ -129,3 +134,22 @@ describes a storage format, not a common accounting schema. A converter must
 identify tables, references, date semantics, movements and unsupported entities;
 then validate the target and reconcile balances. Keep unmapped original records
 in a separate private archive. Never treat inferred field mappings as confirmed.
+
+
+## Version 3 administration documents
+
+`administration.documents` stores draft and applied building-service, citizen,
+benefit, charge, recalculation, correction and penalty documents. New applied
+documents retain before/after audit states. Changes are prepared atomically and
+validated before application; undo rejects changed data, dependent documents and
+closed periods. Partial account calculations do not close the entire month.
+
+`administration.benefit_allocations` records the calculated benefit amount by
+account, service and month, separately from manual adjustments. It prevents
+recalculation and month closing from allocating the same benefit twice.
+See [benefits and recalculation](administration.md) for the supported rules.
+
+Imported legacy journal entries are explicitly `imported: true` and read-only.
+They preserve source document identity and status without reposting transactions.
+Importing journal headers does not recreate missing source calculation rules or
+replace preserved historical financial sections.

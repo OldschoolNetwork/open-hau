@@ -51,7 +51,7 @@ See [first-launch troubleshooting](docs/guide/troubleshooting.md) and the
 
 ## Documentation
 
-[User guide](docs/guide/index.md) · [Data format](docs/data-format.md) ·
+[User guide](docs/guide/index.md) · [Benefits and recalculation](docs/administration.md) · [Data format](docs/data-format.md) ·
 [Example project](examples/demo.openhau.json) · [Testing](docs/testing.md) ·
 [Updates](docs/updates.md) · [26.2 roadmap](docs/roadmap-26.2.md)
 

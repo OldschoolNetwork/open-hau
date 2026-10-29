@@ -48,3 +48,11 @@ business operations rather than manually inventing payment allocations.
 Full reads and merge reports may contain private data. Keep them local and grant
 an AI access only to the intended files. Encrypted databases are not supported by
 this API version. No password or recovery interface is claimed here.
+
+
+`database.importLegacyJournals` accepts `path`, `rawDirectory` and `output`.
+It reads previously exported legacy tables and writes a new schema 3 database
+with read-only administration journal entries and an import report. It refuses
+to overwrite an existing output, checks that the input revision did not change,
+and verifies preservation of the existing financial collections and settings.
+It does not open SDF files directly or replay their transactions.

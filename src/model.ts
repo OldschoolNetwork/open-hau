@@ -1,3 +1,4 @@
+import {administrationSchema} from './administration-schema';
 import { z } from "zod";
 import Decimal from "decimal.js";
 import {dateFormats,periodFormats} from "./date-format";
@@ -111,6 +112,7 @@ const payment = z.object({
 });
 const adjustment = z.object({
   id,
+  date:date.optional(),service_id:z.string().optional(),document_id:z.string().optional(),
   account_id: id,
   period,
   amount: decimal,
@@ -363,14 +365,15 @@ const serviceEntry=z.object({id,account_id:id,service_id:id,tariff_type_id:z.str
 const holderEntry=z.object({id,account_id:id,date,citizen_id:z.string(),name:z.string(),document_id:z.string().optional()});
 const additionalEntry=z.object({id,account_id:id,property_id:id,date,active:z.boolean(),document_id:z.string().optional()});
 const characteristicEntry=z.object({id,account_id:id,name:z.string(),value:z.string(),date,document_id:z.string().optional()});
-const accountHistory=z.object({residents:z.array(residentEntry).default([]),services:z.array(serviceEntry).default([]),holders:z.array(holderEntry).default([]),additional:z.array(additionalEntry).default([]),characteristics:z.array(characteristicEntry).default([]),relationships:z.array(z.object({id,date,citizen_id:id,relative_id:id,relationship_id:id})).default([])});
+const accountHistory=z.object({residents:z.array(residentEntry).default([]),services:z.array(serviceEntry).default([]),holders:z.array(holderEntry).default([]),additional:z.array(additionalEntry).default([]),characteristics:z.array(characteristicEntry).default([]),relationships:z.array(z.object({id,date,citizen_id:id,relative_id:id,relationship_id:z.string(),active:z.boolean().optional(),document_id:z.string().optional()})).default([])});
 const accountServiceRow=z.object({id,account_id:id,service_id:id,tariff_type_id:z.string(),date,active:z.boolean()});
 const accountResidentRow=z.object({id,citizen_id:id,registration:z.number().int(),residence:z.number().int(),from:date,to:date.nullable()});
 const accountBalanceRow=z.object({id,service_id:id,amount:decimal,penalty:nonnegative});
 const currentProjectSchema = z
   .object({
     ...legacyProjectSchema.shape,
-    schema_version: z.literal(2),
+    schema_version: z.literal(3),
+    administration:administrationSchema,
       payments:z.array(payment.extend({allocation_basis:period.optional(),allocation_balancing_service_id:id.optional(),allocation_manual_amount:ledgerMoney.optional()})).max(100000),
       services:z.array(service.extend({provider:z.string().optional(),service_type:z.string().optional(),report_order:z.number().int().min(0).max(10000).optional(),meter_types:z.array(z.string().min(1)).max(100).optional()})).max(10000),
       reference_catalogs:z.partialRecord(z.enum(referenceKinds),z.array(z.object({id,code:z.string(),name:z.string().trim().min(1),active:z.boolean(),marked_for_deletion:z.boolean().default(false),notes:z.string(),attributes:z.record(z.string(),z.string()).default({})})).max(100000)).default({}),
@@ -424,6 +427,7 @@ const currentProjectSchema = z
   .superRefine((p, ctx) => {
     // Reuse all established v1 accounting checks without silently stripping fields.
     const {
+      administration,
       meters,
       meter_values,
       monthly_occupancy,
@@ -443,6 +447,7 @@ const currentProjectSchema = z
     const previous = legacyProjectSchema.safeParse({
       ...common,
       schema_version: 1,
+      closed_periods:[...new Set([...p.closed_periods,...administration.documents.filter(d=>d.state==='applied'&&['service-charges','recalculation'].includes(d.kind)).map(d=>d.period)])],
       settings: {
         ...p.settings,
         receipt_language:
@@ -465,6 +470,10 @@ const currentProjectSchema = z
         });
     const fail = (message: string) => ctx.addIssue({ code: "custom", message });
     const accountIds=new Set(p.accounts.map(a=>a.id)),serviceIds=new Set(p.services.map(s=>s.id)),paymentById=new Map(p.payments.map(pay=>[pay.id,pay]));
+    if(new Set(administration.documents.map(d=>d.id)).size!==administration.documents.length)fail('Duplicate administration documents');
+    for(const snapshot of p.snapshots)if(!p.closed_periods.includes(snapshot.period)&&!administration.documents.some(d=>d.state==='applied'&&['service-charges','recalculation'].includes(d.kind)&&d.period===snapshot.period&&d.rows.some(r=>r.account_id===snapshot.account_id)))fail('Unclosed snapshot requires a posted account calculation document');
+    for(const doc of administration.documents){if(!doc.id||!doc.number.trim())fail('Invalid administration document identity');if(doc.state==='applied'&&!doc.imported&&(!doc.before||!doc.after))fail('Posted administration document requires its audit state');if(new Set(doc.rows.map(r=>r.id)).size!==doc.rows.length)fail('Duplicate administration row identifiers');const reference=(kind:keyof typeof p.reference_catalogs,id:string)=>{if(id&&!p.reference_catalogs[kind]?.some(r=>r.id===id))fail('Unknown administration reference: '+kind);};if(!doc.imported){reference('buildings',doc.building_id);reference('citizens',doc.citizen_id);}for(const row of doc.rows){if(!doc.imported){reference('citizens',row.citizen_id);reference('citizens',row.relative_id);reference('relationships',row.relationship_id);reference('benefit-categories',row.category_id);reference('tariff-types',row.tariff_type_id);if(row.benefit_id&&!administration.documents.some(d=>d.kind==='grant-benefits'&&d.rows.some(r=>r.id===row.benefit_id)))fail('Unknown benefit assignment');}if(!row.id)fail('Invalid administration row identity');if(row.account_id&&!accountIds.has(row.account_id))fail('Unknown administration account');if(row.service_id&&!serviceIds.has(row.service_id))fail('Unknown administration service');}}
+    const benefitKeys=new Set<string>();for(const row of administration.benefit_allocations){const key=row.account_id+'|'+row.period+'|'+row.service_id;if(benefitKeys.has(key)||!accountIds.has(row.account_id)||!serviceIds.has(row.service_id)||!p.snapshots.some(s=>s.account_id===row.account_id&&s.period===row.period)||new Decimal(row.amount).gt(0))fail('Invalid benefit allocation');benefitKeys.add(key);}
     if(new Set(account_documents.map(d=>d.id)).size!==account_documents.length)fail('Duplicate account documents');
     for(const rows of [account_history.residents,account_history.services,account_history.holders,account_history.additional,account_history.characteristics]){if(new Set(rows.map(r=>r.id)).size!==rows.length)fail('Duplicate account history identifiers');for(const row of rows)if(!accountIds.has(row.account_id))fail('Unknown account history reference');}
     for(const row of account_history.services)if(!serviceIds.has(row.service_id))fail('Unknown service history reference');
@@ -700,11 +709,12 @@ export const projectSchema = z.preprocess((input) => {
     if (previous.success)
       return {
         ...previous.data,
-        schema_version: 2,
+        schema_version: 3,
         meters: [],
         meter_values: [],
       };
   }
+  if(input&&typeof input==='object'&&'schema_version' in input&&input.schema_version===2)return {...input,schema_version:3};
   return input;
 }, currentProjectSchema);
 
@@ -747,7 +757,8 @@ export function demoProject(): Project {
   const month = today().slice(0, 7);
   return {
     format: "openhau",
-    schema_version: 2,
+    schema_version: 3,
+    administration:{documents:[],benefit_allocations:[]},
     service_accounting:{opening:[],payments:[],adjustments:[]},
     tariff_documents: [],
     reference_catalogs:{},

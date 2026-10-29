@@ -1,0 +1,4353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "const": "openhau"
+    },
+    "schema_version": {
+      "type": "number",
+      "const": 3
+    },
+    "demo": {
+      "type": "boolean"
+    },
+    "currency": {
+      "type": "string",
+      "const": "MDL"
+    },
+    "organization": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "association_code": {
+          "type": "string"
+        },
+        "fiscal_code": {
+          "type": "string"
+        },
+        "bank": {
+          "type": "string"
+        },
+        "iban": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "association_code",
+        "fiscal_code",
+        "bank",
+        "iban",
+        "address",
+        "notes"
+      ],
+      "additionalProperties": false
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "enum": [
+            "ru",
+            "ro"
+          ]
+        },
+        "theme": {
+          "type": "string",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ]
+        },
+        "period": {
+          "type": "string",
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+        },
+        "receipt_language": {
+          "type": "string",
+          "enum": [
+            "ru",
+            "ro",
+            "both",
+            "en"
+          ]
+        },
+        "accent": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "receipt_title": {
+          "type": "object",
+          "properties": {
+            "ru": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ro": {
+              "type": "string",
+              "minLength": 1
+            },
+            "en": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ru",
+            "ro"
+          ],
+          "additionalProperties": false
+        },
+        "receipt_footer": {
+          "type": "object",
+          "properties": {
+            "ru": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ro": {
+              "type": "string",
+              "minLength": 1
+            },
+            "en": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ru",
+            "ro"
+          ],
+          "additionalProperties": false
+        },
+        "due_day": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 28
+        },
+        "font_size": {
+          "type": "number",
+          "minimum": 9,
+          "maximum": 16
+        },
+        "rounding": {
+          "type": "string",
+          "enum": [
+            "half_up",
+            "half_even"
+          ]
+        },
+        "receipt_css": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "receipt_design": {
+          "default": "studio",
+          "type": "string",
+          "enum": [
+            "studio",
+            "compact",
+            "classic",
+            "ribbon",
+            "botanical",
+            "heritage",
+            "aero",
+            "custom"
+          ]
+        },
+        "receipt_color": {
+          "default": "#46566b",
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "organization_logo": {
+          "default": "",
+          "type": "string",
+          "maxLength": 3000000
+        },
+        "receipt_presets": {
+          "default": [],
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "design": {
+                "type": "string",
+                "enum": [
+                  "studio",
+                  "compact",
+                  "classic",
+                  "ribbon",
+                  "botanical",
+                  "heritage",
+                  "aero",
+                  "custom"
+                ]
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              "font_size": {
+                "type": "number",
+                "minimum": 9,
+                "maximum": 16
+              },
+              "logo": {
+                "type": "string",
+                "maxLength": 3000000
+              },
+              "custom": {
+                "type": "object",
+                "properties": {
+                  "font": {
+                    "type": "string",
+                    "enum": [
+                      "sans",
+                      "serif",
+                      "mono"
+                    ]
+                  },
+                  "decoration": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "stripes",
+                      "dots"
+                    ]
+                  },
+                  "border": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "line",
+                      "double"
+                    ]
+                  },
+                  "heading": {
+                    "type": "string",
+                    "enum": [
+                      "left",
+                      "center"
+                    ]
+                  },
+                  "economy": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "font",
+                  "decoration",
+                  "border",
+                  "heading",
+                  "economy"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "name",
+              "design",
+              "color",
+              "font_size",
+              "logo"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "date_format": {
+          "default": "iso",
+          "type": "string",
+          "enum": [
+            "iso",
+            "dmy-dot",
+            "dmy-slash",
+            "mdy-slash",
+            "dmy-short",
+            "long",
+            "short-month",
+            "weekday",
+            "roman-month"
+          ]
+        },
+        "period_format": {
+          "default": "auto",
+          "type": "string",
+          "enum": [
+            "auto",
+            "iso",
+            "month-dot",
+            "month-slash",
+            "long",
+            "short-month",
+            "roman-month"
+          ]
+        },
+        "payment_balancing_service_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "custom_receipt": {
+          "type": "object",
+          "properties": {
+            "font": {
+              "type": "string",
+              "enum": [
+                "sans",
+                "serif",
+                "mono"
+              ]
+            },
+            "decoration": {
+              "type": "string",
+              "enum": [
+                "none",
+                "stripes",
+                "dots"
+              ]
+            },
+            "border": {
+              "type": "string",
+              "enum": [
+                "none",
+                "line",
+                "double"
+              ]
+            },
+            "heading": {
+              "type": "string",
+              "enum": [
+                "left",
+                "center"
+              ]
+            },
+            "economy": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "font",
+            "decoration",
+            "border",
+            "heading",
+            "economy"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "language",
+        "theme",
+        "period",
+        "receipt_language",
+        "accent",
+        "receipt_title",
+        "receipt_footer",
+        "due_day",
+        "font_size",
+        "rounding",
+        "receipt_css",
+        "receipt_design",
+        "receipt_color",
+        "organization_logo",
+        "receipt_presets",
+        "date_format",
+        "period_format"
+      ],
+      "additionalProperties": false
+    },
+    "accounts": {
+      "maxItems": 10000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "marked_for_deletion": {
+            "type": "boolean"
+          },
+          "number": {
+            "type": "string",
+            "minLength": 1
+          },
+          "payer_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string"
+          },
+          "apartments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total_area_m2": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "registered_residents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "waste_charge_persons": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "opening_balance": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "opening_period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "service_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "opening_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "closing_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "property_id": {
+            "type": "string"
+          },
+          "holder_id": {
+            "type": "string"
+          },
+          "registration_enabled": {
+            "type": "boolean"
+          },
+          "residents_enabled": {
+            "type": "boolean"
+          },
+          "living_area_m2": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "floor": {
+            "type": "string"
+          },
+          "service_history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "effective_from": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                },
+                "service_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  }
+                }
+              },
+              "required": [
+                "effective_from",
+                "service_ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "string"
+          },
+          "custom_fields": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "payer_name",
+          "address",
+          "apartments",
+          "total_area_m2",
+          "registered_residents",
+          "waste_charge_persons",
+          "opening_balance",
+          "opening_period",
+          "service_ids",
+          "active",
+          "notes",
+          "custom_fields"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "services": {
+      "maxItems": 10000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "marked_for_deletion": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ro": {
+                "type": "string",
+                "minLength": 1
+              },
+              "en": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "ru",
+              "ro"
+            ],
+            "additionalProperties": false
+          },
+          "calculation_type": {
+            "type": "string",
+            "enum": [
+              "metered",
+              "person",
+              "fixed",
+              "area",
+              "manual"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "default_quantity": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "service_type": {
+            "type": "string"
+          },
+          "report_order": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "meter_types": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "calculation_type",
+          "unit",
+          "active",
+          "default_quantity",
+          "notes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tariffs": {
+      "maxItems": 50000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "service_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "effective_from": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "rate": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          }
+        },
+        "required": [
+          "id",
+          "service_id",
+          "effective_from",
+          "rate"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "meter_readings": {
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "service_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "previous": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "current": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "service_id",
+          "period",
+          "previous",
+          "current"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "quantities": {
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "service_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "quantity": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "service_id",
+          "period",
+          "quantity"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "payments": {
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "payment_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "entered_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "amount": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "note": {
+            "type": "string"
+          },
+          "allocation_basis": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "allocation_balancing_service_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "allocation_manual_amount": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "payment_date",
+          "entered_date",
+          "amount",
+          "note"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "adjustments": {
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "service_id": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "amount": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "period",
+          "amount",
+          "note"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "closed_periods": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+      }
+    },
+    "snapshots": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "service_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "name": {
+                  "type": "object",
+                  "properties": {
+                    "ru": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "ro": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "en": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ru",
+                    "ro"
+                  ],
+                  "additionalProperties": false
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                },
+                "rate": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                },
+                "amount": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                }
+              },
+              "required": [
+                "service_id",
+                "name",
+                "unit",
+                "quantity",
+                "rate",
+                "amount"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "adjustment": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "total": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          }
+        },
+        "required": [
+          "account_id",
+          "period",
+          "lines",
+          "adjustment",
+          "total"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "template_manifest": {
+      "maxItems": 0,
+      "type": "array",
+      "items": {}
+    },
+    "administration": {
+      "default": {
+        "documents": [],
+        "benefit_allocations": []
+      },
+      "type": "object",
+      "properties": {
+        "documents": {
+          "maxItems": 50000,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "building-services",
+                  "citizen-changes",
+                  "grant-benefits",
+                  "end-benefits",
+                  "service-charges",
+                  "recalculation",
+                  "charge-corrections",
+                  "penalties"
+                ]
+              },
+              "number": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "date": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "correction_type": {
+                "default": "charges",
+                "type": "string",
+                "enum": [
+                  "charges",
+                  "benefits",
+                  "penalties",
+                  "advance",
+                  "payment"
+                ]
+              },
+              "imported": {
+                "default": false,
+                "type": "boolean"
+              },
+              "period": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+              },
+              "recalculation_period": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "recalculate_services": {
+                "default": true,
+                "type": "boolean"
+              },
+              "recalculate_benefits": {
+                "default": true,
+                "type": "boolean"
+              },
+              "comparison": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "account_id": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "service_id": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "previous_amount": {
+                      "type": "string",
+                      "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                    },
+                    "current_amount": {
+                      "type": "string",
+                      "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                    },
+                    "delta": {
+                      "type": "string",
+                      "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                    },
+                    "charge_delta": {
+                      "default": "0",
+                      "type": "string",
+                      "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                    },
+                    "benefit_delta": {
+                      "default": "0",
+                      "type": "string",
+                      "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                    }
+                  },
+                  "required": [
+                    "account_id",
+                    "service_id",
+                    "previous_amount",
+                    "current_amount",
+                    "delta",
+                    "charge_delta",
+                    "benefit_delta"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "applied"
+                ]
+              },
+              "marked_for_deletion": {
+                "default": false,
+                "type": "boolean"
+              },
+              "comment": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "building_id": {
+                "default": "",
+                "type": "string",
+                "maxLength": 100
+              },
+              "citizen_id": {
+                "default": "",
+                "type": "string",
+                "maxLength": 100
+              },
+              "person_name": {
+                "default": "",
+                "type": "string",
+                "maxLength": 2000
+              },
+              "person_attributes": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "rows": {
+                "maxItems": 10000,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "account_id": {
+                      "default": "",
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "service_id": {
+                      "default": "",
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "tariff_type_id": {
+                      "default": "",
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "citizen_id": {
+                      "default": "",
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "relative_id": {
+                      "default": "",
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "relationship_id": {
+                      "default": "",
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "category_id": {
+                      "default": "",
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "benefit_id": {
+                      "default": "",
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "effective_from": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    "until": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "active": {
+                      "default": true,
+                      "type": "boolean"
+                    },
+                    "method": {
+                      "default": "percent",
+                      "type": "string",
+                      "enum": [
+                        "percent",
+                        "fixed"
+                      ]
+                    },
+                    "proration": {
+                      "default": "daily",
+                      "type": "string",
+                      "enum": [
+                        "daily",
+                        "full-month",
+                        "first-day"
+                      ]
+                    },
+                    "combination": {
+                      "default": "highest",
+                      "type": "string",
+                      "enum": [
+                        "highest",
+                        "add"
+                      ]
+                    },
+                    "amount": {
+                      "default": "0",
+                      "type": "string",
+                      "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                    },
+                    "rate": {
+                      "default": "0",
+                      "type": "string",
+                      "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                    },
+                    "quantity": {
+                      "default": "0",
+                      "type": "string",
+                      "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                    },
+                    "days": {
+                      "default": 0,
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3660
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "account_id",
+                    "service_id",
+                    "tariff_type_id",
+                    "citizen_id",
+                    "relative_id",
+                    "relationship_id",
+                    "category_id",
+                    "benefit_id",
+                    "effective_from",
+                    "until",
+                    "active",
+                    "method",
+                    "proration",
+                    "combination",
+                    "amount",
+                    "rate",
+                    "quantity",
+                    "days"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "before": {
+                "type": "string"
+              },
+              "after": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "number",
+              "date",
+              "correction_type",
+              "imported",
+              "period",
+              "recalculation_period",
+              "recalculate_services",
+              "recalculate_benefits",
+              "comparison",
+              "state",
+              "marked_for_deletion",
+              "comment",
+              "building_id",
+              "citizen_id",
+              "person_name",
+              "person_attributes",
+              "rows"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "benefit_allocations": {
+          "default": [],
+          "maxItems": 100000,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "account_id": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "period": {
+                "type": "string"
+              },
+              "service_id": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "amount": {
+                "type": "string",
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              }
+            },
+            "required": [
+              "account_id",
+              "period",
+              "service_id",
+              "amount"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "documents",
+        "benefit_allocations"
+      ],
+      "additionalProperties": false
+    },
+    "reference_catalogs": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "enum": [
+          "banks",
+          "bank-accounts",
+          "payment-methods",
+          "ownership",
+          "property-types",
+          "meter-types",
+          "tariff-types",
+          "service-types",
+          "citizens",
+          "citizen-groups",
+          "service-groups",
+          "benefit-documents",
+          "identity-documents",
+          "units",
+          "laws",
+          "buildings",
+          "benefit-categories",
+          "counterparties",
+          "localities",
+          "norms",
+          "properties",
+          "allocation-bases",
+          "calculation-bases",
+          "entrances",
+          "benefit-calculation",
+          "identity-reasons",
+          "allocation-methods",
+          "relationships",
+          "streets",
+          "characteristic-types"
+        ]
+      },
+      "additionalProperties": {
+        "maxItems": 100000,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "code": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "active": {
+              "type": "boolean"
+            },
+            "marked_for_deletion": {
+              "default": false,
+              "type": "boolean"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "attributes": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "id",
+            "code",
+            "name",
+            "active",
+            "marked_for_deletion",
+            "notes",
+            "attributes"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "account_history": {
+      "default": {
+        "residents": [],
+        "services": [],
+        "holders": [],
+        "additional": [],
+        "characteristics": [],
+        "relationships": []
+      },
+      "type": "object",
+      "properties": {
+        "residents": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "account_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "citizen_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "date": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "residence",
+                  "registration"
+                ]
+              },
+              "status": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "from": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              "to": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "document_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "account_id",
+              "citizen_id",
+              "date",
+              "kind",
+              "status",
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "services": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "account_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "service_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "tariff_type_id": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "document_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "account_id",
+              "service_id",
+              "tariff_type_id",
+              "date",
+              "active"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "holders": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "account_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "date": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              "citizen_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "document_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "account_id",
+              "date",
+              "citizen_id",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additional": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "account_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "property_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "date": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "document_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "account_id",
+              "property_id",
+              "date",
+              "active"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "characteristics": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "account_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              "document_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "account_id",
+              "name",
+              "value",
+              "date"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "relationships": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "date": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              "citizen_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "relative_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "relationship_id": {
+                "type": "string"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "document_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "date",
+              "citizen_id",
+              "relative_id",
+              "relationship_id"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "residents",
+        "services",
+        "holders",
+        "additional",
+        "characteristics",
+        "relationships"
+      ],
+      "additionalProperties": false
+    },
+    "account_documents": {
+      "default": [],
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "number": {
+            "type": "string",
+            "minLength": 1
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "open",
+              "close",
+              "information",
+              "services",
+              "opening-balance",
+              "residents",
+              "additional",
+              "characteristics"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "applied"
+            ]
+          },
+          "account": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "marked_for_deletion": {
+                "type": "boolean"
+              },
+              "number": {
+                "type": "string",
+                "minLength": 1
+              },
+              "payer_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "address": {
+                "type": "string"
+              },
+              "apartments": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "total_area_m2": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              },
+              "registered_residents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "waste_charge_persons": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "opening_balance": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              },
+              "opening_period": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+              },
+              "service_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                }
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "opening_date": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              "closing_date": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "property_id": {
+                "type": "string"
+              },
+              "holder_id": {
+                "type": "string"
+              },
+              "registration_enabled": {
+                "type": "boolean"
+              },
+              "residents_enabled": {
+                "type": "boolean"
+              },
+              "living_area_m2": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              },
+              "floor": {
+                "type": "string"
+              },
+              "service_history": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "effective_from": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                    },
+                    "service_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[A-Za-z0-9_-]+$"
+                      }
+                    }
+                  },
+                  "required": [
+                    "effective_from",
+                    "service_ids"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "custom_fields": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "number",
+              "payer_name",
+              "address",
+              "apartments",
+              "total_area_m2",
+              "registered_residents",
+              "waste_charge_persons",
+              "opening_balance",
+              "opening_period",
+              "service_ids",
+              "active",
+              "notes",
+              "custom_fields"
+            ],
+            "additionalProperties": false
+          },
+          "comment": {
+            "type": "string"
+          },
+          "before": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "marked_for_deletion": {
+                "type": "boolean"
+              },
+              "number": {
+                "type": "string",
+                "minLength": 1
+              },
+              "payer_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "address": {
+                "type": "string"
+              },
+              "apartments": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "total_area_m2": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              },
+              "registered_residents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "waste_charge_persons": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "opening_balance": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              },
+              "opening_period": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+              },
+              "service_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                }
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "opening_date": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              "closing_date": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "property_id": {
+                "type": "string"
+              },
+              "holder_id": {
+                "type": "string"
+              },
+              "registration_enabled": {
+                "type": "boolean"
+              },
+              "residents_enabled": {
+                "type": "boolean"
+              },
+              "living_area_m2": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              },
+              "floor": {
+                "type": "string"
+              },
+              "service_history": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "effective_from": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                    },
+                    "service_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[A-Za-z0-9_-]+$"
+                      }
+                    }
+                  },
+                  "required": [
+                    "effective_from",
+                    "service_ids"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "custom_fields": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "number",
+              "payer_name",
+              "address",
+              "apartments",
+              "total_area_m2",
+              "registered_residents",
+              "waste_charge_persons",
+              "opening_balance",
+              "opening_period",
+              "service_ids",
+              "active",
+              "notes",
+              "custom_fields"
+            ],
+            "additionalProperties": false
+          },
+          "imported": {
+            "type": "boolean"
+          },
+          "marked_for_deletion": {
+            "type": "boolean"
+          },
+          "change_holder": {
+            "type": "boolean"
+          },
+          "service_rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "account_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "service_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "tariff_type_id": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                },
+                "active": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "account_id",
+                "service_id",
+                "tariff_type_id",
+                "date",
+                "active"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "resident_rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "citizen_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "registration": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "residence": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "from": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                },
+                "to": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "citizen_id",
+                "registration",
+                "residence",
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additional_rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "property_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "active": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "property_id",
+                "active"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "characteristic_rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "balance_rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "service_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "amount": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                },
+                "penalty": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                }
+              },
+              "required": [
+                "id",
+                "service_id",
+                "amount",
+                "penalty"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "advance": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "advance_service_id": {
+            "type": "string"
+          },
+          "initial_readings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "meter_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                },
+                "date": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                }
+              },
+              "required": [
+                "id",
+                "meter_id",
+                "value",
+                "date"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "before_accounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "marked_for_deletion": {
+                  "type": "boolean"
+                },
+                "number": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "payer_name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "address": {
+                  "type": "string"
+                },
+                "apartments": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "total_area_m2": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                },
+                "registered_residents": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "waste_charge_persons": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "opening_balance": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                },
+                "opening_period": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                },
+                "service_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  }
+                },
+                "active": {
+                  "type": "boolean"
+                },
+                "opening_date": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                },
+                "closing_date": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "property_id": {
+                  "type": "string"
+                },
+                "holder_id": {
+                  "type": "string"
+                },
+                "registration_enabled": {
+                  "type": "boolean"
+                },
+                "residents_enabled": {
+                  "type": "boolean"
+                },
+                "living_area_m2": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                },
+                "floor": {
+                  "type": "string"
+                },
+                "service_history": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "effective_from": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                      },
+                      "service_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100,
+                          "pattern": "^[A-Za-z0-9_-]+$"
+                        }
+                      }
+                    },
+                    "required": [
+                      "effective_from",
+                      "service_ids"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "notes": {
+                  "type": "string"
+                },
+                "custom_fields": {
+                  "default": {},
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "number",
+                "payer_name",
+                "address",
+                "apartments",
+                "total_area_m2",
+                "registered_residents",
+                "waste_charge_persons",
+                "opening_balance",
+                "opening_period",
+                "service_ids",
+                "active",
+                "notes",
+                "custom_fields"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "before_history": {
+            "type": "object",
+            "properties": {
+              "residents": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "account_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "citizen_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "date": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "residence",
+                        "registration"
+                      ]
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "from": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                    },
+                    "to": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "document_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "account_id",
+                    "citizen_id",
+                    "date",
+                    "kind",
+                    "status",
+                    "from",
+                    "to"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "services": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "account_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "service_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "tariff_type_id": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "document_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "account_id",
+                    "service_id",
+                    "tariff_type_id",
+                    "date",
+                    "active"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "holders": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "account_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "date": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                    },
+                    "citizen_id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "document_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "account_id",
+                    "date",
+                    "citizen_id",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "additional": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "account_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "property_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "date": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "document_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "account_id",
+                    "property_id",
+                    "date",
+                    "active"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "characteristics": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "account_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                    },
+                    "document_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "account_id",
+                    "name",
+                    "value",
+                    "date"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "relationships": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "date": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                    },
+                    "citizen_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "relative_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "relationship_id": {
+                      "type": "string"
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "document_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "date",
+                    "citizen_id",
+                    "relative_id",
+                    "relationship_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "residents",
+              "services",
+              "holders",
+              "additional",
+              "characteristics",
+              "relationships"
+            ],
+            "additionalProperties": false
+          },
+          "before_opening": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "account_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "service_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "amount": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                }
+              },
+              "required": [
+                "account_id",
+                "service_id",
+                "amount"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "before_occupancy": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "account_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "apartment": {
+                  "type": "string"
+                },
+                "period": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "direct",
+                    "cumulative"
+                  ]
+                },
+                "previous": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000
+                },
+                "current": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000
+                },
+                "notes": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "account_id",
+                "apartment",
+                "period",
+                "mode",
+                "previous",
+                "current",
+                "notes"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "created_readings": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          "after_state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "date",
+          "kind",
+          "state",
+          "account",
+          "comment"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "meter_documents": {
+      "default": [],
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "number": {
+            "type": "string",
+            "minLength": 1
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "shared",
+              "initial",
+              "status"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "applied"
+            ]
+          },
+          "comment": {
+            "type": "string"
+          },
+          "rows": {
+            "maxItems": 100000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "meter_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "account_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "value": {
+                  "type": "string"
+                },
+                "active": {
+                  "type": "boolean"
+                },
+                "reading_date": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                },
+                "reading_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                }
+              },
+              "required": [
+                "id",
+                "meter_id",
+                "value",
+                "active"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "date",
+          "period",
+          "kind",
+          "state",
+          "comment",
+          "rows"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "charge_events": {
+      "default": [],
+      "maxItems": 300000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "service_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ]
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "charge",
+              "adjustment"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          }
+        },
+        "required": [
+          "account_id",
+          "service_id",
+          "period",
+          "date",
+          "kind",
+          "amount"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "service_accounting": {
+      "default": {
+        "opening": [],
+        "payments": [],
+        "adjustments": []
+      },
+      "type": "object",
+      "properties": {
+        "opening": {
+          "maxItems": 100000,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "account_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "service_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "amount": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              }
+            },
+            "required": [
+              "account_id",
+              "service_id",
+              "amount"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "payments": {
+          "maxItems": 300000,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "payment_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "service_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "amount": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              }
+            },
+            "required": [
+              "payment_id",
+              "service_id",
+              "amount"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "adjustments": {
+          "maxItems": 100000,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "account_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "period": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+              },
+              "service_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "amount": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              }
+            },
+            "required": [
+              "account_id",
+              "period",
+              "service_id",
+              "amount"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "opening",
+        "payments",
+        "adjustments"
+      ],
+      "additionalProperties": false
+    },
+    "tariff_documents": {
+      "default": [],
+      "maxItems": 50000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "number": {
+            "type": "string",
+            "minLength": 1
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "applied"
+            ]
+          },
+          "rows": {
+            "minItems": 1,
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "service_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "effective_from": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                },
+                "rate": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                },
+                "tariff_id": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "service_id",
+                "effective_from",
+                "rate",
+                "tariff_id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "date",
+          "comment",
+          "state",
+          "rows"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "payment_batches": {
+      "default": [],
+      "maxItems": 50000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "imported": {
+            "type": "boolean"
+          },
+          "marked_for_deletion": {
+            "type": "boolean"
+          },
+          "number": {
+            "type": "string",
+            "minLength": 1
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "billing_through": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "balancing_service_id": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "applied"
+            ]
+          },
+          "rows": {
+            "minItems": 1,
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "account_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "amount": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                },
+                "manual_maintenance": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 64,
+                      "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "payment_id": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source_automatic": {
+                  "type": "boolean"
+                },
+                "source_advance": {
+                  "type": "boolean"
+                },
+                "historical_shares": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "service_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[A-Za-z0-9_-]+$"
+                      },
+                      "amount": {
+                        "type": "string",
+                        "maxLength": 64,
+                        "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                      }
+                    },
+                    "required": [
+                      "service_id",
+                      "amount"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "account_id",
+                "amount",
+                "manual_maintenance",
+                "payment_id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "date",
+          "billing_through",
+          "balancing_service_id",
+          "method",
+          "comment",
+          "state",
+          "rows"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "treasury": {
+      "default": {
+        "wallets": [],
+        "funds": [],
+        "transactions": [],
+        "locked_through": null
+      },
+      "type": "object",
+      "properties": {
+        "wallets": {
+          "maxItems": 1000,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "bank",
+                  "cash"
+                ]
+              },
+              "opening_date": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              "opening_balance": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "kind",
+              "opening_date",
+              "opening_balance",
+              "active"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "funds": {
+          "maxItems": 1000,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "opening_date": {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              "opening_balance": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "opening_date",
+              "opening_balance",
+              "active"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "transactions": {
+          "maxItems": 100000,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                  },
+                  "reference": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "income"
+                  },
+                  "wallet_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "fund_id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[A-Za-z0-9_-]+$"
+                      },
+                      {
+                        "type": "string",
+                        "const": ""
+                      }
+                    ]
+                  },
+                  "category": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "counterparty": {
+                    "type": "string"
+                  },
+                  "linked_payment_ids": {
+                    "default": [],
+                    "maxItems": 10000,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "date",
+                  "amount",
+                  "reference",
+                  "notes",
+                  "kind",
+                  "wallet_id",
+                  "fund_id",
+                  "category",
+                  "counterparty",
+                  "linked_payment_ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                  },
+                  "reference": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "expense"
+                  },
+                  "wallet_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "fund_id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[A-Za-z0-9_-]+$"
+                      },
+                      {
+                        "type": "string",
+                        "const": ""
+                      }
+                    ]
+                  },
+                  "category": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "counterparty": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "date",
+                  "amount",
+                  "reference",
+                  "notes",
+                  "kind",
+                  "wallet_id",
+                  "fund_id",
+                  "category",
+                  "counterparty"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                  },
+                  "reference": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "transfer"
+                  },
+                  "from_wallet_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "to_wallet_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  }
+                },
+                "required": [
+                  "id",
+                  "date",
+                  "amount",
+                  "reference",
+                  "notes",
+                  "kind",
+                  "from_wallet_id",
+                  "to_wallet_id"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+                  },
+                  "reference": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "fund_transfer"
+                  },
+                  "from_fund_id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[A-Za-z0-9_-]+$"
+                      },
+                      {
+                        "type": "string",
+                        "const": ""
+                      }
+                    ]
+                  },
+                  "to_fund_id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[A-Za-z0-9_-]+$"
+                      },
+                      {
+                        "type": "string",
+                        "const": ""
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "date",
+                  "amount",
+                  "reference",
+                  "notes",
+                  "kind",
+                  "from_fund_id",
+                  "to_fund_id"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "locked_through": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "wallets",
+        "funds",
+        "transactions",
+        "locked_through"
+      ],
+      "additionalProperties": false
+    },
+    "meters": {
+      "maxItems": 100000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "scope": {
+            "default": "individual",
+            "type": "string",
+            "enum": [
+              "individual",
+              "shared"
+            ]
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ]
+          },
+          "service_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "serial_number": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "installed_on": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retired_on": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "initial_value": {
+            "default": "0",
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "status_history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                },
+                "active": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "date",
+                "active"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "type_id": {
+            "type": "string"
+          },
+          "source_metadata": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "account_links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+                },
+                "account_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "active": {
+                  "type": "boolean"
+                },
+                "dependent": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "date",
+                "account_id",
+                "active",
+                "dependent"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "account_id",
+          "service_id",
+          "label",
+          "serial_number",
+          "unit",
+          "active",
+          "installed_on",
+          "retired_on",
+          "initial_value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "meter_values": {
+      "maxItems": 200000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "meter_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "reading_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^-?\\d{1,16}(\\.\\d{1,16})?$"
+          },
+          "kind": {
+            "default": "regular",
+            "type": "string",
+            "enum": [
+              "initial",
+              "regular",
+              "final"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "meter_id",
+          "period",
+          "reading_date",
+          "value",
+          "kind",
+          "notes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "monthly_occupancy": {
+      "default": [],
+      "maxItems": 200000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "apartment": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "direct",
+              "cumulative"
+            ]
+          },
+          "previous": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000
+          },
+          "current": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "apartment",
+          "period",
+          "mode",
+          "previous",
+          "current",
+          "notes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "shared_groups": {
+      "default": [],
+      "maxItems": 10000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "shared_meter_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "difference_service_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ]
+          },
+          "individual_meter_ids": {
+            "minItems": 1,
+            "maxItems": 100000,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          "effective_from": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "precision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "allow_negative": {
+            "default": false,
+            "type": "boolean"
+          },
+          "exclusions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "period": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                },
+                "account_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  }
+                },
+                "notes": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "period",
+                "account_ids",
+                "notes"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "shared_meter_id",
+          "individual_meter_ids",
+          "effective_from",
+          "effective_to",
+          "precision",
+          "allow_negative",
+          "exclusions"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "payment_deadlines": {
+      "default": [],
+      "maxItems": 12000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "due_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$"
+          }
+        },
+        "required": [
+          "period",
+          "due_date"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "format",
+    "schema_version",
+    "demo",
+    "currency",
+    "organization",
+    "settings",
+    "accounts",
+    "services",
+    "tariffs",
+    "meter_readings",
+    "quantities",
+    "payments",
+    "adjustments",
+    "closed_periods",
+    "snapshots",
+    "template_manifest",
+    "administration",
+    "reference_catalogs",
+    "account_history",
+    "account_documents",
+    "meter_documents",
+    "charge_events",
+    "service_accounting",
+    "tariff_documents",
+    "payment_batches",
+    "treasury",
+    "meters",
+    "meter_values",
+    "monthly_occupancy",
+    "shared_groups",
+    "payment_deadlines"
+  ],
+  "additionalProperties": false
+}

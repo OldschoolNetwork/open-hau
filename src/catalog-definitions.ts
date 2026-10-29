@@ -1,9 +1,10 @@
-export const referenceKinds=["banks","bank-accounts","payment-methods","ownership","property-types","meter-types","tariff-types","service-types","citizens","citizen-groups","service-groups","benefit-documents","identity-documents","units","laws","buildings","benefit-categories","counterparties","localities","norms","properties","allocation-bases","calculation-bases","entrances","benefit-calculation","identity-reasons","allocation-methods","relationships","streets"] as const;
+export const referenceKinds=["banks","bank-accounts","payment-methods","ownership","property-types","meter-types","tariff-types","service-types","citizens","citizen-groups","service-groups","benefit-documents","identity-documents","units","laws","buildings","benefit-categories","counterparties","localities","norms","properties","allocation-bases","calculation-bases","entrances","benefit-calculation","identity-reasons","allocation-methods","relationships","streets","characteristic-types"] as const;
 export type ReferenceKind=typeof referenceKinds[number];
 export type CatalogField={key:string;ru:string;ro:string;type?:"date"|"number";reference?:ReferenceKind|"accounts"|"services"};
 const f=(key:string,ru:string,ro:string,type?:"date"|"number"):CatalogField=>({key,ru,ro,type});
 const link=(key:string,ru:string,ro:string,reference:CatalogField["reference"]):CatalogField=>({key,ru,ro,reference});
 export const catalogFields:Record<ReferenceKind,CatalogField[]>={
+ "characteristic-types":[f("value_type","Тип значения","Tip valoare"),f("description","Описание","Descriere")],
  "banks":[f("bic","БИК / код банка","BIC / cod bancar"),f("swift","SWIFT","SWIFT"),f("address","Адрес","Adresă")],
  "bank-accounts":[link("bank_id","Банк","Bancă","banks"),f("iban","IBAN / расчётный счёт","IBAN / cont bancar"),f("currency","Валюта","Monedă"),link("owner_id","Владелец","Titular","counterparties")],
  "payment-methods":[link("bank_account_id","Банковский счёт","Cont bancar","bank-accounts"),f("purpose","Назначение платежа","Destinația plății")],

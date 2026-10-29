@@ -1,4 +1,12 @@
 <script lang="ts">
+import AdministrationDocuments from './AdministrationDocuments.svelte';
+import AdministrationMovements from './AdministrationMovements.svelte';
+import AuxiliaryReport from './AuxiliaryReport.svelte';
+import PeriodWizard from './PeriodWizard.svelte';
+import GroupChargeProcess from './GroupChargeProcess.svelte';
+import {administrationKinds,type AdministrationDocument,type AdministrationKind} from './administration-schema';
+import {makeAdministrationDocument,administrationRow} from './administration';
+import {auxiliaryKinds,type AuxiliaryKind} from './auxiliary-reports';
 import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './database-format';
   import {invoke} from "@tauri-apps/api/core";
   import {open as chooseFile,save as chooseFileDestination} from "@tauri-apps/plugin-dialog";
@@ -16,7 +24,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
   import SaveChangesDialog from "./SaveChangesDialog.svelte";
   import DesktopWindow from "./DesktopWindow.svelte";
   import DesktopChooser from "./DesktopChooser.svelte";
-  import {desktopMenus,chooserGroups,catalogs} from "./desktop-menu";
+  import {desktopMenus,chooserGroups,catalogs,documents,reportCommands,processCommands} from "./desktop-menu";
   import ReferenceCatalog from "./ReferenceCatalog.svelte";
   import ReferenceRecordEditor from "./ReferenceRecordEditor.svelte";
   import {newReferenceRecord,type ReferenceRecord} from "./reference-catalogs";
@@ -173,6 +181,11 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
   let loadFailed = false;
   type WorkspaceView={id:string;page:string;visible:boolean;minimized:boolean;position:{x:number;y:number;width:number;height:number}};
   let desktopViews:WorkspaceView[]=[],activeDesktop="",desktopArea:HTMLElement;
+  let administrationEditors:Record<string,AdministrationDocument>={};
+  let administrationMovements:Record<string,AdministrationDocument>={};
+  function editAdministrationDocument(doc:AdministrationDocument){const id='administration-editor:'+doc.id;if(!desktopViews.some(v=>v.id===id&&v.visible))administrationEditors={...administrationEditors,[id]:structuredClone(doc)};openDesktop(id);}
+  async function prepareAdministrationAction(id:string){const view='administration-editor:'+id;if(desktopViews.some(v=>v.id===view&&v.visible)){await hideDesktop(view);return !desktopViews.some(v=>v.id===view&&v.visible);}return true;}
+  function showAdministrationMovements(doc:AdministrationDocument){const id='administration-movements:'+doc.id;administrationMovements={...administrationMovements,[id]:doc};openDesktop(id);}
   let registerFilterRequests:Record<string,RegisterFilterRequest>={};
   let reportSettingsRequests:Record<string,ReportSettingsRequest>={};
   let reportLookupRequests:Record<string,ReportLookupRequest>={};
@@ -279,6 +292,10 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
     if(meterDocumentKinds[id]||id==='shared-connections')return desktopMenus.flatMap(m=>m.children||[]).find(c=>c.id===id)?.[language]||id;
     if(id.startsWith('accountdoc:'))return language==='ru'?'Лицевой счёт · документ':'Cont personal · document';
     if(accountDocumentKinds[id])return desktopMenus.flatMap(m=>m.children||[]).find(c=>c.id===id)?.[language]||id;
+    if(id==='batch-charges'||id==='batch-recalculation')return processCommands.find(c=>c.id===id)?.[language]||id;
+    if(id.startsWith('administration-movements:'))return language==='ru'?'Движения документа':'Înregistrările documentului';
+    if(id.startsWith('administration-editor:')||administrationKinds.includes(id as AdministrationKind)){const kind=administrationEditors[id]?.kind||id;return documents.find(d=>d.id===kind)?.[language]||kind;}
+    if(auxiliaryKinds.includes(id as AuxiliaryKind))return reportCommands.find(d=>d.id===id)?.[language]||id;
     if(id.startsWith('registerfilter:'))return language==='ru'?'Настройка отбора':'Configurare filtru';
     if(id.startsWith('register:'))return [...chooserGroups.information.items,...chooserGroups.accumulation.items].find(c=>c.id===id.slice(9))?.[language]||id;
     if(id==='organization-editor')return language==='ru'?'Организация · редактирование':'Organizație · editare';
@@ -294,6 +311,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
     const entry=pages.find(x=>x.id===id);return entry?.[language]||id;
   }
   function desktopCommand(action:string){
+
     if(action==='temporary-lock'){workspaceLocked=true;return;}
     if(action.startsWith("file:")){if(action==="file:save")void save();else if(action==="file:export")void exportJson();else if(action==="file:open")void openExistingDatabase();else if(action==="file:save-as")void saveDatabaseAs();else if(action==="file:import")void importDatabase();else if(action==="file:exit"){if(native)void getCurrentWindow().close().catch(fail);else void requestDatabaseHome();}else void requestDatabaseHome();return;}
     if(action.startsWith("edit:")){void editText(action.slice(5));return;}
@@ -425,7 +443,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
   async function refreshCatalog(){try{catalog=await databaseCatalog();}catch(e){fail(e);}}
   let databaseOpened=false;
   function clearWorkspace(){
-    desktopViews=[];registerFilterRequests={};reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};
+    desktopViews=[];administrationEditors={};administrationMovements={};registerFilterRequests={};reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};
   }
   function unsavedWork(){return dirty||!!pendingEditor||!!Object.keys(readingEdits).length||["account","service","organization","payment","tariff","adjustment","json"].includes(modal);}
   function chooseSaveAction(exiting:boolean){return new Promise<"save"|"discard"|"cancel">(resolve=>{saveChoice={exiting,resolve};});}
@@ -455,7 +473,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
     const raw=await readDatabase(id),entry=catalog.databases.find(d=>d.id===id),candidate=raw?valid(raw):(id==="default"?p:blankDatabase(entry?.name||"OpenHaU"));
     if(!initial&&(modal||Object.keys(readingEdits).length))throw Error(t("Завершите открытое редактирование и примените показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));
     if(!initial&&!prepared&&!(await prepareDatabaseChange()))return;
-    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;lastSavedProject=structuredClone(candidate);dirty=false;loadFailed=false;receiptPeriod='';desktopViews=[];registerFilterRequests={};reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
+    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;lastSavedProject=structuredClone(candidate);dirty=false;loadFailed=false;receiptPeriod='';desktopViews=[];administrationEditors={};administrationMovements={};registerFilterRequests={};reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
   }
   async function openDatabase(id:string){try{await switchDatabase(id);}catch(e){fail(e);}}
   async function newDatabase(name:string){try{if(!(await prepareDatabaseChange()))return;if(native){const path=await chooseFileDestination({defaultPath:databaseFilename(name),filters:databaseSaveFilters});if(!path)return;const id=await invoke<string>('create_database_file',{path,value:blankDatabase(name)});await refreshCatalog();await switchDatabase(id,true,true);return;}const id=await createDatabase(name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=blankDatabase(name);dirty=true;await save();}}catch(e){fail(e);}}
@@ -2021,6 +2039,11 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
       <DesktopWindow id={view.id} title={desktopTitle(view.id,lang)} language={lang} active={activeDesktop===view.id} hidden={!view.visible||view.minimized} minimized={view.minimized} index={desktopViews.indexOf(view)} bind:position={view.position} onfocus={()=>focusDesktop(view.id)} onclose={()=>hideDesktop(view.id)} onminimize={()=>hideDesktop(view.id,true)}>
         {#if view.id.startsWith('reportinterval:')&&intervalRequests[view.id]}<ReportInterval request={intervalRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('reportlookup:')&&reportLookupRequests[view.id]}<ReportLookup project={p} onmanage={manageLookup} request={reportLookupRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
+        {:else if view.id.startsWith('administration-editor:')&&administrationEditors[view.id]}<AdministrationDocuments editorId={view.id} project={p} kind={administrationEditors[view.id].kind} initial={administrationEditors[view.id]} onapply={applyAndSave} onedit={editAdministrationDocument} onclose={()=>hideDesktop(view.id)} onmovements={showAdministrationMovements} beforeChange={prepareAdministrationAction}/>
+        {:else if view.id==='batch-charges'||view.id==='batch-recalculation'}<GroupChargeProcess project={p} recalculate={view.id==='batch-recalculation'} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)}/>
+        {:else if administrationKinds.includes(view.id as AdministrationKind)}<AdministrationDocuments editorId={view.id} project={p} kind={view.id as AdministrationKind} onapply={applyAndSave} onedit={editAdministrationDocument} onclose={()=>hideDesktop(view.id)} onmovements={showAdministrationMovements} beforeChange={prepareAdministrationAction}/>
+        {:else if auxiliaryKinds.includes(view.id as AuxiliaryKind)}<AuxiliaryReport project={p} kind={view.id as AuxiliaryKind} title={desktopTitle(view.id,lang)}/>
+        {:else if view.id.startsWith('administration-movements:')&&administrationMovements[view.id]}<AdministrationMovements project={p} doc={administrationMovements[view.id]}/>
         {:else if view.id.startsWith('registerfilter:')&&registerFilterRequests[view.id]}<RegisterFilter request={registerFilterRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('reportsettings:')&&reportSettingsRequests[view.id]}<ReportSettings request={reportSettingsRequests[view.id]} language={lang} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('batcheditor:')&&paymentEditors[view.id]}<PaymentBatches editorId={view.id} project={p} initial={paymentEditors[view.id]} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)} ondetails={openPaymentDetails} onmovements={openBatchMovements} beforeSave={()=>closePaymentDetails(view.id)}/>
@@ -2029,7 +2052,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
         {:else if view.id.startsWith('paymentrecord:')&&paymentRecords[view.id]}<PaymentRecord editorId={view.id} project={p} kind={paymentRecords[view.id].kind} initial={paymentRecords[view.id].record} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id.startsWith('accountcard:')&&accountCards[view.id]}<AccountCard project={p} accountId={accountCards[view.id].id} initialDate={accountCards[view.id].date} onclose={()=>hideDesktop(view.id)} ondocument={accountCardDocument} onhistory={(type,subject)=>accountHistory(accountCards[view.id].id,type,subject)} onreference={accountReference} onreport={(kind,date)=>accountReport(accountCards[view.id].id,kind,date)}/>
         {:else if view.id.startsWith('accounthistory:')&&accountHistories[view.id]}<AccountHistoryWindow project={p} {...accountHistories[view.id]} onclose={()=>hideDesktop(view.id)}/>
-        {:else if view.id.startsWith('accountreport:')&&accountReports[view.id]}{#if accountReports[view.id].kind==='payment-report'}<PaymentReport project={p} initialAccountId={accountReports[view.id].accountId} initialPeriod={accountReports[view.id].date.slice(0,7)}/>{:else}<Reports project={p} mode={accountReports[view.id].kind==='service-reports'?'service':'account'} initialAccountId={accountReports[view.id].accountId} initialPeriod={accountReports[view.id].date.slice(0,7)}/>{/if}
+        {:else if view.id.startsWith('accountreport:')&&accountReports[view.id]}{#if accountReports[view.id].kind==='account-ledger'}<AuxiliaryReport project={p} kind="account-ledger" title={t('Карточка расчётов','Fișă de calcul')} initialAccountId={accountReports[view.id].accountId} initialPeriod={accountReports[view.id].date.slice(0,7)}/>{:else if accountReports[view.id].kind==='payment-report'}<PaymentReport project={p} initialAccountId={accountReports[view.id].accountId} initialPeriod={accountReports[view.id].date.slice(0,7)}/>{:else}<Reports project={p} mode={accountReports[view.id].kind==='service-reports'?'service':'account'} initialAccountId={accountReports[view.id].accountId} initialPeriod={accountReports[view.id].date.slice(0,7)}/>{/if}
         {:else if view.id.startsWith('accountdoc:')&&accountDocumentEditors[view.id]}<AccountDocuments editorId={view.id} project={p} kind={accountDocumentEditors[view.id].kind} initial={accountDocumentEditors[view.id]} onapply={applyAndSave} onedit={editAccountDocument} onclose={()=>hideDesktop(view.id)} onreference={accountReference} onmovements={accountMovements} beforeChange={prepareAccountAction}/>
         {:else if view.id.startsWith('serviceeditor:')}<ServiceRecord editorId={view.id} project={p} initial={serviceEditors[view.id]||null} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)} onreference={kind=>openDesktop('catalog:'+kind)} ontariffs={id=>{tariffServiceFilter=id;navigate('tariffs');}}/>
         {:else if view.id.startsWith('physicaleditor:')&&physicalEditors[view.id]}<PhysicalMeters editorId={view.id} project={p} onapply={applyAndSave} editorOnly={true} initialMeter={physicalEditors[view.id].meter} initialReading={physicalEditors[view.id].reading} onclose={()=>hideDesktop(view.id)}/>
@@ -2043,7 +2066,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
         {:else if view.id.startsWith("chooser:")}<DesktopChooser group={view.id.slice(8)} language={lang} oncommand={action=>{hideDesktop(view.id);desktopCommand(action);}}/>
         {:else if view.id.startsWith('register:')}<DataRegister project={p} kind={{...informationViews,...accumulationViews}[view.id.slice(9)]} title={desktopTitle(view.id,lang)} parentId={view.id}/>
         {:else if view.id==="organization-editor"}<OrganizationEditor project={p} editorId={view.id} onapply={applyAndSave} onclose={()=>void hideDesktop(view.id)}/>
-        {:else if view.id==="period"}<div class="desktop-simple-form"><label>{t("Расчетный период","Perioada de calcul")}<input type="month" value={period} onchange={e=>changePeriod(e.currentTarget.value)}/></label><button class="button secondary" onclick={()=>hideDesktop(view.id)}>{t("Закрыть","Închidere")}</button></div>
+        {:else if view.id==="period"}<PeriodWizard project={p} onapply={applyAndSave} onclose={()=>hideDesktop(view.id)}/>
         {:else if view.id==="manual"}<Documentation language={lang} onopen={desktopCommand}/>
         {:else}{@render workspaceContent(view.page)}{/if}
       </DesktopWindow>

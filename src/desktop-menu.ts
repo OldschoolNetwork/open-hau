@@ -1,3 +1,4 @@
+import {administrationKinds} from './administration-schema';
 import {informationViews,accumulationViews} from "./register-data";
 import {referenceKinds} from "./catalog-definitions";
 export type DesktopCommand = {
@@ -14,6 +15,7 @@ const item = (
   action?: string,
 ): DesktopCommand => ({ id, ru, ro, action });
 export const catalogs: DesktopCommand[] = [
+  item('characteristic-types','Виды характеристик','Tipuri de caracteristici','catalog:characteristic-types'),
   item("banks", "Банки", "Bănci"),
   item("bank-accounts", "Банковские счета", "Conturi bancare"),
   item("payment-methods", "Варианты оплаты", "Modalități de plată"),
@@ -174,6 +176,7 @@ export const documents: DesktopCommand[] = [
     "Administrare contoare comune",
   ),
 ];
+for(const entry of documents)if(administrationKinds.includes(entry.id as typeof administrationKinds[number]))entry.action=entry.id;
 for(const entry of documents)if(['open-account','close-account','account-changes','account-services','opening-balances','individual-readings','shared-readings','initial-readings','meter-status','shared-connections','residence-status'].includes(entry.id))entry.action=entry.id;
 const document = (id:string)=>documents.find(x=>x.id===id)!;
 export const reportCommands: DesktopCommand[] = [
@@ -196,6 +199,7 @@ export const reportCommands: DesktopCommand[] = [
   item("beneficiary-register", "Реестр льготников", "Registrul beneficiarilor"),
   item("residential-list", "Список жилых помещений", "Lista locuințelor"),
 ];
+for(const entry of reportCommands)if(['account-ledger','beneficiaries','beneficiary-register','residential-list'].includes(entry.id))entry.action=entry.id;
 export const processCommands: DesktopCommand[] = [
   item(
     "batch-charges",
@@ -214,6 +218,7 @@ export const processCommands: DesktopCommand[] = [
     "period",
   ),
 ];
+for(const entry of processCommands)if(entry.id!=='period')entry.action=entry.id;
 export const informationRegisters: DesktopCommand[] = [
   "Дополнительные объекты учета",
   "Зависимые пользователи коллективных приборов учета",
@@ -372,6 +377,7 @@ export const desktopMenus: DesktopCommand[] = [
         "characteristic-types",
         "Виды характеристик",
         "Tipuri de caracteristici",
+        "catalog:characteristic-types",
       ),
       catalog("property-types"),
     ],

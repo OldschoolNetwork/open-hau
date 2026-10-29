@@ -1,3 +1,4 @@
+import {billingServices,benefitAmounts} from './administration-data';
 import {accountOpenInMonth,accountServicesInMonth} from './account-lifecycle';
 import Decimal from "decimal.js";
 import type { Project, Account } from "./model";
@@ -45,7 +46,7 @@ export function charges(
   const lines: Line[] = [],
     warnings: string[] = [];
   const groups = applicableGroups(p, period).filter(g => g.individual_meter_ids.some(mid => p.meters.find(m => m.id === mid)?.account_id === a.id));
-  for (const sid of accountServicesInMonth(a,period)) {
+  for (const sid of billingServices(p,a,period,accountServicesInMonth(a,period))) {
     const s = p.services.find((x) => x.id === sid);
     if (!s || !s.active) continue;
     // The configured difference service is generated once by its source group.
@@ -173,7 +174,7 @@ export function charges(
       p.adjustments
         .filter((x) => x.account_id === a.id && x.period === period)
         .map((x) => x.amount),
-    ),
+    ).plus(add(benefitAmounts(p,a.id,period,lines).map(r=>r.amount))),
     p,
   );
   return {
@@ -234,12 +235,12 @@ export function closePeriod(p: Project, period: string): Project {
   const rows = accounts.map((a) => ({ a, s: statement(p, a, period) }));
   if (rows.some((x) => x.s.warnings.length || x.s.gaps.length))
     throw Error(p.settings.language==="ru"?"Заполните показания, тарифы и закройте предыдущие периоды":"Completați indexurile și tarifele și închideți perioadele anterioare");
-  return {
+  const next:Project={
     ...p,
     closed_periods: [...p.closed_periods, period],
     snapshots: [
       ...p.snapshots,
-      ...rows.map(({ a, s }) => ({
+      ...rows.filter(({a})=>!p.snapshots.some(x=>x.account_id===a.id&&x.period===period)).map(({ a, s }) => ({
         account_id: a.id,
         period,
         lines: s.lines,
@@ -248,16 +249,31 @@ export function closePeriod(p: Project, period: string): Project {
       })),
     ],
   };
+  const previousKeys=new Set(p.snapshots.map(s=>s.account_id+'|'+s.period));
+  next.service_accounting={...p.service_accounting,adjustments:structuredClone(p.service_accounting.adjustments)};
+  next.administration=structuredClone(p.administration);
+  for(const snapshot of next.snapshots.filter(s=>s.period===period&&!previousKeys.has(s.account_id+'|'+s.period))){
+    const benefits=benefitAmounts(p,snapshot.account_id,period,snapshot.lines);
+    for(const benefit of benefits){let share=next.service_accounting.adjustments.find(r=>r.account_id===snapshot.account_id&&r.period===period&&r.service_id===benefit.service_id);if(!share){share={account_id:snapshot.account_id,period,service_id:benefit.service_id,amount:'0.00'};next.service_accounting.adjustments.push(share);}share.amount=money(D(share.amount).plus(benefit.amount),p);}
+    next.administration.benefit_allocations.push(...benefits.map(r=>({...r,account_id:snapshot.account_id,period})));
+  }
+  return next;
 }
 export function reopenPeriod(p: Project, period: string): Project {
   if (p.closed_periods.some((x) => x > period))
     throw Error(p.settings.language==="ru"?"Сначала откройте более поздние закрытые периоды":"Redeschideți mai întâi perioadele ulterioare închise");
-  return {
-    ...p,
-    closed_periods: p.closed_periods.filter((x) => x !== period),
-    charge_events:p.charge_events.filter(e=>e.period!==period),
-    snapshots: p.snapshots.filter((x) => x.period !== period),
-  };
+  if(p.administration.documents.some(d=>!d.imported&&d.state==='applied'&&d.kind==='recalculation'&&d.recalculation_period===period&&d.period>period))throw Error(p.settings.language==='ru'?'Сначала отмените последующие перерасчёты этого месяца.':'Anulați mai întâi recalculările ulterioare ale acestei luni.');
+  const next=structuredClone(p);
+  const reset=new Set(next.administration.documents.filter(d=>!d.imported&&d.state==='applied'&&d.period===period&&['service-charges','recalculation'].includes(d.kind)).map(d=>d.id));
+  for(const row of next.adjustments.filter(r=>r.document_id&&reset.has(r.document_id))){const share=next.service_accounting.adjustments.find(r=>r.account_id===row.account_id&&r.period===row.period&&r.service_id===row.service_id);if(share)share.amount=money(D(share.amount).minus(row.amount),p);}
+  next.adjustments=next.adjustments.filter(r=>!r.document_id||!reset.has(r.document_id));
+  next.closed_periods=next.closed_periods.filter(x=>x!==period);
+  next.charge_events=next.charge_events.filter(x=>x.period!==period);
+  next.snapshots=next.snapshots.filter(x=>x.period!==period);
+  for(const benefit of next.administration.benefit_allocations.filter(r=>r.period===period)){const share=next.service_accounting.adjustments.find(r=>r.account_id===benefit.account_id&&r.period===period&&r.service_id===benefit.service_id);if(share)share.amount=money(D(share.amount).minus(benefit.amount),p);}
+  next.administration.benefit_allocations=next.administration.benefit_allocations.filter(r=>r.period!==period);
+  for(const doc of next.administration.documents.filter(d=>reset.has(d.id))){doc.state='draft';doc.before=undefined;doc.after=undefined;doc.comparison=[];}
+  return next;
 }
 export function csv(rows: (string | number)[][]) {
   return (
