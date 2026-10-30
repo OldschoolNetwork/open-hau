@@ -1,6 +1,6 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
- import type {Project} from './model';import {translator} from './i18n';import {displayDate} from './date-format';import {statusLabel,citizenName} from './account-data';import {entryConsumption} from './meter-entry';import {RefreshCw,X} from '@lucide/svelte';
+ import type {Project} from './model';import {translator} from './i18n';import {displayDate} from './date-format';import {statusLabel,citizenName} from './account-data';import {entryConsumption} from './meter-entry';import {RefreshCw,X} from "./icons";
  export let project:Project;export let accountId:string;export let type:string;export let subject='';export let onclose:()=>void;
  function formatEnd(value:string){return /^\d{4}-\d{2}-\d{2}$/.test(value)?displayDate(value,project):value;}
  $:t=translator(project.settings.language,$languageOverrides);let revision=0;

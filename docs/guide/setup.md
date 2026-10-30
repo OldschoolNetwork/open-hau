@@ -1,5 +1,18 @@
 # Organisation and personal accounts
 
+## Mac preferences and navigation
+
+On macOS, OpenHaU → Preferences opens a grid of preference categories. Use
+Show All to return to the grid, or search for a setting in the upper-right field.
+Category illustrations are separate from the monochrome command symbols.
+
+The system menu bar provides the application commands. The optional toolbar
+inside the workspace can collapse to the left and expand to the right using
+its arrow. Workspace → Add Workspace Shortcut adds a shortcut without dragging
+from the system menu; the internal toolbar also supports dragging commands.
+
+Keyboard shortcuts use Mac symbols: Command ⌘, Option ⌥, Shift ⇧ and Control ⌃.
+
 ## Organisation
 
 Enter the current organisation name, association code, CF/IDNO, address, bank

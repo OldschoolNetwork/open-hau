@@ -3,7 +3,7 @@
  import {uiLabel} from "./english";
  import {onDestroy} from "svelte";import {reportEditorDirty} from "./editor-drafts";
  export let editorId="";
- import {type Project,uid} from "./model";import {catalogFields,type ReferenceKind} from "./catalog-definitions";import {referenceRows,newReferenceRecord,saveReferenceRecord,referenceOptions,type ReferenceRecord} from "./reference-catalogs";import {translator} from "./i18n";import {issueText} from "./validation-language";import {ZodError} from "zod";import {Save,X} from "@lucide/svelte";
+ import {type Project,uid} from "./model";import {catalogFields,type ReferenceKind} from "./catalog-definitions";import {referenceRows,newReferenceRecord,saveReferenceRecord,referenceOptions,type ReferenceRecord} from "./reference-catalogs";import {translator} from "./i18n";import {issueText} from "./validation-language";import {ZodError} from "zod";import {Save,X} from "./icons";
  export let initial:ReferenceRecord|undefined=undefined;export let project:Project;export let kind:ReferenceKind;export let recordId:string;export let onapply:(p:Project)=>void;export let onclose:()=>void;
  let original=referenceRows(project,kind).find(r=>r.id===recordId),draft:ReferenceRecord=initial?structuredClone(initial):original?structuredClone(original):newReferenceRecord(project,kind),error="";
  $:t=translator(project.settings.language,$languageOverrides);

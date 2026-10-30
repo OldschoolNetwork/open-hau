@@ -1,7 +1,7 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
  import {uiLabel} from "./english";
- import type {Project} from "./model";import {translator} from "./i18n";import {displayDate} from "./date-format";import {Layers3,ReceiptText,Gauge,Plus,Trash2,Save} from "@lucide/svelte";
+ import type {Project} from "./model";import {translator} from "./i18n";import {displayDate} from "./date-format";import {Layers3,ReceiptText,Gauge,Plus,Trash2,Save} from "./icons";
  export let project:Project;export let draft:any;export let ontariffs:()=>void;
  import ReferencePicker from "./ReferencePicker.svelte";import type {ReferenceKind} from "./catalog-definitions";
  export let onreference:(kind:ReferenceKind)=>void;

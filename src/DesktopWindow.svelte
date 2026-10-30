@@ -1,7 +1,7 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
  import {uiText} from "./english";
-  import {Minus,Square,X} from "@lucide/svelte";
+  import {Minus,Square,X} from "./icons";
   import {commandIcon} from "./desktop-icons";
   import {onMount,tick} from "svelte";
   import {fitWindow} from "./window-bounds";

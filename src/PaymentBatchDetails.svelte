@@ -7,7 +7,7 @@
  import {previewBatchRow,type PaymentDetailRequest} from './payment-batches';
  import type {PaymentShare} from './payment-allocation';
  import {translator} from './i18n';
- import {Check,RefreshCw,X} from '@lucide/svelte';
+ import {Check,RefreshCw,X} from "./icons";
  export let project:Project;export let request:PaymentDetailRequest;export let editorId:string;export let onclose:()=>void;
  const original=request.batch.rows.find(r=>r.id===request.rowId)!;
  let amount=original.amount,automatic=original.source_automatic??original.manual_maintenance===null,manual=original.manual_maintenance||'',shares:PaymentShare[]=[],error='';

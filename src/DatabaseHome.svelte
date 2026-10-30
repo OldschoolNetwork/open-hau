@@ -1,7 +1,7 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
  import {onMount} from "svelte";
- import {displayPath} from "./storage";import type {DatabaseCatalog} from "./database-catalog";import {List,LayoutGrid,Database,Plus,FolderOpen,ArrowRight,X,Trash2,BookOpen,RefreshCw} from "@lucide/svelte";import {translator} from "./i18n";
+ import {displayPath} from "./storage";import type {DatabaseCatalog} from "./database-catalog";import {List,LayoutGrid,Database,Plus,FolderOpen,ArrowRight,X,Trash2,BookOpen,RefreshCw} from "./icons";import {translator} from "./i18n";
  export let onupdates:()=>void=()=>{};export let onmanual:()=>void=()=>{};export let catalog:DatabaseCatalog;export let language:"ru"|"ro"|"en";export let active="default";export let onopen:(id:string)=>Promise<void>;export let onnew:(name:string)=>Promise<void>;export let onimport:()=>Promise<void>;export let onremove:(id:string)=>Promise<void>;export let onauto:(id:string|null)=>Promise<void>;
  let view="tiles";onMount(()=>{view=localStorage.getItem("openhau-database-view")==="list"?"list":"tiles";});
  function setView(value:string){view=value;localStorage.setItem("openhau-database-view",value);}

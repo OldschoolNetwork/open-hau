@@ -4,7 +4,7 @@
   import {monthLastDay} from "./report-dates";
   import {openInterval} from "./report-interval";
   import {displayDate,displayPeriod} from "./date-format";
-  import {Download,FileJson,Printer,ReceiptText} from "@lucide/svelte";
+  import {Download,FileJson,Printer,ReceiptText} from "./icons";
   import { translator } from "./i18n";
   import type { Project } from "./model";
   import {balanceTable,balanceCSV,type BalanceOptions,type BalanceFilter} from "./balance-view";

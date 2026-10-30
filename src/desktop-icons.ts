@@ -1,4 +1,4 @@
-import {RefreshCw,Undo2,Redo2,Scissors,ClipboardPaste,TextSelect,LogOut,File,FilePlus,Save,SaveAll,Copy,Database,LayoutDashboard,Landmark,Archive,Building2,ChartNoAxesCombined,ChevronRight,FileJson,FolderOpen,Gauge,Info,Layers3,ReceiptText,Settings,Users,Wallet} from "@lucide/svelte";
+import {RefreshCw,Undo2,Redo2,Scissors,ClipboardPaste,TextSelect,LogOut,File,FilePlus,Save,SaveAll,Copy,Database,LayoutDashboard,Landmark,Archive,Building2,ChartNoAxesCombined,ChevronRight,FileJson,FolderOpen,Gauge,Info,Layers3,ReceiptText,Settings,Users,Wallet} from "./icons";
 import type {DesktopCommand} from "./desktop-menu";
 export function commandIcon(command:DesktopCommand){
   const id=command.id;

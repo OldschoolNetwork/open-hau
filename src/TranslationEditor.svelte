@@ -7,7 +7,7 @@
     contentTranslationRows,
     applyTranslations,
   } from "./translations";
-  import { Save, Languages, Plus } from "@lucide/svelte";
+  import { Save, Languages, Plus } from "./icons";
   import type { Project } from "./model";
   import { reportEditorDirty } from "./editor-drafts";
   import { onDestroy } from "svelte";

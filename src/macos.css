@@ -1,0 +1,43 @@
+/* Big Sur / Monterey presentation; Windows keeps its own Fluent controls. */
+:root[data-platform="macos"]{--accent:#007aff;--soft:#e4efff;--hover:#e3e3e7;--mac-selection:#007aff;font-size:13px}
+:root[data-platform="macos"][data-theme="dark"]{--accent:#0a84ff;--soft:#223b59;--hover:#414147;--mac-selection:#0069df}
+:root[data-platform="macos"] .desktop-shell :is(button,summary)::before{display:none!important}
+:root[data-platform="macos"] .desktop-shell :is(input,select,textarea){border-radius:6px;min-height:28px;padding:5px 9px;font:inherit}
+:root[data-platform="macos"] .desktop-shell select{padding-right:30px;background-position:right 10px center}
+:root[data-platform="macos"] .desktop-shell :is(.button,.icon-button){border-radius:6px;min-height:28px;padding:5px 11px;font-weight:400;box-shadow:0 1px 2px #0001}
+:root[data-platform="macos"] .desktop-shell :is(button,input,select,textarea):focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 40%,transparent);outline-offset:1px}
+:root[data-platform="macos"] .desktop-shell .button.primary{background:linear-gradient(#2495ff,#0073ed);color:white;border:1px solid #0071e7}
+:root[data-platform="macos"] .desktop-chrome{background:transparent;padding:7px 10px 3px}
+:root[data-platform="macos"] .desktop-menubar{border:1px solid #8883;border-radius:9px;background:var(--surface);background:color-mix(in srgb,var(--surface) 84%,transparent);backdrop-filter:blur(24px) saturate(140%);padding:3px;min-height:30px;gap:2px}
+:root[data-platform="macos"] .desktop-menubar summary{border-radius:5px;padding:5px 8px;font-size:13px;gap:6px}
+:root[data-platform="macos"] .desktop-menu[open]>summary{background:var(--mac-selection);color:#fff}
+:root[data-platform="macos"] :is(.desktop-dropdown,.menu-shortcut-actions,.taskbar-context,.desktop-context){border-radius:9px;padding:5px;background:var(--surface);background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(30px) saturate(150%);border:1px solid #8884;box-shadow:0 10px 30px #0004,0 0 0 1px #fff1}
+:root[data-platform="macos"] .desktop-dropdown :is(button,summary){border-radius:5px;font-size:13px;min-height:27px;padding:4px 9px;gap:8px}
+:root[data-platform="macos"] .desktop-dropdown :is(button:enabled:hover,button:focus-visible,summary:hover,summary:focus-visible),:root[data-platform="macos"] .menu-shortcut-actions button:hover{background:var(--mac-selection);color:#fff;outline:none}
+:root[data-platform="macos"] .desktop-dropdown button:disabled{opacity:.4}
+:root[data-platform="macos"] .desktop-dropdown .submenu-arrow{font-size:17px;line-height:16px;padding-left:20px}
+:root[data-platform="macos"] .desktop-window{border-radius:10px;border:1px solid #8886;box-shadow:0 14px 35px #0003,0 0 0 1px #fff1}
+:root[data-platform="macos"] .desktop-window.active{box-shadow:0 20px 48px #0004,0 0 0 1px #fff2}
+:root[data-platform="macos"] .desktop-window-title{min-height:38px;background:var(--surface);background:color-mix(in srgb,var(--sidebar) 88%,transparent);backdrop-filter:blur(24px);border-bottom:1px solid #8883;font-size:13px;font-weight:600;padding:0 12px}
+:root[data-platform="macos"] .desktop-window-actions button{min-height:13px;padding:0;border:1px solid #0002;box-shadow:none}
+:root[data-platform="macos"] .desktop-window-content{background:var(--surface)}
+:root[data-platform="macos"] :is(.register-toolbar,.document-toolbar,.batch-toolbar,.panel-heading){background:var(--surface);background:color-mix(in srgb,var(--sidebar) 85%,transparent);border-color:#8883}
+:root[data-platform="macos"] :is(.register-toolbar,.document-toolbar,.batch-toolbar) button{border-radius:5px}
+:root[data-platform="macos"] table th{font-size:12px;font-weight:600;background:var(--sidebar)}
+:root[data-platform="macos"] tbody tr:nth-child(even){background:#88888808}
+:root[data-platform="macos"] tbody tr.selected{background:var(--mac-selection);color:#fff}
+:root[data-platform="macos"] .desktop-shell input[type=checkbox]{accent-color:var(--accent);min-height:0}
+:root[data-platform="macos"] .desktop-shell .modal{border-radius:12px;box-shadow:0 20px 70px #0005}
+:root[data-platform="macos"] .desktop-dock{margin:4px 12px 8px;border-radius:14px;border:1px solid #8884;background:var(--surface);background:color-mix(in srgb,var(--sidebar) 75%,transparent);backdrop-filter:blur(28px) saturate(140%);box-shadow:0 4px 20px #0002}
+:root[data-platform="macos"] .desktop-dock button{border-radius:7px}
+:root[data-platform="macos"] .desktop-resize{background:none}
+:root[data-platform="macos"] .menu-save-state{font-size:11px}
+@media (prefers-reduced-transparency:reduce){:root[data-platform="macos"] :is(.desktop-menubar,.desktop-dropdown,.desktop-window-title,.desktop-dock){background:var(--surface);backdrop-filter:none}}
+@media (forced-colors:active){:root[data-platform="macos"] .desktop-dropdown :is(button:enabled:hover,summary:hover){background:Highlight;color:HighlightText}}
+:root[data-platform="macos"] .settings-screen{padding:0;max-width:none;margin:0}
+:root[data-platform="macos"] .settings-screen>.panel{max-width:740px;margin:24px auto;padding:0 24px}
+:root[data-platform="macos"] .settings-screen>.panel .panel-heading{background:transparent;padding-bottom:18px}
+:root[data-platform="macos"] .settings-screen>.panel h2{font-size:17px;font-weight:600}
+:root[data-platform="macos"] .settings-screen>.button{margin:18px 24px 0}
+:root[data-platform="macos"] .settings-screen>:is(.keyboard-settings,.notification-settings,.backup-settings,.export-settings,.database-security){padding:24px;max-width:800px;margin:auto}
+:root[data-platform="macos"] .desktop-menubar svg,:root[data-platform="macos"] .register-toolbar svg{stroke-width:1.5}

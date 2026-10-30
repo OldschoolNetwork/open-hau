@@ -1,6 +1,6 @@
 <script lang="ts">
  import {languageOverrides,referenceLabel} from "./localization";
- import {onMount} from "svelte";import {type Project,uid} from "./model";import type {ReferenceKind} from "./catalog-definitions";import {referenceRows,saveReferenceRecord,type ReferenceRecord} from "./reference-catalogs";import {translator} from "./i18n";import {commandIcon} from "./desktop-icons";import {Plus,Copy,Pencil,Archive,LayoutGrid,List,Filter,Search,RefreshCw} from "@lucide/svelte";
+ import {onMount} from "svelte";import {type Project,uid} from "./model";import type {ReferenceKind} from "./catalog-definitions";import {referenceRows,saveReferenceRecord,type ReferenceRecord} from "./reference-catalogs";import {translator} from "./i18n";import {commandIcon} from "./desktop-icons";import {Plus,Copy,Pencil,Archive,LayoutGrid,List,Filter,Search,RefreshCw} from "./icons";
  import RecordToolbar from "./RecordToolbar.svelte";
  export let project:Project;export let kind:ReferenceKind;export let onedit:(id:string)=>void;export let onapply:(p:Project)=>void;
  let query="",activeOnly=false,tiles=false,selected="",error="",showFilters=true;

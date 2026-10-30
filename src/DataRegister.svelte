@@ -2,7 +2,7 @@
  import {nextSort,sortRows,type SortKey} from './table-sort';
  import {languageOverrides} from "./localization";
  import {printDocument} from "./print-dialog";
- import type {Project} from './model';import {registerTable,registerRowInRange} from './register-data';import {matchesRegisterFilters,openRegisterFilter,type RegisterFilter} from './register-filter';import {translator} from './i18n';import {displayDate} from './date-format';import {escapeMarkup} from './report-exports';import {tableXLSX} from './xlsx';import {csv} from './engine';import {native,exportPDF,exportBinary,exportText} from './storage';import {Printer,Download,Search,X,ChevronLeft,ChevronRight,ArrowDownUp,Filter,RefreshCw} from '@lucide/svelte';
+ import type {Project} from './model';import {registerTable,registerRowInRange} from './register-data';import {matchesRegisterFilters,openRegisterFilter,type RegisterFilter} from './register-filter';import {translator} from './i18n';import {displayDate} from './date-format';import {escapeMarkup} from './report-exports';import {tableXLSX} from './xlsx';import {csv} from './engine';import {native,exportPDF,exportBinary,exportText} from './storage';import {Printer,Download,Search,X,ChevronLeft,ChevronRight,ArrowDownUp,Filter,RefreshCw} from "./icons";
  export let project:Project;export let kind:string;export let title:string;export let parentId:string;
  let from='',to='',accountId='',query='',attentionOnly=false,page=1,error='',revision=0,selected=-1,filters:RegisterFilter[]=[];let sortKeys:SortKey[]=[];
  $:t=translator(project.settings.language,$languageOverrides);$:data=refreshed(project,kind,revision);

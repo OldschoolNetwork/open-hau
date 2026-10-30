@@ -2,7 +2,7 @@
  import {languageOverrides} from "./localization";
  import {uiText} from "./english";
  import {rememberNotification} from './notification-history';
- import {onMount,onDestroy} from "svelte";import {CheckCircle2,TriangleAlert,X,ChevronDown} from "@lucide/svelte";import {invoke} from "@tauri-apps/api/core";import {native} from "./storage";import {notificationPreferences,loadNotificationPreferences} from "./notification-settings";
+ import {onMount,onDestroy} from "svelte";import {CheckCircle2,TriangleAlert,X,ChevronDown} from "./icons";import {invoke} from "@tauri-apps/api/core";import {native} from "./storage";import {notificationPreferences,loadNotificationPreferences} from "./notification-settings";
  export let notice="",error="",language:"ru"|"ro"|"en"="ru";
  export let onnotice:()=>void=()=>{};
  type Toast={id:number;text:string;error:boolean;expanded:boolean;timer:ReturnType<typeof setTimeout>|null;remaining:number;until:number;paused:boolean;duration:number};

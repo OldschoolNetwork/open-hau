@@ -1,6 +1,6 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
- import {RefreshCw,Save,ChartNoAxesCombined,BookOpen,PinOff,Settings2,Wallet,ReceiptText,TriangleAlert,CalendarDays,Grip} from '@lucide/svelte';import {translator} from './i18n';import {uiLabel} from './english';
+ import {RefreshCw,Save,ChartNoAxesCombined,BookOpen,PinOff,Settings2,Wallet,ReceiptText,TriangleAlert,CalendarDays,Grip} from "./icons";import {translator} from './i18n';import {uiLabel} from './english';
  export let language:'ru'|'ro'|'en';export let databaseId:string;export let period:string;export let charges:string;export let paid:string;export let balance:string;export let attention:number;export let onopen:(id:string)=>void;
  let area:HTMLDivElement,button:HTMLButtonElement,pinned:string[]=[],positions:Record<string,{x:number;y:number}>={},configure=false,loadedId='',popover={x:0,y:0},drag:{id:string;dx:number;dy:number}|null=null;$:t=translator(language,$languageOverrides);
  const widgets=[{id:'balance',ru:'Остаток к оплате',ro:'Sold de achitat',en:'Balance due',icon:Wallet,action:'reports'},{id:'charges',ru:'Начисления',ro:'Calcule',en:'Charges',icon:ReceiptText,action:'receipts'},{id:'paid',ru:'Поступило оплат',ro:'Plăți încasate',en:'Payments received',icon:Wallet,action:'payment-report'},{id:'attention',ru:'Требует внимания',ro:'Necesită atenție',en:'Needs attention',icon:TriangleAlert,action:'readings'},{id:'period',ru:'Расчётный период',ro:'Perioada de calcul',en:'Billing period',icon:CalendarDays,action:'period'}];

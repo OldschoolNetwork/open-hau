@@ -2,7 +2,7 @@
  import {languageOverrides} from "./localization";
  import {printDocument} from "./print-dialog";
  import {openInterval} from "./report-interval";
- import type {Project} from './model';import {translator} from './i18n';import {monthNext} from './engine';import {exportText,exportBinary,exportPDF,native} from './storage';import {ReceiptText,Printer,Download,Settings2} from '@lucide/svelte';
+ import type {Project} from './model';import {translator} from './i18n';import {monthNext} from './engine';import {exportText,exportBinary,exportPDF,native} from './storage';import {ReceiptText,Printer,Download,Settings2} from "./icons";
  import {paymentMatrix,paymentMatrixHTML,paymentMatrixCSV,paymentMatrixXLSX,paymentMatrixDefaults} from './payment-matrix';import {emptyReportFilters,reportFilterData} from './report-filter-data';import {openReportSettings,type SortRule} from './report-settings';import ReportFilter from './ReportFilter.svelte';
  export let project:Project;export let initialAccountId="";export let initialPeriod=project.settings.period;
  let from=initialPeriod+'-01',to=new Date(Date.parse(monthNext(initialPeriod)+'-01T00:00:00Z')-86400000).toISOString().slice(0,10),options=paymentMatrixDefaults(),sort:SortRule[]=[],generated='',error='',ready=false,preview:HTMLIFrameElement,lastSignature='';

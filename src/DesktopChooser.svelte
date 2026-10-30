@@ -2,7 +2,7 @@
  import {languageOverrides} from "./localization";
  import {uiText} from "./english";
  import {uiLabel} from "./english";
-  import {LayoutGrid,List} from "@lucide/svelte";
+  import {LayoutGrid,List} from "./icons";
   import {commandIcon} from "./desktop-icons";
   import {onMount} from "svelte";
   import { chooserGroups } from "./desktop-menu";

@@ -1,6 +1,6 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
- import type {Project} from './model';import {translator} from './i18n';import {markedRecords,markedDeletionPlan,purgeMarkedRecords} from './marked-records';import {catalogs} from './desktop-menu';import {ask} from './storage';import {Search,Trash2,RefreshCw} from '@lucide/svelte';
+ import type {Project} from './model';import {translator} from './i18n';import {markedRecords,markedDeletionPlan,purgeMarkedRecords} from './marked-records';import {catalogs} from './desktop-menu';import {ask} from './storage';import {Search,Trash2,RefreshCw} from "./icons";
  export let project:Project;export let onapply:(p:Project)=>void;let selected:string[]=[],checked=false,error='';$:t=translator(project.settings.language,$languageOverrides);$:records=markedRecords(project);$:plan=checked?markedDeletionPlan(project,selected):[];
  async function remove(){try{if(!(await ask(t('Удалить выбранные помеченные записи без возможности восстановления? Сначала сохраните резервную копию.','Ștergeți definitiv înregistrările marcate selectate? Salvați mai întâi o copie de siguranță.'))))return;onapply(purgeMarkedRecords(project,selected));selected=[];checked=false;error='';}catch(e){error=String(e);}}
 </script>

@@ -1,6 +1,6 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
- import {Plus,Copy,Pencil,Trash2,RefreshCw,Filter,FilterX,CheckCheck,Undo2,FileText} from '@lucide/svelte';import {translator} from './i18n';
+ import {Plus,Copy,Pencil,Trash2,RefreshCw,Filter,FilterX,CheckCheck,Undo2,FileText} from "./icons";import {translator} from './i18n';
  export let language:'ru'|'ro'|"en";export let selected=false;export let onadd:(()=>void)|undefined=undefined;export let oncopy:(()=>void)|undefined=undefined;export let onedit:(()=>void)|undefined=undefined;export let onremove:(()=>void)|undefined=undefined;export let onrefresh:(()=>void)|undefined=undefined;export let onfilter:(()=>void)|undefined=undefined;export let onclearfilter:(()=>void)|undefined=undefined;export let onpost:(()=>void)|undefined=undefined;export let onunpost:(()=>void)|undefined=undefined;export let onmovements:(()=>void)|undefined=undefined;export let canPost=false,canUnpost=false,filterActive=false;export let removeLabel='';
  $:t=translator(language,$languageOverrides);
 </script>

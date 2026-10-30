@@ -1,0 +1,22 @@
+name: Check macOS integration
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, development/26.2]
+    paths: ['src-tauri/**', '.github/workflows/check-macos.yml']
+  pull_request:
+    paths: ['src-tauri/**', '.github/workflows/check-macos.yml']
+permissions:
+  contents: read
+jobs:
+  appkit:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.99.1'
+      - run: mkdir -p dist && printf '<!doctype html><title>OpenHaU</title>' > dist/index.html
+      - run: cargo check --locked --manifest-path src-tauri/Cargo.toml
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '12.6'

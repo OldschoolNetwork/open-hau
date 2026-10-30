@@ -2,7 +2,7 @@
  import {languageOverrides} from "./localization";
  import {manualEnglish} from "./manual-english";
  import {uiLabel} from "./english";
- import {Search,BookOpen,ArrowUpRight} from '@lucide/svelte';import {translator} from './i18n';
+ import {Search,BookOpen,ArrowUpRight} from "./icons";import {translator} from './i18n';
  export let language:'ru'|'ro'|"en";export let onopen:(action:string)=>void;export let allowOpen=true;
  let selected='start',query='';$:t=translator(language,$languageOverrides);
  type Chapter={id:string;ru:string;ro:string;stepsRu:string[];stepsRo:string[];action?:string};

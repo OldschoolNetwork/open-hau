@@ -1,7 +1,7 @@
 <script lang="ts">
  import type {RegisterFilterRequest} from './register-filter';
  import {openReportLookup} from './report-settings';
- import {Check,X,ListChecks} from '@lucide/svelte';
+ import {Check,X,ListChecks} from "./icons";
  export let request:RegisterFilterRequest;export let language:'ru'|'ro'|"en";export let onclose:()=>void;
  let filters=structuredClone(request.filters);
  const t=(ru:string,ro:string)=>language==='ru'?ru:ro;

@@ -1,6 +1,6 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
- import {onDestroy} from 'svelte';import {Save,Check,X} from '@lucide/svelte';import {translator} from './i18n';import {projectSchema,type Project} from './model';import {reportEditorDirty} from './editor-drafts';
+ import {onDestroy} from 'svelte';import {Save,Check,X} from "./icons";import {translator} from './i18n';import {projectSchema,type Project} from './model';import {reportEditorDirty} from './editor-drafts';
  export let project:Project;export let editorId:string;export let onapply:(p:Project)=>void;export let onclose:()=>void;
  let draft=structuredClone(project.organization),baseline=JSON.stringify(draft),error='';$:t=translator(project.settings.language,$languageOverrides);
  $:reportEditorDirty(editorId,JSON.stringify(draft)!==baseline);

@@ -1,6 +1,6 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
- import {Plus,X,ArrowUp,ArrowDown,Check,Save,Eraser} from '@lucide/svelte';import {translator} from './i18n';import ReportFilter from './ReportFilter.svelte';import type {ReportSettingsRequest} from './report-settings';
+ import {Plus,X,ArrowUp,ArrowDown,Check,Save,Eraser} from "./icons";import {translator} from './i18n';import ReportFilter from './ReportFilter.svelte';import type {ReportSettingsRequest} from './report-settings';
  export let request:ReportSettingsRequest;export let language:'ru'|'ro'|"en";export let onclose:()=>void;
  let tab:'filter'|'sort'='filter',filters=structuredClone(request.filters),sort=structuredClone(request.sort);
  let previousRequest=request;

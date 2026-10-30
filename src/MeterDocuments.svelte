@@ -11,7 +11,7 @@ import {translatedName} from './localization';
  import {translator} from './i18n';
  import {openReportLookup} from './report-settings';
  import RecordToolbar from './RecordToolbar.svelte';
- import {Plus,Copy,Trash2,ArrowUp,ArrowDown,Users,Save,Check,X} from '@lucide/svelte';
+ import {Plus,Copy,Trash2,ArrowUp,ArrowDown,Users,Save,Check,X} from "./icons";
  export let editorId='';export let project:Project;export let kind:MeterDocument['kind'];export let initial:MeterDocument|null=null;
  export let onapply:(p:Project)=>void;export let onedit:(d:MeterDocument)=>void;export let onclose:()=>void;
  let draft=initial?structuredClone(initial):null,selected='',selectedRow='',error='',filterOpen=false,query='',service='';

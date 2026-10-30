@@ -2,7 +2,7 @@
 import {translatedName} from './localization';
 
  import {languageOverrides} from "./localization";
- import {Search,X} from '@lucide/svelte';import {translator} from './i18n';
+ import {Search,X} from "./icons";import {translator} from './i18n';
  import AccountList from "./AccountList.svelte";
  import RecordToolbar from './RecordToolbar.svelte';import type {Project} from './model';
  import type {ReportLookupRequest} from './report-settings';

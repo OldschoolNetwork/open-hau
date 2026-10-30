@@ -1,6 +1,6 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
- import {X} from '@lucide/svelte';
+ import {X} from "./icons";
  import type {BalanceFilter} from './balance-view';
  import {translator} from './i18n';
  import {openReportLookup} from './report-settings';

@@ -8,7 +8,7 @@ import {translatedName} from './localization';
  import {previewBatchRow,savePaymentBatch,applyPaymentDetail,type PaymentDetailRequest} from './payment-batches';
  import {accountOpenInMonth} from './account-lifecycle';import {openReportLookup} from './report-settings';
  import {translator} from './i18n';import {issueText} from './validation-language';import {ZodError} from 'zod';
- import {Search,RotateCcw,Plus,Copy,Trash2,ArrowUp,ArrowDown,Users,Eye,Save,Check,X,FileText} from '@lucide/svelte';
+ import {Search,RotateCcw,Plus,Copy,Trash2,ArrowUp,ArrowDown,Users,Eye,Save,Check,X,FileText} from "./icons";
  export let project:Project;export let initial:PaymentBatch;export let editorId:string;
  export let onapply:(p:Project)=>void;export let onclose:()=>void;export let ondetails:(request:PaymentDetailRequest)=>void;export let onmovements:(id:string)=>void;
  export let beforeSave:()=>Promise<boolean>=async()=>true;

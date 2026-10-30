@@ -16,6 +16,8 @@ mod portable;
 mod encrypted;
 mod pdf_export;
 mod printing;
+mod native_menu;
+mod macos_symbols;
 #[cfg(test)]
 mod report_files_tests;
 
@@ -328,6 +330,8 @@ fn suppress_download_flyout(window: &tauri::WebviewWindow) {
 
 fn main() {
     tauri::Builder::default()
+        .manage(native_menu::NativeMenuState::default())
+        .on_menu_event(native_menu::dispatch)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -368,6 +372,8 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            native_menu::configure_native_menu,
+            macos_symbols::macos_symbols,
             printing::available_printers,printing::print_document,
             encrypted::unlock_database_file,encrypted::forget_database_passwords,encrypted::database_protection,encrypted::change_database_password,
             load_project,

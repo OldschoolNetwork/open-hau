@@ -4,7 +4,7 @@ import {translatedName,languageOverrides} from './localization';
   import type {Project} from "./model";
   import {D} from "./engine";
   import {allocatePayment,paymentServiceDebts,type PaymentShare} from "./payment-allocation";
-  import {Calculator,RefreshCw} from "@lucide/svelte";
+  import {Calculator,RefreshCw} from "./icons";
   export let project:Project;
   export let accountId:string;
   export let date:string;

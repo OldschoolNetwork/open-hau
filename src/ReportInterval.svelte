@@ -1,6 +1,6 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
- import {translator} from './i18n';import {intervalRange,type IntervalRequest,type IntervalChoice} from './report-interval';import {Check,X} from '@lucide/svelte';
+ import {translator} from './i18n';import {intervalRange,type IntervalRequest,type IntervalChoice} from './report-interval';import {Check,X} from "./icons";
  export let request:IntervalRequest;export let language:'ru'|'ro'|"en";export let onclose:()=>void;
  const initial=request.to.slice(0,7)||request.current;let choice:IntervalChoice={mode:'month',year:Number(initial.slice(0,4)),quarter:Math.ceil(Number(initial.slice(5,7))/3),month:Number(initial.slice(5,7)),day:request.to,yearToDate:false,quarterToDate:false,monthToDate:false};let error='';$:t=translator(language,$languageOverrides);$:range=(()=>{try{return intervalRange(choice,request.current);}catch{return null;}})();
  function apply(){if(!range){error=t('Укажите корректный интервал.','Indicați un interval valid.');return;}request.onapply(range.from,range.to);onclose();}

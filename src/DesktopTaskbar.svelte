@@ -1,7 +1,7 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
  import {uiLabel} from "./english";
- import {onMount,tick} from 'svelte';import {Search,Bell,X,GripVertical,ChevronLeft,ChevronRight} from '@lucide/svelte';import {translator} from './i18n';import {commandIcon} from './desktop-icons';import {notificationHistory} from './notification-history';import type {DesktopCommand} from './desktop-menu';
+ import {onMount,tick} from 'svelte';import {Search,Bell,X,GripVertical,ChevronLeft,ChevronRight} from "./icons";import {translator} from './i18n';import {commandIcon} from './desktop-icons';import {notificationHistory} from './notification-history';import type {DesktopCommand} from './desktop-menu';
  export let language:'ru'|'ro'|"en";export let windows:{id:string;title:string;minimized:boolean}[]=[];export let active='';export let menus:DesktopCommand[];export let onfocus:(id:string)=>void;export let onminimize:(id:string)=>void;export let onclose:(id:string)=>void;export let oncommand:(id:string)=>void;export let position='bottom';
  let locked=true,labels=true,searchMode='icon',query='',panel='',context=false,hover='',timer:ReturnType<typeof setTimeout>,dragging=false,now=new Date(),month=new Date(),contextX=0,contextY=0;
  $:t=translator(language,$languageOverrides);$:locale=language==='ru'?'ru-RU':'ro-RO';

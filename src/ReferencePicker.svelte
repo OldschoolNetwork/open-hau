@@ -1,6 +1,6 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
- import type {Project} from './model';import type {ReferenceKind} from './catalog-definitions';import {referenceRows} from './reference-catalogs';import {X,FolderOpen} from '@lucide/svelte';import {translator} from './i18n';import {openReportLookup} from './report-settings';import {catalogs} from './desktop-menu';
+ import type {Project} from './model';import type {ReferenceKind} from './catalog-definitions';import {referenceRows} from './reference-catalogs';import {X,FolderOpen} from "./icons";import {translator} from './i18n';import {openReportLookup} from './report-settings';import {catalogs} from './desktop-menu';
  export let project:Project;export let kind:ReferenceKind;export let value='';export let onopen:(kind:ReferenceKind)=>void;
  $:t=translator(project.settings.language,$languageOverrides);$:rows=referenceRows(project,kind);$:label=rows.find(r=>r.id===value)?.name||value;
  function choose(){openReportLookup({id:crypto.randomUUID(),label:catalogs.find(c=>c.id===kind)?.[project.settings.language==='en'?'ru':project.settings.language]||kind,kind,items:rows.map(r=>({id:r.id,code:r.code,name:r.name})),selected:value?[value]:[],multiple:false,onchoose:ids=>value=ids[0]||''});}

@@ -1,4 +1,6 @@
 <script lang="ts">
+ import NativeMenu from './NativeMenu.svelte';
+ import {setPlatform,platform} from './platform';
  import {sortableTables} from "./sortable-tables";
  import ReceiptContentMenu from "./ReceiptContentMenu.svelte";
  import TranslationEditor from "./TranslationEditor.svelte";
@@ -137,7 +139,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
     Archive,
     ChartNoAxesCombined,
     CheckCheck,
-  } from "@lucide/svelte";
+  } from "./icons";
   import {
     demoProject,
     projectSchema,
@@ -1180,7 +1182,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
     const keydown = (e: KeyboardEvent) => {
       if(workspaceLocked||showDatabaseHome||saveChoice)return;
       if(e.defaultPrevented)return;
-      const chord=keyChord(e),action=Object.entries($keyBindings).find(([,value])=>value&&value===chord)?.[0];
+      const chord=keyChord(e,$platform==='macos'),action=Object.entries($keyBindings).find(([,value])=>value&&value===chord)?.[0];
       const typing=e.target instanceof Element&&!!e.target.closest('input,textarea,select,[contenteditable=true]');
       if(action&&(!typing||e.ctrlKey||e.metaKey||e.altKey||e.key==='F1')){e.preventDefault();desktopCommand(action);}
     };
@@ -1201,7 +1203,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
         .catch(fail);
     (async () => {
       try {
-        document.documentElement.dataset.platform=await runtimePlatform();
+        setPlatform(await runtimePlatform());
         if(native&&automaticUpdateCheck())void checkForUpdates();
         if(native)queuedLaunchAction=await invoke<string>('launch_action');
         catalog=await databaseCatalog();
@@ -1232,6 +1234,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
 </script>
 
 <svelte:head><title>OpenHaU · {period}</title></svelte:head>
+<NativeMenu menus={desktopMenus} language={lang} workspace={!showDatabaseHome&&!workspaceLocked&&!saveChoice} onshortcut={createShortcut} oncommand={action=>{if(showDatabaseHome&&action==='about')modal='about';else if(showDatabaseHome&&action==='manual')welcomeManual=true;else if(showDatabaseHome&&action==='updates')welcomeUpdates=true;else if(action!=='settings'||!showDatabaseHome)desktopCommand(action);}}/>
 <svelte:window onpointermove={reveal} onfocusin={rememberText}/>
 {#snippet workspaceContent(page:string)}
     <section class="content">
@@ -1671,7 +1674,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
           </div>
         </div>
       {:else if page === "settings"}
-        <div class="settings-screen">{#if settingsCategory==="home"}<SettingsHome language={lang} onselect={selectSetting}/>{:else}<button class="button secondary settings-back" onclick={()=>settingsCategory="home"}><ChevronRight size={16} style="transform:rotate(180deg)"/>{t("Все параметры","Toate setările")}</button>
+        <div class="settings-screen"><SettingsHome language={lang} active={settingsCategory} onselect={selectSetting}/>{#if settingsCategory!=="home"}{#if $platform!=="macos"}<button class="button secondary settings-back" onclick={()=>settingsCategory="home"}><ChevronRight size={16} style="transform:rotate(180deg)"/>{t("Все параметры","Toate setările")}</button>{/if}
         {#if settingsCategory==="backups"}<BackupSettings language={lang} unsaved={dirty || !!Object.keys(readingEdits).length}/>{/if}
         {#if settingsCategory==="exports"}<ExportSettings project={p} unsaved={dirty || !!Object.keys(readingEdits).length}/>{/if}
         {#if settingsCategory==="translations"}<TranslationEditor project={p} onapply={applyAndSave}/>{/if}

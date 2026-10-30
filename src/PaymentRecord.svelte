@@ -1,6 +1,6 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
- import {onDestroy} from 'svelte';import {reportEditorDirty} from './editor-drafts';import {projectSchema,uid,today,type Project} from './model';import {D} from './engine';import {previousPaymentMonth,type PaymentShare} from './payment-allocation';import PaymentAllocation from './PaymentAllocation.svelte';import AccountLookupField from './AccountLookupField.svelte';import {translator} from './i18n';import {Save,Check,X} from '@lucide/svelte';
+ import {onDestroy} from 'svelte';import {reportEditorDirty} from './editor-drafts';import {projectSchema,uid,today,type Project} from './model';import {D} from './engine';import {previousPaymentMonth,type PaymentShare} from './payment-allocation';import PaymentAllocation from './PaymentAllocation.svelte';import AccountLookupField from './AccountLookupField.svelte';import {translator} from './i18n';import {Save,Check,X} from "./icons";
  export let project:Project;export let kind:'payment'|'adjustment';export let initial:Project['payments'][number]|Project['adjustments'][number]|null=null;export let editorId:string;export let onapply:(p:Project)=>void;export let onclose:()=>void;
  const payment=initial as Project['payments'][number]|null;
  const adjustment=initial as Project['adjustments'][number]|null;

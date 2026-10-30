@@ -12,7 +12,7 @@
     Circle,
     Triangle,
     Image,
-  } from "@lucide/svelte";
+  } from "./icons";
   import {
     defaultReceiptCanvas,
     canvasShape,

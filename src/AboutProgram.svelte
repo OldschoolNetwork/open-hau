@@ -2,7 +2,7 @@
  import {languageOverrides} from "./localization";
  import {version} from "../package.json";
  import {translator} from "./i18n";
- import {BookOpen,Globe,Code2} from '@lucide/svelte';
+ import {BookOpen,Globe,Code2} from "./icons";
  export let language:'ru'|'ro'|"en";$:ru=language==='ru';
 
  $:t=translator(language,$languageOverrides);

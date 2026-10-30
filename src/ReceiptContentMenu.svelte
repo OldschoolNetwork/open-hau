@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { SlidersHorizontal, ChevronDown, LockKeyhole } from "@lucide/svelte";
+  import { SlidersHorizontal, ChevronDown, LockKeyhole } from "./icons";
   import { translator } from "./i18n";
   import {
     languageOverrides,

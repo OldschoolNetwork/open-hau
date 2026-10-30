@@ -1,7 +1,7 @@
 <script lang="ts">
  import {languageOverrides,translatedName,referenceLabel} from "./localization";
  import {uiText} from "./english";
- import {Search,X} from '@lucide/svelte';import {openReportLookup} from './report-settings';import {uid,type Project} from './model';import type {ReferenceKind} from './catalog-definitions';
+ import {Search,X} from "./icons";import {openReportLookup} from './report-settings';import {uid,type Project} from './model';import type {ReferenceKind} from './catalog-definitions';
  export let project:Project;export let kind:ReferenceKind|'accounts'|'services';export let value='';export let text='';export let parentId='';export let disabled=false;export let clearable=true;export let onselect:(id:string)=>void;export let oninspect:((id:string)=>void)|undefined=undefined;
  const fieldId=uid();$:label=kind==='accounts'?(project.accounts.find(a=>a.id===value)?.number||'')+' '+(project.accounts.find(a=>a.id===value)?.payer_name||''):kind==='services'?translatedName(project.services.find(s=>s.id===value)?.name||{ru:'',ro:''},project.settings.language,$languageOverrides):referenceLabel(project.reference_catalogs[kind]?.find(r=>r.id===value),project.settings.language,$languageOverrides);
  function choose(){openReportLookup({id:fieldId,parentId,label:uiText('Выбор элемента','Selectare element',project.settings.language,$languageOverrides),kind,items:[],selected:value?[value]:[],multiple:false,onchoose:ids=>onselect(ids[0]||'')});}

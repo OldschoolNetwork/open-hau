@@ -27,6 +27,10 @@ tauri-plugin-process = "2"
 webview2-com = "0.39.1"
 windows = { version = "0.62.2", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_Diagnostics_Debug", "Win32_Media_Audio", "Win32_Graphics_Printing"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSString", "NSData", "NSDictionary"] }
+
 [profile.release]
 strip = true
 lto = true

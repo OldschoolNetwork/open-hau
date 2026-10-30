@@ -1,7 +1,7 @@
 <script lang="ts">
  import {languageOverrides} from "./localization";
   import { onMount } from 'svelte';
-  import { Save, LogOut, X } from '@lucide/svelte';
+  import { Save, LogOut, X } from "./icons";
   import { translator } from './i18n';
   export let language: 'ru'|'ro'|"en";
   export let exiting = false;

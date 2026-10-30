@@ -2,7 +2,7 @@
 import {translatedName} from './localization';
 
  import {languageOverrides} from "./localization";
- import {onMount} from "svelte";import type {Project,Service} from "./model";import {unitLabel,projectSchema,uid} from "./model";import RecordToolbar from "./RecordToolbar.svelte";import {translator} from "./i18n";import {Plus,LayoutGrid,List,Layers3,ReceiptText,Pencil,Search} from "@lucide/svelte";
+ import {onMount} from "svelte";import type {Project,Service} from "./model";import {unitLabel,projectSchema,uid} from "./model";import RecordToolbar from "./RecordToolbar.svelte";import {translator} from "./i18n";import {Plus,LayoutGrid,List,Layers3,ReceiptText,Pencil,Search} from "./icons";
  export let project:Project;export let onapply:(p:Project)=>void;export let onedit:(service?:Service)=>void;
  let tiles=false,query="",activeOnly=false,selected="",filterOpen=false;
  $: current=project.services.find(s=>s.id===selected);
