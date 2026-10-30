@@ -49,6 +49,25 @@
     "translation_locale": null,
     "custom_languages": [],
     "translations": {},
+    "receipt_content": {
+      "logo": true,
+      "address": true,
+      "bank": true,
+      "deadline": true,
+      "footer": true,
+      "stub": true,
+      "readings": true,
+      "serial": true,
+      "dates": true,
+      "consumption": true,
+      "previous": true,
+      "current": true,
+      "note": true,
+      "labels": "service",
+      "services": null,
+      "types": null,
+      "excluded_meters": []
+    },
     "receipt_canvas": {
       "shapes": [],
       "elements": {

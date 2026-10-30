@@ -17,6 +17,7 @@
     defaultReceiptCanvas,
     canvasShape,
     receiptElementIds,
+    requiredReceiptElements,
     canvasCSS,
     type ReceiptCanvas,
     type CanvasShape,
@@ -309,7 +310,8 @@
         {#if element}<label class="check-row"
             ><input
               type="checkbox"
-              checked={element.visible}
+              checked={element.visible||requiredReceiptElements.includes(selection)}
+              disabled={requiredReceiptElements.includes(selection)}
               onchange={(e) => update("visible", e.currentTarget.checked)}
             />{t("Показывать", "Afișează", "Visible")}</label
           >{/if}{#each section === "shapes" ? [["x", "X"], ["y", "Y"], ["width", "Width"], ["height", "Height"], ["rotation", "Rotation"], ["radius", "Radius"], ["strokeWidth", "Stroke width"], ["shadow", "Shadow"]] : [["order", "Order"], ["width", "Width, %"], ["x", "X offset"], ["y", "Y offset"], ["fontSize", "Font, pt"], ["padding", "Padding"], ["radius", "Radius"], ["borderWidth", "Border width"], ["shadow", "Shadow"]] as field}<label

@@ -96,6 +96,7 @@ Object.assign(terms,{
  "Лицевой счет": "Personal account",
  "Виды тарифов": "Tariff types"
 });
+Object.assign(terms,{"Оформление": "Appearance", "КВИТАНЦИЙ": "RECEIPTS", "Оплатить до · выбранный месяц": "Pay by · selected month", "Вернуть общий срок оплаты": "Use default due date", "Шрифт, pt": "Font, pt", "Сохранить оформление": "Save appearance", "Название конфигурации": "Preset name", "Сохранить конфигурацию": "Save preset", "Выбрать конфигурацию": "Choose preset", "Все счета": "All accounts", "Сохранить изменения?": "Save changes?", "Сохранить и выйти": "Save and exit", "Выйти без сохранения": "Exit without saving", "Сохранить и продолжить": "Save and continue", "Продолжить без сохранения": "Continue without saving"});
 export function english(text:string){return terms[text]||text;}
 export const englishTerms=terms;
 

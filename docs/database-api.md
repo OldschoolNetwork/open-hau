@@ -152,3 +152,16 @@ database writes. Amounts, identifiers and posted accounting history are unchange
 New database fields are exposed through schema, query and validated patch.
 New accounting operations must also be registered in database.apply, documented
 here and covered by an atomic-write or domain regression test.
+
+## Receipt content through the API
+
+Use `database.patch` with the current file revision to update
+`/settings/receipt_content`. For example, replace that object with
+`{"services":["water","electricity"],"labels":"service","dates":false}`
+for a database whose service IDs are `water` and `electricity`. Missing flags
+receive normal defaults. Use the IDs from `database.query`, not translated names.
+`types` selects meter-type IDs; `excluded_meters` excludes individual rows.
+Setting `services` to `[]` removes the readings table. Optional columns and
+sections are documented in the data-format reference. Receipt generation through
+`report.generate` uses the same stored choices as desktop preview, PDF and print.
+These settings never remove charge lines or alter accounting totals.

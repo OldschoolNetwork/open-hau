@@ -1,4 +1,5 @@
 <script lang="ts">
+ import ReceiptContentMenu from "./ReceiptContentMenu.svelte";
  import TranslationEditor from "./TranslationEditor.svelte";
  import {languageOverrides} from "./localization";
  import {configureLocalization} from "./localization";
@@ -174,7 +175,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
   let p: Project = demoProject();
   let lastSavedProject: Project = structuredClone(p);
   let saveChoice: {exiting:boolean;resolve:(choice:"save"|"discard"|"cancel")=>void}|null=null;
-  let closeApproved=false,transitionPending=false;
+  let closeApproved=false,transitionPending=false,pendingMigration=false,modalBaseline='',jsonBaseline='';
   let page = "overview",
     query = "",
     loading = true,
@@ -476,13 +477,16 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
   function clearWorkspace(){
     desktopViews=[];administrationEditors={};administrationMovements={};registerFilterRequests={};reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};
   }
-  function unsavedWork(){return dirty||!!pendingEditor||!!Object.keys(readingEdits).length||["account","service","organization","payment","tariff","adjustment","json"].includes(modal);}
+  function legacyModalSignature(){return JSON.stringify([draft,tariffEntryMode,tariffTransitionPeriod,tariffFollowingRate]);}
+  function legacyModalDirty(){return modal==='json'?jsonText!==jsonBaseline:["account","service","organization","payment","tariff","adjustment"].includes(modal)&&legacyModalSignature()!==modalBaseline;}
+  function unsavedWork(){return dirty||!!pendingEditor||!!Object.keys(readingEdits).length||legacyModalDirty();}
   function chooseSaveAction(exiting:boolean){return new Promise<"save"|"discard"|"cancel">(resolve=>{saveChoice={exiting,resolve};});}
   function finishSaveChoice(choice:"save"|"discard"|"cancel"){const pending=saveChoice;saveChoice=null;pending?.resolve(choice);}
   async function prepareDeparture(exiting=false){
     if(transitionPending)return false;
     if(busy){fail(t('Дождитесь завершения сохранения.','Așteptați finalizarea salvării.'));return false;}
-    if(!unsavedWork()&&(exiting||!databaseOpened))return true;
+    await tick();
+    if(!unsavedWork())return true;
     transitionPending=true;
     try{
       const choice=await chooseSaveAction(exiting);
@@ -491,7 +495,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
         queuedEditorSave=false;p=structuredClone(lastSavedProject);dirty=false;notice='';error='';clearWorkspace();return true;
       }
       if(editorSaveRequired())return false;
-      if(modal&&modal!=='about'||Object.keys(readingEdits).length){fail(t('Сначала примените изменения в открытой форме и введённые показания. Затем повторите выход или смену базы.','Aplicați mai întâi modificările din formular și indexurile introduse. Apoi repetați ieșirea sau schimbarea bazei.'));return false;}
+      if(legacyModalDirty()||Object.keys(readingEdits).length){fail(t('Сначала примените изменения в открытой форме и введённые показания. Затем повторите выход или смену базы.','Aplicați mai întâi modificările din formular și indexurile introduse. Apoi repetați ieșirea sau schimbarea bazei.'));return false;}
       await save(exiting?'close':'save');return !dirty&&!error;
     }finally{transitionPending=false;}
   }
@@ -503,22 +507,22 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
   function blankDatabase(name:string):Project {const empty=demoProject();empty.demo=false;empty.organization={id:uid(),name,association_code:"",fiscal_code:"",bank:"",iban:"",address:"",notes:""};empty.settings={...empty.settings,language:p.settings.language,theme:p.settings.theme,date_format:p.settings.date_format,period_format:p.settings.period_format};empty.accounts=[];empty.services=[];empty.tariffs=[];empty.payments=[];empty.adjustments=[];empty.quantities=[];empty.snapshots=[];empty.closed_periods=[];empty.meter_readings=[];empty.meters=[];empty.meter_values=[];return valid(empty);}
   async function switchDatabase(id:string,initial=false,prepared=false){
     if(id===activeDatabaseId&&!initial){showDatabaseHome=false;databaseOpened=true;return;}
-    const entryPath=catalog.databases.find(d=>d.id===id)?.path;const raw=entryPath?await withDatabasePassword(entryPath,()=>readDatabase(id)):await readDatabase(id),entry=catalog.databases.find(d=>d.id===id),candidate=raw?valid(raw):(id==="default"?p:blankDatabase(entry?.name||"OpenHaU"));
-    if(!initial&&(modal||Object.keys(readingEdits).length))throw Error(t("Завершите открытое редактирование и примените показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));
+    const entryPath=catalog.databases.find(d=>d.id===id)?.path;const raw=entryPath?await withDatabasePassword(entryPath,()=>readDatabase(id)):await readDatabase(id),entry=catalog.databases.find(d=>d.id===id),candidate=raw?await validateBackground(raw as Project):(id==="default"?p:blankDatabase(entry?.name||"OpenHaU"));
+    if(!initial&&(legacyModalDirty()||Object.keys(readingEdits).length))throw Error(t("Завершите открытое редактирование и примените показания перед сменой базы.","Încheiați editarea și aplicați indexurile înainte de schimbarea bazei."));
     if(!initial&&!prepared&&!(await prepareDatabaseChange()))return;
-    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;lastSavedProject=structuredClone(candidate);dirty=false;loadFailed=false;receiptPeriod='';desktopViews=[];administrationEditors={};administrationMovements={};registerFilterRequests={};reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
+    dbPath=await activateDatabase(id);activeDatabaseId=id;p=candidate;pendingMigration=!!raw&&(raw as {schema_version?:number}).schema_version!==candidate.schema_version;lastSavedProject=structuredClone(candidate);dirty=false;loadFailed=false;receiptPeriod='';desktopViews=[];administrationEditors={};administrationMovements={};registerFilterRequests={};reportSettingsRequests={};reportLookupRequests={};accountDocumentEditors={};intervalRequests={};meterDocumentEditors={};physicalEditors={};serviceEditors={};referenceCopies={};paymentRecords={};accountCards={};accountHistories={};accountReports={};paymentEditors={};paymentDetails={};editorDirties={};activeDesktop="";modal="";readingEdits={};selected=p.accounts.filter(a=>a.active).map(a=>a.id);showDatabaseHome=false;databaseOpened=true;catalog=await databaseCatalog();
   }
   async function openDatabase(id:string){try{await switchDatabase(id);}catch(e){fail(e);}}
   async function newDatabase(name:string){try{if(!(await prepareDatabaseChange()))return;if(native){const path=await chooseFileDestination({defaultPath:databaseFilename(name),filters:databaseSaveFilters});if(!path)return;const id=await invoke<string>('create_database_file',{path,value:blankDatabase(name),password:null});await refreshCatalog();await switchDatabase(id,true,true);return;}const id=await createDatabase(name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=blankDatabase(name);dirty=true;editRevision++;await save();}}catch(e){fail(e);}}
-  async function openExistingDatabase(){if(!native){await importDatabase();return;}try{const path=await chooseFile({multiple:false,filters:databaseFileFilters});if(!path||typeof path!=='string')return;valid(await withDatabasePassword(path,()=>invoke('read_json_file',{path})));if(!(await prepareDatabaseChange()))return;const id=await invoke<string>('register_database_file',{path});await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
-  async function saveDatabaseAs(){if(editorSaveRequired())return;if(!native){await exportJson();return;}try{if(modal||Object.keys(readingEdits).length)throw Error(t('Завершите редактирование перед сохранением копии.','Încheiați editarea înainte de salvarea copiei.'));const value=valid(p),path=await chooseFileDestination({defaultPath:databaseFilename(p.organization.name),filters:databaseSaveFilters});if(!path)return;const protection=await invoke<{encrypted:boolean}>('database_protection');const password=protection.encrypted?await requestPassword(t('Пароль копии базы','Parola copiei bazei','Password for the database copy'),true):null;if(protection.encrypted&&password===null)return;const id=await invoke<string>('create_database_file',{path,value,password});await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
+  async function openExistingDatabase(){if(!native){await importDatabase();return;}try{const path=await chooseFile({multiple:false,filters:databaseFileFilters});if(!path||typeof path!=='string')return;if(!(await prepareDatabaseChange()))return;const id=await withDatabasePassword(path,()=>invoke<string>('register_database_file',{path}));await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
+  async function saveDatabaseAs(){if(editorSaveRequired())return;if(!native){await exportJson();return;}try{if(legacyModalDirty()||Object.keys(readingEdits).length)throw Error(t('Завершите редактирование перед сохранением копии.','Încheiați editarea înainte de salvarea copiei.'));const value=valid(p),path=await chooseFileDestination({defaultPath:databaseFilename(p.organization.name),filters:databaseSaveFilters});if(!path)return;const protection=await invoke<{encrypted:boolean}>('database_protection');const password=protection.encrypted?await requestPassword(t('Пароль копии базы','Parola copiei bazei','Password for the database copy'),true):null;if(protection.encrypted&&password===null)return;const id=await invoke<string>('create_database_file',{path,value,password});await refreshCatalog();await switchDatabase(id,true,true);}catch(e){fail(e);}}
   async function importDatabase(){try{if(native&&!await ask(t('Импорт создаёт отдельную копию базы без пароля. Для работы с исходным защищённым файлом выберите «Добавить существующую». Продолжить импорт?', 'Importul creează o copie separată fără parolă. Pentru fișierul protejat original, alegeți „Adaugă existentă”. Continuați importul?', 'Import creates a separate copy without a password. To use the original protected file, choose “Add existing”. Continue importing?')))return;const raw=await importJson();if(!raw)return;const candidate=valid(raw);if(!(await prepareDatabaseChange()))return;const id=await createDatabase(candidate.organization.name);await refreshCatalog();await switchDatabase(id,false,true);if(activeDatabaseId===id){p=candidate;dirty=true;editRevision++;await save();}}catch(e){fail(e);}}
   async function removeDatabaseFromList(id:string){try{if(databaseOpened&&id===activeDatabaseId&&!(await prepareDatabaseChange()))return;await forgetDatabase(id);if(activeDatabaseId===id){activeDatabaseId='';databaseOpened=false;dirty=false;}await refreshCatalog();}catch(e){fail(e);}}
   async function configureAutoDatabase(id:string|null){try{await setDatabaseAuto(id);await refreshCatalog();}catch(e){fail(e);}}
   async function save(reason:"save"|"close"="save",fromEditor=false) {
     if (busy) return;
     if(!fromEditor&&editorSaveRequired())return;
-    if(!fromEditor&&['account','service','organization','payment','tariff','adjustment','json'].includes(modal)){fail(t('Сначала сохраните изменения в открытой форме.','Salvați mai întâi modificările din formularul deschis.'));return;}
+    if(!fromEditor&&legacyModalDirty()){fail(t('Сначала сохраните изменения в открытой форме.','Salvați mai întâi modificările din formularul deschis.'));return;}
     notice="";
     if (loadFailed) {
       error = t(
@@ -534,6 +538,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
       );
       return;
     }
+    if(!dirty&&!pendingMigration){error='';notice=t('Сохранено.','Salvat.','Saved.');return;}
     busy = true;
     error = "";
     try {
@@ -541,7 +546,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
       const revision=editRevision,snapshot=await validateBackground(p);
       const result = await persist(snapshot,reason,true);
       dbPath = result.path;
-      lastSavedProject = structuredClone(snapshot);
+      lastSavedProject = structuredClone(snapshot);pendingMigration=false;
       dirty =
         Object.keys(readingEdits).length > 0 ||
         editRevision !== revision;
@@ -666,7 +671,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
       draft.allocationCalculated=false;
       draft.serviceShares=structuredClone(p.service_accounting.payments.filter(r=>r.payment_id===draft.id).map(({service_id,amount})=>({service_id,amount})));
       draft.allocationSignature=draft.serviceShares.length?JSON.stringify([draft.account_id,draft.payment_date,draft.amount,draft.allocationThrough,draft.balancingServiceId]):"";
-    }
+    }    modalBaseline=legacyModalSignature();
   }
   function saveEditor() {
     try {
@@ -989,7 +994,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
       return;
     }
     jsonTitle = t("Открытый JSON · все данные", "JSON deschis · toate datele");
-    jsonText = JSON.stringify(p, null, 2);
+    jsonText = JSON.stringify(p, null, 2);jsonBaseline=jsonText;
     modal = "json";
   }
   function applyJSON() {
@@ -1086,7 +1091,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
         color: p.settings.receipt_color,
         font_size: p.settings.font_size,
         logo: p.settings.organization_logo,
-        custom:p.settings.custom_receipt?{...p.settings.custom_receipt}:undefined,canvas:structuredClone(p.settings.receipt_canvas),
+        custom:p.settings.custom_receipt?{...p.settings.custom_receipt}:undefined,canvas:structuredClone(p.settings.receipt_canvas),content:structuredClone(p.settings.receipt_content),
       },
     ];
     presetName = "";
@@ -1099,7 +1104,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
       p.settings.receipt_color = preset.color;
       p.settings.font_size = preset.font_size;
       p.settings.organization_logo = preset.logo;
-      p.settings.custom_receipt=preset.custom?{...preset.custom}:undefined;if(preset.canvas)p.settings.receipt_canvas=structuredClone(preset.canvas);
+      p.settings.custom_receipt=preset.custom?{...preset.custom}:undefined;if(preset.canvas)p.settings.receipt_canvas=structuredClone(preset.canvas);if(preset.content)p.settings.receipt_content=structuredClone(preset.content);
       changed();
     }
   }
@@ -1164,7 +1169,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
     };
     themeMedia.addEventListener("change", themeChange);
     const beforeUnload = (e: BeforeUnloadEvent) => {
-      if ((dirty||pendingEditor||Object.keys(readingEdits).length||["account","service","organization","payment","tariff","adjustment"].includes(modal)) && !native) {
+      if (unsavedWork() && !native) {
         e.preventDefault();
         e.returnValue = "";
       }
@@ -1514,8 +1519,9 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
       {:else if page === "receipts"}
         <div class="receipt-period-selector"><label>{t('Период квитанций','Perioada facturilor')}<input type="month" aria-label={t('Месяц и год квитанций','Luna și anul facturilor')} value={receiptMonth} onchange={e=>{if(/^\d{4}-(0[1-9]|1[0-2])$/.test(e.currentTarget.value))receiptPeriod=e.currentTarget.value;}}/></label><span>{displayPeriod(receiptMonth,p)}</span></div><div class="receipts-layout">
           <aside class="receipt-controls panel">
-<label>{t('Сохранённые логотипы','Sigle păstrate','Saved logos')}<select value={p.settings.organization_logo} onchange={e=>{p.settings.organization_logo=e.currentTarget.value;changed();}}><option value="">—</option>{#each p.settings.organization_logos as logo}<option value={logo.data}>{logo.name}</option>{/each}</select></label>{#if p.settings.organization_logo.startsWith('data:image/svg+xml')}<label>{t('Цвет логотипа','Culoarea siglei','Logo color')}<input type="color" value={p.settings.logo_tint||p.settings.receipt_color} onchange={e=>{p.settings.logo_tint=e.currentTarget.value;changed();}}/></label><button class="button secondary" onclick={()=>{p.settings.logo_tint=null;changed();}}>{t('Исходные цвета логотипа','Culorile originale ale siglei','Original logo colors')}</button>{/if}<button class="button secondary" onclick={()=>openDesktop('receipt-designer')}>{t('Редактор квитанции','Editor factură','Receipt designer')}</button><label>{t('На листе','Pe foaie','Receipts per sheet')}<select bind:value={p.settings.receipt_paper} onchange={changed}><option value="half">{t('Две квитанции A4','Două facturi A4','Two receipts on A4')}</option><option value="full">{t('Одна квитанция A4','O factură A4','One receipt on A4')}</option></select></label><label>{t('Ориентация','Orientare','Orientation')}<select bind:value={p.settings.receipt_orientation} onchange={()=>{receiptFit=true;changed();}}><option value="portrait">{t('Книжная','Portret','Portrait')}</option><option value="landscape">{t('Альбомная','Peisaj','Landscape')}</option></select></label><label class="check-row"><input type="checkbox" bind:checked={p.settings.receipt_cut_lines} onchange={changed}/>{t('Линии для обрезки','Linii de tăiere','Cutting guides')}</label>
+<div class="receipt-tools"><ReceiptContentMenu project={p} accountIds={selected} period={receiptMonth} onapply={options=>{p.settings.receipt_content=options;changed();}}/><button class="button secondary" onclick={()=>openDesktop('receipt-designer')}><Palette size={16}/>{t('Редактор квитанции','Editor factură','Receipt designer')}</button></div><fieldset class="receipt-page-options"><legend>{t('Страница','Pagină','Page')}</legend><label>{t('На листе','Pe foaie','Receipts per sheet')}<select bind:value={p.settings.receipt_paper} onchange={changed}><option value="half">{t('Две квитанции A4','Două facturi A4','Two receipts on A4')}</option><option value="full">{t('Одна квитанция A4','O factură A4','One receipt on A4')}</option></select></label><label>{t('Ориентация','Orientare','Orientation')}<select bind:value={p.settings.receipt_orientation} onchange={()=>{receiptFit=true;changed();}}><option value="portrait">{t('Книжная','Portret','Portrait')}</option><option value="landscape">{t('Альбомная','Peisaj','Landscape')}</option></select></label><label class="check-row"><input type="checkbox" bind:checked={p.settings.receipt_cut_lines} onchange={changed}/>{t('Линии для обрезки','Linii de tăiere','Cutting guides')}</label>
 
+</fieldset>
             <div class="panel-heading">
               <h2>{t("Оформление", "Aspect")}</h2>
             </div>
@@ -1565,7 +1571,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
                   /></label
                 >
               </div>
-              <label class="file-button"
+              <h3 class="receipt-group-title">{t("Логотип","Siglă","Logo")}</h3><label>{t('Сохранённые логотипы','Sigle păstrate','Saved logos')}<select value={p.settings.organization_logo} onchange={e=>{p.settings.organization_logo=e.currentTarget.value;changed();}}><option value="">—</option>{#each p.settings.organization_logos as logo}<option value={logo.data}>{logo.name}</option>{/each}</select></label>{#if p.settings.organization_logo.startsWith('data:image/svg+xml')}<label>{t('Цвет логотипа','Culoarea siglei','Logo color')}<input type="color" value={p.settings.logo_tint||p.settings.receipt_color} onchange={e=>{p.settings.logo_tint=e.currentTarget.value;changed();}}/></label><button class="button secondary" onclick={()=>{p.settings.logo_tint=null;changed();}}>{t('Исходные цвета логотипа','Culorile originale ale siglei','Original logo colors')}</button>{/if}              <label class="file-button"
                 ><Upload size={16} />{t(
                   "Логотип организации",
                   "Sigla asociației",

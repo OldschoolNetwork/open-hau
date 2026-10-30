@@ -1,3 +1,4 @@
+import {receiptReadingsMarkup} from './receipt-readings';
 import {tintLogo} from "./logo";
 import {canvasBackground,canvasCSS} from "./receipt-canvas";
 import {originalReceipt,originalReceiptCSS} from "./original-receipt";
@@ -8,7 +9,6 @@ import { receiptDesignCSS } from "./receipt-designs";
 import {paymentDeadline} from "./payment-deadlines";
 import {displayDate,displayPeriod} from "./date-format";
 import { statement, add, money } from "./engine";
-import { receiptReadings } from "./meters";
 export const esc = (s: unknown) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -31,6 +31,7 @@ export function receipt(p: Project, a: Account, period: string) {
   const s = statement(p, a, period),
     o = p.organization,
     settings = p.settings,
+    content = settings.receipt_content,
     lang = settings.receipt_language;
   const tr = (ru: string, ro: string) =>
     lang === "both"
@@ -55,26 +56,15 @@ export function receipt(p: Project, a: Account, period: string) {
   };
   const due = paymentDeadline(p,period);
   const incomplete = s.warnings.length || s.gaps.length;
-  const meters = receiptReadings(p, a.id, period);
-  const meterTable = meters.length
-    ? `<section class="r-meter-readings"><h2>${esc(tr("Показания счётчиков", "Indexurile contoarelor"))}</h2><table><thead><tr><th>${esc(tr("Прибор / услуга", "Contor / serviciu"))}</th><th class="num">${esc(tr("Предыдущие", "Precedent"))}</th><th>${esc(tr("Дата", "Data"))}</th><th class="num">${esc(tr("Последние", "Ultimul"))}</th><th>${esc(tr("Дата", "Data"))}</th><th class="num">${esc(tr("Расход", "Consum"))}</th></tr></thead><tbody>${meters
-        .map((m) => {
-          const service = p.services.find((x) => x.id === m.service_id);
-          const label = m.aggregate && service ? text(service.name) : m.label;
-          return `<tr><td>${esc(label)}${m.serial_number ? `<br><small>${esc(m.serial_number)}</small>` : ""}${m.aggregate ? `<br><small>${esc(tr("По услуге", "Pe serviciu"))}</small>` : ""}</td><td class="num">${esc(m.previous ?? "—")}</td><td>${esc(displayDate(m.previous_date,p,lang))}</td><td class="num">${esc(m.current ?? "—")}</td><td>${esc(displayDate(m.reading_date,p,lang))}</td><td class="num">${esc(m.consumption ?? "—")} ${esc(unitLabel(m.unit, lang))}</td></tr>`;
-        })
-        .join(
-          "",
-        )}</tbody></table><p class="r-footer">${esc(tr("Показания показаны отдельно от расчётного объёма. Дата отсутствует, если она не была записана.", "Indexurile sunt afișate separat de volumul facturat. Data lipsește dacă nu a fost înregistrată."))}</p></section>`
-    : "";
+  const meterTable=receiptReadingsMarkup(p,a.id,period);
   const custom = settings.custom_receipt || defaultCustomReceipt;
   const customClasses =
     settings.receipt_design === "custom"
       ? ` font-${custom.font} border-${custom.border} heading-${custom.heading} decor-${custom.decoration}${custom.economy ? " economy" : ""}`
       : "";
   const legacyNotice =
-    settings.receipt_design === "heritage"
-      ? `<div class="r-legacy-notice"><aside><strong>${sectionIcon("notice")}${esc(tr("Извещение", "Aviz de plată"))}</strong><p>${esc(o.name)}</p><p>${esc(tr("Оплатить до", "Achitați până la"))} ${esc(displayDate(due,p,lang))}</p></aside><section><p><strong>${esc(a.payer_name)}</strong> · ${esc(a.number)}</p><p>${esc(a.address)}</p><p>${esc(displayPeriod(period,p,lang))} · <strong>${esc(n(s.balance))} MDL</strong></p><p class="r-paid-box">${esc(tr("Оплачено", "Achitat"))}: __________________</p><p>${esc(tr("Дата / Подпись", "Data / Semnătura"))}: __________________</p></section></div>`
+    settings.receipt_design === "heritage" && content.stub
+      ? `<div class="r-legacy-notice"><aside><strong>${sectionIcon("notice")}${esc(tr("Извещение", "Aviz de plată"))}</strong><p>${esc(o.name)}</p>${content.deadline?`<p>${esc(tr("Оплатить до", "Achitați până la"))} ${esc(displayDate(due,p,lang))}</p>`:''}</aside><section><p><strong>${esc(a.payer_name)}</strong> · ${esc(a.number)}</p><p>${content.address?esc(a.address):''}</p><p>${esc(displayPeriod(period,p,lang))} · <strong>${esc(n(s.balance))} MDL</strong></p><p class="r-paid-box">${esc(tr("Оплачено", "Achitat"))}: __________________</p><p>${esc(tr("Дата / Подпись", "Data / Semnătura"))}: __________________</p></section></div>`
       : "";
   return `<article class="receipt ${settings.receipt_design}${customClasses}" style="--receipt-color:${esc(settings.receipt_color)};--receipt-size:${settings.font_size}pt">
   ${settings.receipt_design==='custom'?canvasBackground(settings.receipt_canvas):''}
@@ -82,13 +72,13 @@ export function receipt(p: Project, a: Account, period: string) {
   ${p.demo ? `<p class="r-demo">DEMO · ${esc(tr("Вымышленные данные", "Date fictive"))}</p>` : ""}
   ${incomplete ? `<p class="r-warning">${esc(tr("ЧЕРНОВИК: неполные показания, тарифы или история. Итог не окончательный.", "CIORNĂ: date incomplete. Totalul nu este final."))}</p>` : ""}
   ${legacyNotice}
-  <div class="r-top"><div><p class="r-caption">${esc(o.association_code)}</p><h1>${esc(o.name)}</h1><p>${esc(text(settings.receipt_title))}</p></div>${settings.organization_logo ? `<img class="r-logo" alt="Logo" src="${esc(tintLogo(settings.organization_logo,settings.logo_tint))}"/>` : ""}<div><p class="r-caption">${esc(tr("Расчётный период", "Perioada de calcul"))}</p><h2>${esc(displayPeriod(period,p,lang))}</h2><p>${esc(tr("Оплатить до", "Achitați până la"))} ${esc(displayDate(due,p,lang))}</p></div></div>
-  <div class="r-meta"><div><p class="r-caption">${esc(tr("Плательщик", "Plătitor"))}</p><strong>${esc(a.payer_name)}</strong><p>${esc(a.address)}${a.apartments.length ? ", " + esc(tr("кв.", "ap.")) + " " + esc(a.apartments.join(", ")) : ""}</p></div><div><p class="r-caption">${esc(tr("Лицевой счёт", "Cont personal"))}</p><p class="r-number">${esc(a.number)}</p></div></div>
+  <div class="r-top"><div><p class="r-caption">${esc(o.association_code)}</p><h1>${esc(o.name)}</h1><p>${esc(text(settings.receipt_title))}</p></div>${content.logo && settings.organization_logo ? `<img class="r-logo" alt="Logo" src="${esc(tintLogo(settings.organization_logo,settings.logo_tint))}"/>` : ""}<div><p class="r-caption">${esc(tr("Расчётный период", "Perioada de calcul"))}</p><h2>${esc(displayPeriod(period,p,lang))}</h2>${content.deadline?`<p>${esc(tr("Оплатить до", "Achitați până la"))} ${esc(displayDate(due,p,lang))}</p>`:''}</div></div>
+  <div class="r-meta"><div><p class="r-caption">${esc(tr("Плательщик", "Plătitor"))}</p><strong>${esc(a.payer_name)}</strong><p>${content.address?esc(a.address):''}${content.address&&a.apartments.length ? ", " + esc(tr("кв.", "ap.")) + " " + esc(a.apartments.join(", ")) : ""}</p></div><div><p class="r-caption">${esc(tr("Лицевой счёт", "Cont personal"))}</p><p class="r-number">${esc(a.number)}</p></div></div>
   <div class="r-calculations"><section class="r-charges"><table><thead><tr><th>${esc(tr("Услуга", "Serviciu"))}</th><th class="num">${esc(tr("Объём", "Volum"))}</th><th>${esc(tr("Ед.", "Unit."))}</th><th class="num">${esc(tr("Тариф", "Tarif"))}</th><th class="num">${esc(tr("Сумма", "Sumă"))}, MDL</th></tr></thead><tbody>${s.lines.map((l) => `<tr><td>${esc(text(l.name))}</td><td class="num">${esc(l.quantity)}</td><td>${esc(unitLabel(l.unit, lang))}</td><td class="num">${esc(l.rate.replace(".", lang === "en" ? "." : ","))}</td><td class="num">${esc(n(l.amount))}</td></tr>`).join("")}</tbody></table>
   </section>${meterTable}
   <div class="r-summary"><p><span>${esc(tr("Остаток на начало", "Sold inițial"))}</span><span>${esc(n(s.opening))}</span></p><p><span>${esc(tr("Начислено за услуги", "Calculat pentru servicii"))}</span><span>${esc(n(add(s.lines.map((l) => l.amount)).toFixed(2)))}</span></p><p><span>${esc(tr("Корректировка", "Ajustare"))}</span><span>${esc(n(s.adjustment))}</span></p><p><span>${esc(tr("Оплачено за месяц", "Achitat în luna curentă"))}</span><span>−${esc(n(s.paid))}</span></p><p class="r-total"><span>${esc(tr("Итого к оплате", "Total spre plată"))}</span><span>${esc(n(s.balance))} MDL</span></p></div>
-  </div><div class="r-bank">${settings.receipt_design === "heritage" ? `<h2>${sectionIcon("bank")}${esc(tr("Банковские реквизиты", "Date bancare"))}</h2>` : ""}<strong>${esc(o.name)}</strong><p>${esc(o.address)}</p><p>CF/IDNO: ${esc(o.fiscal_code || "—")} · ${esc(o.bank)}</p><p>IBAN: ${esc(o.iban || "—")}</p></div><p class="r-footer">${esc(text(settings.receipt_footer))}</p>
-  ${settings.receipt_design === "classic" ? `<div class="r-stub"><div><strong>${esc(tr("Извещение", "Aviz de plată"))}</strong><p>${esc(a.payer_name)}</p><p>${esc(a.number)} · ${esc(displayPeriod(period,p,lang))}</p></div><div><strong>${esc(n(s.balance))} MDL</strong><p>${esc(tr("Дата / Подпись", "Data / Semnătura"))} __________________</p></div></div>` : ""}</article>`;
+  </div>${content.bank?`<div class="r-bank">${settings.receipt_design === "heritage" ? `<h2>${sectionIcon("bank")}${esc(tr("Банковские реквизиты", "Date bancare"))}</h2>` : ""}<strong>${esc(o.name)}</strong><p>${esc(o.address)}</p><p>CF/IDNO: ${esc(o.fiscal_code || "—")} · ${esc(o.bank)}</p><p>IBAN: ${esc(o.iban || "—")}</p></div>`:''}${content.footer?`<p class="r-footer">${esc(text(settings.receipt_footer))}</p>`:''}
+  ${settings.receipt_design === "classic" && content.stub ? `<div class="r-stub"><div><strong>${esc(tr("Извещение", "Aviz de plată"))}</strong><p>${esc(a.payer_name)}</p><p>${esc(a.number)} · ${esc(displayPeriod(period,p,lang))}</p></div><div><strong>${esc(n(s.balance))} MDL</strong><p>${esc(tr("Дата / Подпись", "Data / Semnătura"))} __________________</p></div></div>` : ""}</article>`;
 }
 export function receiptLayoutCSS(p:Project){const landscape=p.settings.receipt_orientation==='landscape',width=landscape?297:210,height=landscape?210:297,half=p.settings.receipt_paper==='half';return `@page{size:A4 ${landscape?'landscape':'portrait'};margin:0}.receipt-sheet{box-sizing:border-box;width:${width}mm;min-height:${height}mm;padding:6mm;display:grid;grid-template-rows:${half&&!landscape?'repeat(2, minmax(0,1fr))':'1fr'};grid-template-columns:${half&&landscape?'repeat(2,minmax(0,1fr))':'1fr'};gap:0;background:white;color:#17191d;margin:0 auto 20px;break-after:page;isolation:isolate}.receipt-sheet:last-child{break-after:auto}.receipt-cell{box-sizing:border-box;min-width:0;min-height:${half&&!landscape?(height-12)/2:height-12}mm;padding:3mm 0;position:relative}.receipt-cell>.receipt{width:100%;margin:0;padding:3mm;box-shadow:none;break-after:auto}.receipt-cell.half>.receipt{font-size:8.5pt;line-height:1.15}.receipt-cell.half .receipt h1{font-size:15px}.receipt-cell.half .receipt h2{font-size:11px}.receipt-cell.half .receipt .r-meta{margin:6px 0;padding:5px 0}.receipt-cell.half .receipt table{margin:6px 0}.receipt-cell.half .receipt th,.receipt-cell.half .receipt td{padding:3px 4px}.receipt-cell.half .receipt .r-summary p{padding:1px 0}.receipt-cell.half .receipt .r-total{font-size:12px!important;padding-top:4px!important;margin-top:3px!important}.receipt-cell.half .receipt .r-bank{margin-top:7px;padding-top:5px}.receipt-cell.half .receipt .r-footer{margin-top:4px}.receipt-cell.half .receipt .r-stub{margin-top:6px;padding-top:5px}.receipt-cell>.receipt.original{padding:0}.receipt-cell.cut::after{content:'';position:absolute;left:0;right:0;bottom:0;${landscape&&half?'height:auto;top:0;left:auto;border-right:1px dashed #c2c2c2':'border-bottom:1px dashed #c2c2c2'}}.receipt,.receipt *{-webkit-print-color-adjust:exact;print-color-adjust:exact}.receipt .r-art,.receipt .r-art::before,.receipt .r-art::after{border:0!important;outline:none!important;box-shadow:none!important}${halfReceiptCSS}@media print{html,body{margin:0!important;padding:0!important;background:white!important}.receipt-sheet{margin:0;box-shadow:none}.receipt{break-after:auto!important}.receipt-cell{break-inside:avoid}}`;}
 export const halfReceiptCSS=`

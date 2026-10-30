@@ -20,7 +20,7 @@ if(command==='metadata'){
 }else if(command==='presentation'){
  await api('',{method:'PATCH',body:JSON.stringify({description:'OpenHaU · House & Utilities — offline accounting for small housing associations. Russian and Romanian. Windows + macOS.'})});
  const release=await api('/releases/tags/v26.1.0-preview.1');
- await api(`/releases/${release.id}`,{method:'PATCH',body:JSON.stringify({body:await fs.readFile('RELEASE_NOTES.md','utf8')})});
+ await api(`/releases/${release.id}`,{method:'PATCH',body:JSON.stringify({body:await fs.readFile('docs/releases/26.1-preview.md','utf8')})});
  console.log('Updated English repository description and preview release notes.');
 }else if(command==='build'){
  await api('/actions/workflows/build.yml/dispatches',{method:'POST',body:JSON.stringify({ref:'main'})});
@@ -45,7 +45,7 @@ if(command==='metadata'){
  const tag='v26.1.0-preview.1';
  const releases=await api('/releases');
  let release=releases.find(r=>r.tag_name===tag);
- if(!release)release=await api('/releases',{method:'POST',body:JSON.stringify({tag_name:tag,target_commitish:'main',name:'OpenHaU 26.1 · First Preview',prerelease:true,body:await fs.readFile('RELEASE_NOTES.md','utf8')})});
+ if(!release)release=await api('/releases',{method:'POST',body:JSON.stringify({tag_name:tag,target_commitish:'main',name:'OpenHaU 26.1 · First Preview',prerelease:true,body:await fs.readFile('docs/releases/26.1-preview.md','utf8')})});
  const directories=[path.resolve('../builds/26.1.0-preview.1/windows-x64'),path.resolve('../builds/26.1.0-preview.1/macos-universal')];
  for(const directory of directories){for(const name of await fs.readdir(directory).catch(()=>[])){
    if(!/\.(exe|txt|dmg)$/.test(name)||release.assets.some(a=>a.name===name))continue;

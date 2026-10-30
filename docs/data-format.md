@@ -175,3 +175,19 @@ Imported legacy journal entries are explicitly `imported: true` and read-only.
 They preserve source document identity and status without reposting transactions.
 Importing journal headers does not recreate missing source calculation rules or
 replace preserved historical financial sections.
+
+## Receipt content selection
+
+`settings.receipt_content` stores optional section flags (`logo`, `address`,
+`bank`, `deadline`, `footer`, `stub`) and meter table options (`readings`,
+`serial`, `dates`, `previous`, `current`, `consumption`, `note`). Flags default
+to true. `labels` is `service` (default), `meter` or `none`.
+
+`services` and `types` are nullable ID arrays. Null includes all; an empty array
+includes none. A type ID of an empty string represents untyped/legacy readings.
+`excluded_meters` contains physical meter IDs or stable legacy row keys of the
+form `legacy:<account-id>:<service-id>`. Exclusions change display only.
+No selected rows or no selected columns means no readings table or heading.
+Organization, payer, account number, billing period, charge lines and totals
+remain part of the receipt. Saved appearance presets can include `content`.
+Older projects receive defaults without changing their accounting records.

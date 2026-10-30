@@ -839,6 +839,134 @@
                   "elements"
                 ],
                 "additionalProperties": false
+              },
+              "content": {
+                "type": "object",
+                "properties": {
+                  "logo": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "address": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "bank": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "deadline": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "footer": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "stub": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "readings": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "serial": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "dates": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "consumption": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "previous": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "current": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "labels": {
+                    "default": "service",
+                    "type": "string",
+                    "enum": [
+                      "service",
+                      "meter",
+                      "none"
+                    ]
+                  },
+                  "services": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "maxItems": 1000,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "types": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "maxItems": 1000,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 100
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "excluded_meters": {
+                    "default": [],
+                    "maxItems": 100000,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 300
+                    }
+                  }
+                },
+                "required": [
+                  "logo",
+                  "address",
+                  "bank",
+                  "deadline",
+                  "footer",
+                  "stub",
+                  "readings",
+                  "serial",
+                  "dates",
+                  "consumption",
+                  "previous",
+                  "current",
+                  "note",
+                  "labels",
+                  "services",
+                  "types",
+                  "excluded_meters"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
@@ -1470,6 +1598,153 @@
           ],
           "additionalProperties": false
         },
+        "receipt_content": {
+          "default": {
+            "logo": true,
+            "address": true,
+            "bank": true,
+            "deadline": true,
+            "footer": true,
+            "stub": true,
+            "readings": true,
+            "serial": true,
+            "dates": true,
+            "consumption": true,
+            "previous": true,
+            "current": true,
+            "note": true,
+            "labels": "service",
+            "services": null,
+            "types": null,
+            "excluded_meters": []
+          },
+          "type": "object",
+          "properties": {
+            "logo": {
+              "default": true,
+              "type": "boolean"
+            },
+            "address": {
+              "default": true,
+              "type": "boolean"
+            },
+            "bank": {
+              "default": true,
+              "type": "boolean"
+            },
+            "deadline": {
+              "default": true,
+              "type": "boolean"
+            },
+            "footer": {
+              "default": true,
+              "type": "boolean"
+            },
+            "stub": {
+              "default": true,
+              "type": "boolean"
+            },
+            "readings": {
+              "default": true,
+              "type": "boolean"
+            },
+            "serial": {
+              "default": true,
+              "type": "boolean"
+            },
+            "dates": {
+              "default": true,
+              "type": "boolean"
+            },
+            "consumption": {
+              "default": true,
+              "type": "boolean"
+            },
+            "previous": {
+              "default": true,
+              "type": "boolean"
+            },
+            "current": {
+              "default": true,
+              "type": "boolean"
+            },
+            "note": {
+              "default": true,
+              "type": "boolean"
+            },
+            "labels": {
+              "default": "service",
+              "type": "string",
+              "enum": [
+                "service",
+                "meter",
+                "none"
+              ]
+            },
+            "services": {
+              "default": null,
+              "anyOf": [
+                {
+                  "maxItems": 1000,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "types": {
+              "default": null,
+              "anyOf": [
+                {
+                  "maxItems": 1000,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 100
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "excluded_meters": {
+              "default": [],
+              "maxItems": 100000,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 300
+              }
+            }
+          },
+          "required": [
+            "logo",
+            "address",
+            "bank",
+            "deadline",
+            "footer",
+            "stub",
+            "readings",
+            "serial",
+            "dates",
+            "consumption",
+            "previous",
+            "current",
+            "note",
+            "labels",
+            "services",
+            "types",
+            "excluded_meters"
+          ],
+          "additionalProperties": false
+        },
         "receipt_paper": {
           "default": "half",
           "type": "string",
@@ -1627,6 +1902,7 @@
         "custom_languages",
         "translations",
         "receipt_canvas",
+        "receipt_content",
         "receipt_paper",
         "receipt_orientation",
         "receipt_cut_lines",

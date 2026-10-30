@@ -27,7 +27,8 @@
       [
         "Подготовьте квитанции",
         "Выберите нужный месяц и счета. Проверьте предупреждения, показания, срок оплаты, логотип и реквизиты.",
-        "Выберите дизайн, ориентацию и одну или две квитанции на A4. «Печать» отправляет документ на принтер, «Сохранить PDF» создаёт файл. Линии для обрезки настраиваются отдельно."
+        "Выберите дизайн, ориентацию и одну или две квитанции на A4. «Печать» отправляет документ на принтер, «Сохранить PDF» создаёт файл. Линии для обрезки настраиваются отдельно.",
+        "Кнопка «Содержимое квитанции» позволяет выбрать необязательные блоки, услуги, виды и отдельные приборы, а также столбцы показаний. Настройки сохраняются в базе; начисления не меняются."
       ],
       [
         "Сохраните и сделайте копию",
@@ -68,7 +69,8 @@
       [
         "Pregătiți facturile",
         "Selectați luna și conturile. Verificați avertismentele, indexurile, termenul de plată, sigla și datele bancare.",
-        "Alegeți designul, orientarea și una sau două facturi pe A4. «Imprimare» trimite documentul la imprimantă, iar «Salvează PDF» creează fișierul. Liniile de tăiere se configurează separat."
+        "Alegeți designul, orientarea și una sau două facturi pe A4. «Imprimare» trimite documentul la imprimantă, iar «Salvează PDF» creează fișierul. Liniile de tăiere se configurează separat.",
+        "Butonul „Conținutul facturii” permite alegerea blocurilor opționale, serviciilor, tipurilor și contoarelor individuale, precum și coloanelor indexurilor. Opțiunile se păstrează în bază; calculele nu se modifică."
       ],
       [
         "Salvați și creați o copie",
@@ -109,7 +111,8 @@
       [
         "Prepare receipts",
         "Select the month and accounts. Review warnings, readings, due date, organization logo and bank details.",
-        "Choose a design, orientation and one or two receipts per A4 sheet. Print sends a document to the printer; Save PDF creates a file. Cutting guides are optional."
+        "Choose a design, orientation and one or two receipts per A4 sheet. Print sends a document to the printer; Save PDF creates a file. Cutting guides are optional.",
+        "Receipt contents lets you choose optional sections, services, meter types, individual meters and reading columns. Choices are saved in the database without changing charges."
       ],
       [
         "Save and keep a backup",

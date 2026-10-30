@@ -1,4 +1,5 @@
 import {receiptCanvasSchema,defaultReceiptCanvas} from "./receipt-canvas";
+import {receiptContentSchema,defaultReceiptContent} from './receipt-content';
 import {administrationSchema} from './administration-schema';
 import { z } from "zod";
 import Decimal from "decimal.js";
@@ -401,6 +402,7 @@ const currentProjectSchema = z
       custom_languages:z.array(z.object({code:z.string().regex(/^[a-z]{2,8}(?:-[A-Za-z0-9]{2,8})*$/),name:z.string().min(1).max(80)})).max(30).default([]),
       translations:z.record(z.string().max(35),z.record(z.string().max(4000),z.string().max(12000))).default({}),
       receipt_canvas:receiptCanvasSchema,
+      receipt_content:receiptContentSchema,
       receipt_paper:z.enum(['half','full']).default('half'),
       receipt_orientation:z.enum(['portrait','landscape']).default('portrait'),
       receipt_cut_lines:z.boolean().default(true),
@@ -422,6 +424,7 @@ const currentProjectSchema = z
             logo,
             custom: customReceipt.optional(),
             canvas:receiptCanvasSchema.optional(),
+            content:receiptContentSchema.unwrap().optional(),
           }),
         )
         .max(20)
@@ -504,6 +507,12 @@ const currentProjectSchema = z
     for(const [key,totals] of eventTotals){const snapshot=snapshotsByKey.get(key);if(snapshot&&(!totals.charge.eq(snapshot.lines.reduce((sum,line)=>sum.plus(line.amount),new Decimal(0)))||!totals.adjustment.eq(snapshot.adjustment)))fail('Dated charge events differ from preserved monthly totals');}
     for(const kind of referenceKinds){const rows=reference_catalogs[kind]||[];if(new Set(rows.map(r=>r.id)).size!==rows.length)fail("Duplicate reference catalog records");for(const row of rows)for(const field of catalogFields[kind]){const value=row.attributes[field.key];if(!value)continue;if(field.reference){const known=field.reference==="accounts"?accountIds:field.reference==="services"?serviceIds:new Set((reference_catalogs[field.reference]||[]).map(r=>r.id));if(!known.has(value))fail("Unknown reference catalog link");}else if(field.type==="date"&&!date.safeParse(value).success)fail("Invalid reference catalog date");else if(field.type==="number"&&!/^\d+(\.\d+)?$/.test(value))fail("Invalid reference catalog number");}}
     if(new Set(payment_batches.map(b=>b.id)).size!==payment_batches.length)fail("Duplicate payment batches");
+    const sharesByPayment=new Map<string,typeof p.service_accounting.payments>();
+    const shareTotalsByPayment=new Map<string,Decimal>();
+    for(const share of p.service_accounting.payments){
+      const rows=sharesByPayment.get(share.payment_id);if(rows)rows.push(share);else sharesByPayment.set(share.payment_id,[share]);
+      shareTotalsByPayment.set(share.payment_id,(shareTotalsByPayment.get(share.payment_id)||new Decimal(0)).plus(share.amount));
+    }
     const batchPayments=new Set<string>();
     for(const batch of payment_batches){
       if(!batch.imported&&(!serviceIds.has(batch.balancing_service_id)||batch.billing_through>batch.date.slice(0,7)))fail("Invalid payment batch configuration");
@@ -519,9 +528,9 @@ const currentProjectSchema = z
           const pay=row.payment_id?paymentById.get(row.payment_id):null;
           if(new Decimal(row.amount).isZero()){if(row.payment_id!==null)fail("Zero batch row references a receipt");continue;}
           if(!pay||pay.account_id!==row.account_id||pay.payment_date!==batch.date||!new Decimal(pay.amount).eq(row.amount)||!batch.imported&&(pay.allocation_basis!==batch.billing_through||pay.allocation_balancing_service_id!==batch.balancing_service_id||pay.allocation_manual_amount!==(row.manual_maintenance??undefined)))fail("Applied payment batch differs from its receipts");
-          if(batch.imported&&row.historical_shares&&row.payment_id){const actual=p.service_accounting.payments.filter(s=>s.payment_id===row.payment_id);for(const sid of new Set([...actual.map(s=>s.service_id),...row.historical_shares.map(s=>s.service_id)])){const x=actual.find(s=>s.service_id===sid)?.amount||'0',y=row.historical_shares.find(s=>s.service_id===sid)?.amount||'0';if(!new Decimal(x).eq(y))fail('Historical service shares differ from linked receipt');}}
+          if(batch.imported&&row.historical_shares&&row.payment_id){const actual=sharesByPayment.get(row.payment_id)||[];for(const sid of new Set([...actual.map(s=>s.service_id),...row.historical_shares.map(s=>s.service_id)])){const x=actual.find(s=>s.service_id===sid)?.amount||'0',y=row.historical_shares.find(s=>s.service_id===sid)?.amount||'0';if(!new Decimal(x).eq(y))fail('Historical service shares differ from linked receipt');}}
           if(!row.payment_id||batchPayments.has(row.payment_id))fail("Receipt belongs to multiple payment batches");
-          else {batchPayments.add(row.payment_id);const total=p.service_accounting.payments.filter(s=>s.payment_id===row.payment_id).reduce((s,r)=>s.plus(r.amount),new Decimal(0));if(!total.eq(row.amount))fail("Applied payment batch allocation is incomplete");}
+          else {batchPayments.add(row.payment_id);const total=shareTotalsByPayment.get(row.payment_id)||new Decimal(0);if(!total.eq(row.amount))fail("Applied payment batch allocation is incomplete");}
         }
       }
     }
@@ -798,7 +807,7 @@ export function demoProject(): Project {
       date_format:"iso",
       period_format:"auto",
       language: "ru",
-      translation_locale:null,custom_languages:[],translations:{},receipt_canvas:defaultReceiptCanvas(),receipt_paper:"half",receipt_orientation:"portrait",receipt_cut_lines:true,logo_tint:null,organization_logos:[],
+      translation_locale:null,custom_languages:[],translations:{},receipt_content:defaultReceiptContent(),receipt_canvas:defaultReceiptCanvas(),receipt_paper:"half",receipt_orientation:"portrait",receipt_cut_lines:true,logo_tint:null,organization_logos:[],
       theme: "system",
       period: month,
       receipt_language: "ro",

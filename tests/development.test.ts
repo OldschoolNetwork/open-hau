@@ -30,6 +30,7 @@ test("schema 1 migrates without mutating or changing financial history", () => {
 
 function withMeter() {
   const p = demoProject();
+  p.settings.receipt_content.labels="meter";
   p.meters.push({
     id: "meter-a",
     scope: "individual",

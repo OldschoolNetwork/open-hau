@@ -34,6 +34,8 @@ A macOS 26.2 package is not included in the Windows release.
 - Nine receipt designs, including a traditional layout, editable canvas layers,
   logo libraries, SVG tinting, date formats and saved appearance presets.
 - Previous and current meter readings, dates and consumption printed on receipts.
+  Optional sections, meter types, individual rows and columns can be selected
+  and saved without changing the underlying charges.
 - System, light and dark appearance, with Russian, Romanian and English language
   selections and editable translations. Some legacy labels still need translation.
 - File-based ODB databases, optional password encryption, backups and a local API.

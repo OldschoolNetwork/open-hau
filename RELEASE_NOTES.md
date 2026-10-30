@@ -17,6 +17,13 @@ document journals and configurable receipts.
   date formats and previous/current meter readings with dates and consumption.
 - File-based ODB saving, schema 1–3 migration to schema 4, password encryption
   and a bundled local JSON-RPC API companion.
+- Saved receipt-content choices: optional sections, services, meter types,
+  individual rows and columns. Empty readings sections disappear automatically;
+  service-based labels avoid repeating the payer name.
+- Faster validation of long payment histories, a single validation pass when
+  opening a database, and no file rewrite when saving an unchanged project.
+- Fixed unnecessary save prompts when returning to the database catalog or
+  switching databases; unchanged open forms do not count as edits.
 - English language selection, editable translations, refreshed settings,
   desktop widgets, menu positioning and notifications.
 
@@ -42,7 +49,7 @@ printers require layout review. macOS 26.2 and direct macOS PDF export are not
 part of this Windows package. The prior 26.1 Mac preview remains available in
 its existing release.
 
-Automated checks cover 120 tests, frontend diagnostics and native compilation.
+Automated checks cover 125 tests, frontend diagnostics and native compilation.
 They do not establish full accounting or target-device acceptance. The Windows
 signed update feed is published separately; end-to-end installation of a later
 update has not yet been verified.
