@@ -1,47 +1,35 @@
-# OpenHaU 26.1 Preview user guide
+# OpenHaU user guide
 
-OpenHaU is an offline billing workspace for small housing associations.
-The application interface supports Russian and Romanian; this guide describes
-controls in English. The current currency is MDL.
-
-This is a preview, not certified accounting software. Use fictional records for
-evaluation and compare real calculations with an established system. Regulated
-reporting and turnover/balance statements are not available in 26.1.
+OpenHaU is an offline utility accounting application for housing associations.
+The interface supports English, Romanian and Russian. Accounting uses MDL.
 
 ## Contents
 
-- [Installation and first launch](Installation)
-- [Organisation, accounts, services and tariffs](Setup)
-- [Monthly workflow](Monthly-work)
-- [Receipts, logos and PDF](Receipts)
-- [Saving, backups and transfer](Data-and-backups)
-- [Troubleshooting and questions](Troubleshooting)
+- [Installation and updates](Installation)
+- [Organisation and personal accounts](Setup)
+- [Monthly workflow and reports](Monthly-work)
+- [Receipts and PDF](Receipts)
+- [Database files, protection and backups](Data-and-backups)
+- [Local API](API)
+- [Troubleshooting](Troubleshooting)
 
-## Quick tour
+## First steps
 
-1. Install the desktop application and inspect its fictional demonstration project.
-2. Choose the interface language and theme in settings and inspect organisation details.
-3. Explore accounts, services and tariffs, then readings.
-4. The first demonstration account has charges of 1047.44 MDL for October 2026. The second intentionally lacks meter data.
-5. Select an account in the receipt workspace and inspect the preview.
-6. Save with the disk control or Ctrl+S / Cmd+S.
+1. Create a database or add an existing ODB file from the welcome screen.
+2. Check organisation details, accounts, connected services, tariffs and meters.
+3. Select the billing period and enter readings, occupancy changes and payments.
+4. Review the reports and prepare receipts for the selected month.
+5. Save the database and keep an independent backup.
 
-Before starting a real organisation, export the demonstration project if needed
-and use the empty-database action in settings. Do not treat the sample as an
-already configured production database.
+![Windows workspace](https://raw.githubusercontent.com/OldschoolNetwork/open-hau/main/docs/screenshots/windows-workspace.png)
 
-## Mac status
+## Windows and macOS
 
-The DMG contains Intel and Apple Silicon binaries targeting macOS 12.6 or later.
-Launch and a superficial check were reported successful on Monterey after removing
-a Telegram quarantine attribute. Detailed persistence, printing and full workflow
-acceptance remain pending. The preview has no Apple Developer ID signature or
-notarization.
+The application keeps the same accounting data on both platforms. Choose the
+package for your operating system and keep a backup before moving a working
+database between application versions. A newer application can migrate an older
+database; an older application may refuse a newer schema.
 
-## Support
+![macOS workspace](https://raw.githubusercontent.com/OldschoolNetwork/open-hau/main/docs/screenshots/macos-workspace.png)
 
-Include the application version, OS, processor architecture, steps and exact error
-when reporting a problem. Remove resident names, addresses, balances and private
-identifiers before sharing screenshots or JSON.
-
-[Project repository](https://github.com/OldschoolNetwork/open-hau) · [Releases](https://github.com/OldschoolNetwork/open-hau/releases)
+[Project repository](https://github.com/OldschoolNetwork/open-hau)

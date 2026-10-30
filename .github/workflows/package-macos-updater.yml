@@ -1,0 +1,39 @@
+name: Package macOS updater
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag
+        required: true
+        default: v26.2.4
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: macos-latest
+    steps:
+      - name: Package the published app without changing its signature
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          version="${RELEASE_TAG#v}"
+          image="$RUNNER_TEMP/OpenHaU.dmg"
+          mount="$RUNNER_TEMP/OpenHaU-Mounted"
+          curl --fail --location --retry 3 "https://github.com/OldschoolNetwork/open-hau/releases/download/$RELEASE_TAG/OpenHaU_${version}_universal.dmg" -o "$image"
+          hdiutil attach "$image" -readonly -nobrowse -mountpoint "$mount"
+          trap 'hdiutil detach "$mount"' EXIT
+          app="$mount/OpenHaU.app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" = "$version"
+          architectures=$(lipo -archs "$app/Contents/MacOS/openhau")
+          [[ "$architectures" == *x86_64* && "$architectures" == *arm64* ]]
+          mkdir -p out
+          COPYFILE_DISABLE=1 tar -czf "out/OpenHaU_${version}.app.tar.gz" -C "$mount" OpenHaU.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenHaU-macos-updater
+          path: out/*.app.tar.gz
+          if-no-files-found: error

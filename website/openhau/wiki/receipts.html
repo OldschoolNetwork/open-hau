@@ -1,30 +1,26 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Receipts, logos and PDF — OpenHaU documentation 26.1 Preview"><title>Receipts, logos and PDF · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0013"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
-<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html">OpenHaU</a><a href="index.html">Wiki</a><a href="../index.html#downloads">Download</a><a href="https://github.com/OldschoolNetwork/open-hau">GitHub ↗</a></nav></header>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Receipts and PDF — OpenHaU documentation 26.2.4"><title>Receipts and PDF · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0014"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
+<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3z"/></svg>OpenHaU</a><a href="index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 6C8 3 4 3 2 4v15c4-1 7-1 10 2 3-3 6-3 10-2V4c-2-1-6-1-10 2v15"/></svg>Wiki</a><a href="../index.html#downloads"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>Download</a><a href="https://github.com/OldschoolNetwork/open-hau"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18"/></svg>GitHub</a></nav></header>
 <main id="main" class="wiki-shell"><aside class="wiki-nav"><h2>OpenHaU Wiki</h2><nav aria-label="Guide sections"><a href="index.html">User guide</a>
 <a href="installation.html">Installation</a>
 <a href="setup.html">Organisation and accounts</a>
 <a href="monthly-work.html">Monthly workflow</a>
 <a href="receipts.html" aria-current="page">Receipts and PDF</a>
 <a href="data-and-backups.html">Data and backups</a>
-<a href="troubleshooting.html">Troubleshooting</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.1 Preview · User guide · English</p><h1>Receipts, logos and PDF</h1>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="api.html">Local API</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.2.4 · User guide · English</p><h1>Receipts and PDF</h1>
+<p>Select the receipt month and year, then choose the accounts to include. Previous months remain available; verify that the selected period has complete data.</p>
 <h2>Appearance</h2>
-<p>Select one or more accounts in the receipt workspace. Scroll its controls if the printing actions are below the window edge.</p>
-<p>Studio, Compact and Classic are available. They are layout variants, not decorative background collections. Decorative themes and a custom template editor are future work.</p>
-<p>Choose Russian, Romanian or bilingual receipts, a colour and a 9–16 pt type size. A dark interface does not turn the printed sheet dark.</p>
-<h2>Organisation logo</h2>
-<p>The logo control accepts SVG, PNG, JPEG and WebP files up to 2 MB. SVG is sanitized and embedded as an image. Complex effects or external references may not survive; use a simple self-contained SVG or a raster alternative.</p>
-<p>The logo is included in the full project JSON. Removing it from the receipt does not delete its original file from the computer.</p>
-<h2>Saved configurations</h2>
-<p>Enter a configuration name and save it, then select it from the configuration list when needed. The preview supports up to 20 saved configurations; an existing name replaces that entry. Save the whole project after changes.</p>
-<h2>Printing and PDF</h2>
-<p>Use the print/PDF control:</p>
-<ul>
-<li>On Mac, use the system print dialog's PDF action.</li>
-<li>On Windows, select Save as PDF or an available PDF printer.</li>
-<li>Check A4, scale, margins, selected printer and page count before confirming.</li>
-</ul>
-<p>If embedded printing is unavailable, export standalone HTML, open it in a browser and print there. Browser dates, URLs and other headers/footers depend on print settings and may be disabled when the dialog provides that option.</p>
-<p>Print one sample first. Check bank details, totals, Romanian ă â î ș ț, page breaks and monochrome legibility. Colour must not be the only way to distinguish meaning.</p>
-<p><a href="index.html">User guide</a></p><p class="doc-meta">Source: docs/guide/receipts.md.</p></article></main>
+<p>Choose a built-in design, accent colour, type size, paper layout and orientation. SVG, PNG, JPEG and WebP organisation logos are supported. Appearance configurations and imported logos can be saved in the database.</p>
+<p>The receipt editor controls the background, shapes and document elements. Use the preview and a sample PDF to check a custom layout before a print run.</p>
+<figure><img src="../assets/receipt-preview.png" alt="Receipt preview" loading="lazy"></figure>
+<h2>Receipt contents</h2>
+<p>Open Receipt contents to choose optional blocks, meter types and services. For example, include only water and electricity meters rather than every accounting counter. Individual meters can also be excluded.</p>
+<p>Previous reading, latest reading, dates, consumption, serial number and the displayed meter/service label can be configured. When no readings are selected, their table is omitted. Required account identity, charges and totals remain.</p>
+<h2>Payment deadline</h2>
+<p>Set the deadline for the selected month. Date and period formatting follows the configured formats and receipt language.</p>
+<h2>Output</h2>
+<p>Save PDF produces a PDF file. Print opens the print workflow. HTML is an additional export. Choose one or two receipts per A4 sheet, orientation and cutting guides before output. Check the selected printer’s colour settings.</p>
+<p>A draft notice means the calculation has missing readings, tariffs or history. Resolve the missing information before treating the amount as final.</p>
+<p><a href="monthly-work.html">Monthly workflow</a></p></article></main>
 <footer><p>Oldschool Network · <a href="https://t.me/OldschoolNetwork">Telegram</a> · <a href="https://github.com/OldschoolNetwork/open-hau">GitHub</a></p></footer><details class="on-display-settings on-display-fallback"><summary>Display settings</summary><iframe id="onDisplayControls" title="Display mode: Full, Lite, Super Lite" src="../../display-controls.php?page=openhau/wiki/receipts.html" width="100%" height="84" frameborder="0" scrolling="no"><a href="../../display.php?page=openhau/wiki/receipts.html">Full / Lite / Super Lite</a></iframe></details><script src="../../mobile-navigation.js?v=20261019-1"></script><script src="../../site-common.js?v=build-0007"></script></body></html>

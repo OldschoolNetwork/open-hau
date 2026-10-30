@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Local API — OpenHaU documentation 26.2.4"><title>Local API · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0014"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
+<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3z"/></svg>OpenHaU</a><a href="index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 6C8 3 4 3 2 4v15c4-1 7-1 10 2 3-3 6-3 10-2V4c-2-1-6-1-10 2v15"/></svg>Wiki</a><a href="../index.html#downloads"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>Download</a><a href="https://github.com/OldschoolNetwork/open-hau"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18"/></svg>GitHub</a></nav></header>
+<main id="main" class="wiki-shell"><aside class="wiki-nav"><h2>OpenHaU Wiki</h2><nav aria-label="Guide sections"><a href="index.html">User guide</a>
+<a href="installation.html">Installation</a>
+<a href="setup.html">Organisation and accounts</a>
+<a href="monthly-work.html">Monthly workflow</a>
+<a href="receipts.html">Receipts and PDF</a>
+<a href="data-and-backups.html">Data and backups</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="api.html" aria-current="page">Local API</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.2.4 · User guide · English</p><h1>Local API</h1>
+<p>The optional OpenHaU API package provides command-line and JSON-RPC access to database documentation, sections, queries, translations, reports and validated edits. It requires Node.js 24.7 or later.</p>
+<h2>Inspect a database</h2>
+<pre><code>node OpenHaU-API.mjs database.inspect '{&quot;path&quot;:&quot;example.odb&quot;}'</code></pre>
+<p>For Windows PowerShell, use the JSON-RPC stdio mode to avoid shell quoting issues. Close the database in the graphical application before writing through the API.</p>
+<h2>JSON-RPC</h2>
+<pre><code>node OpenHaU-API.mjs stdio</code></pre>
+<p>Send one JSON request per line:</p>
+<pre><code>{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;database.sections&quot;,&quot;params&quot;:{&quot;path&quot;:&quot;example.odb&quot;}}
+{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:2,&quot;method&quot;:&quot;database.query&quot;,&quot;params&quot;:{&quot;path&quot;:&quot;example.odb&quot;,&quot;pointer&quot;:&quot;/accounts&quot;,&quot;sort&quot;:[{&quot;field&quot;:&quot;number&quot;,&quot;direction&quot;:&quot;asc&quot;}],&quot;limit&quot;:100}}</code></pre>
+<p>Omit sort or pass an empty array for the stored order. Multiple sort fields are applied in the supplied priority order before pagination.</p>
+<h2>Writes</h2>
+<p>Read the current revision before a patch. Writes validate the complete database, reject a changed revision and retain a backup. Passwords are accepted through stdio rather than command-line arguments. Keep real resident records and credentials out of public examples and logs.</p>
+<p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/database-api.html">Complete API reference</a></p>
+<p><a href="index.html">User guide</a></p></article></main>
+<footer><p>Oldschool Network · <a href="https://t.me/OldschoolNetwork">Telegram</a> · <a href="https://github.com/OldschoolNetwork/open-hau">GitHub</a></p></footer><details class="on-display-settings on-display-fallback"><summary>Display settings</summary><iframe id="onDisplayControls" title="Display mode: Full, Lite, Super Lite" src="../../display-controls.php?page=openhau/wiki/api.html" width="100%" height="84" frameborder="0" scrolling="no"><a href="../../display.php?page=openhau/wiki/api.html">Full / Lite / Super Lite</a></iframe></details><script src="../../mobile-navigation.js?v=20261019-1"></script><script src="../../site-common.js?v=build-0007"></script></body></html>

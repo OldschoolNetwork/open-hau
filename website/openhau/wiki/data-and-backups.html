@@ -1,35 +1,25 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Saving, backups and transfer — OpenHaU documentation 26.1 Preview"><title>Saving, backups and transfer · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0013"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
-<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html">OpenHaU</a><a href="index.html">Wiki</a><a href="../index.html#downloads">Download</a><a href="https://github.com/OldschoolNetwork/open-hau">GitHub ↗</a></nav></header>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Database files, protection and backups — OpenHaU documentation 26.2.4"><title>Database files, protection and backups · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0014"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
+<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3z"/></svg>OpenHaU</a><a href="index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 6C8 3 4 3 2 4v15c4-1 7-1 10 2 3-3 6-3 10-2V4c-2-1-6-1-10 2v15"/></svg>Wiki</a><a href="../index.html#downloads"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>Download</a><a href="https://github.com/OldschoolNetwork/open-hau"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18"/></svg>GitHub</a></nav></header>
 <main id="main" class="wiki-shell"><aside class="wiki-nav"><h2>OpenHaU Wiki</h2><nav aria-label="Guide sections"><a href="index.html">User guide</a>
 <a href="installation.html">Installation</a>
 <a href="setup.html">Organisation and accounts</a>
 <a href="monthly-work.html">Monthly workflow</a>
 <a href="receipts.html">Receipts and PDF</a>
 <a href="data-and-backups.html" aria-current="page">Data and backups</a>
-<a href="troubleshooting.html">Troubleshooting</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.1 Preview · User guide · English</p><h1>Saving, backups and transfer</h1>
-<h2>Desktop database</h2>
-<p>Save after changes using the disk control or Ctrl+S / Cmd+S. Applying an edit form does not mean it has been written to disk. Complete pending reading edits first.</p>
-<p>The desktop application stores openhau.sqlite in its application data directory, shown in settings. Before saving a nonempty database, SQLite Backup API creates a consistent copy in backups. The first save cannot back up a nonexistent database. Copies are not automatically pruned.</p>
-<p>A backup on the same disk does not protect against disk failure. Keep independent exports elsewhere. The application does not encrypt SQLite or JSON; secure the device and backup storage.</p>
-<h2>Full JSON export</h2>
-<p>Export JSON from settings. The *.openhau.json file contains the organisation, accounts, services, tariffs, readings, payments, adjustments, closed charge snapshots and settings, including logos and configurations. The size limit is 20 MB.</p>
-<p>The UTF-8 format can be edited in a text editor or processed by other tools. Money and quantities are decimal strings such as &quot;125.50&quot;. Preserve identifiers and references. A technical schema and fictional example are published in the repository.</p>
-<p>Do not send actual resident records to external AI or other services without appropriate permission and data handling arrangements. A fictional or anonymized example is usually enough for troubleshooting.</p>
-<h2>Import and computer-to-computer transfer</h2>
-<ol>
-<li>Apply pending input, save and export full JSON on the source computer.</li>
-<li>Save and separately export any existing project on the destination.</li>
-<li>Select the validated JSON import action and the file.</li>
-<li>Check warnings, record counts and complete JSON before confirming. Equal counts do not mean equal contents.</li>
-<li>Apply the import, save, reopen and verify accounts, balances and receipts.</li>
-</ol>
-<p>Import replaces the entire project; it does not merge databases. CSV is only a summary. Neither CSV, PDF nor HTML can restore the complete project.</p>
-<h2>Restoring a SQLite backup</h2>
-<p>Close OpenHaU completely. Preserve the current database and backups separately before replacing anything. Restore a selected SQLite copy only while the application is closed. If WAL/SHM files are present or the failure is unclear, request help first rather than mixing database files.</p>
-<h2>Version compatibility</h2>
-<p>New application versions must support older database formats through explicit validated migrations. A backup is required before upgrading the format. Older applications may reject newer formats; they must not silently overwrite them. The current exchange format is schema version 1.</p>
-<h2>Browser preview</h2>
-<p>The development browser preview uses localStorage, not the desktop SQLite database. Clearing browser data can remove that preview project. Use the desktop application and independent backups for accounting.</p>
-<p><a href="index.html">User guide</a></p><p class="doc-meta">Source: docs/guide/data-and-backups.md.</p></article></main>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="api.html">Local API</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.2.4 · User guide · English</p><h1>Database files, protection and backups</h1>
+<h2>Save to the selected file</h2>
+<p>The current portable format is ODB, based on JSON. An ODB database contains organisation details, accounts, records and settings. Open an existing file through Add existing; Save writes back to that selected file.</p>
+<p>Use Save as for a separate working copy. Removing an entry from the welcome screen removes it from the list and does not delete the file on disk.</p>
+<h2>Backups</h2>
+<p>The application retains safety backups before replacing an existing database. Optional backup copies can be configured to a chosen location. Keep an independent copy on another device or storage location as well.</p>
+<h2>Password protection</h2>
+<p>Set a database password in Settings → Database protection. Locking a protected database requires unlocking it before use. The password belongs to that database, not to every database listed in the application. Keep the password safe: access to a protected database requires it.</p>
+<h2>Versions and transfer</h2>
+<p>Save and close the application before moving the ODB file. Open it on the other computer with a compatible application version. Newer versions migrate older supported formats; older versions can refuse newer schemas.</p>
+<p>PDF, HTML and CSV are document exports and cannot restore the full database. The local API supports inspection and validated edits to the full database.</p>
+<h2>External databases</h2>
+<p>Legacy conversions require a format-specific mapping and reconciliation of recorded readings, balances and payments. Preserve the source and compare the converted records before using the result. Do not assume any arbitrary SDF file shares the same structure as a supported conversion profile.</p>
+<p><a href="api.html">Local API</a></p></article></main>
 <footer><p>Oldschool Network · <a href="https://t.me/OldschoolNetwork">Telegram</a> · <a href="https://github.com/OldschoolNetwork/open-hau">GitHub</a></p></footer><details class="on-display-settings on-display-fallback"><summary>Display settings</summary><iframe id="onDisplayControls" title="Display mode: Full, Lite, Super Lite" src="../../display-controls.php?page=openhau/wiki/data-and-backups.html" width="100%" height="84" frameborder="0" scrolling="no"><a href="../../display.php?page=openhau/wiki/data-and-backups.html">Full / Lite / Super Lite</a></iframe></details><script src="../../mobile-navigation.js?v=20261019-1"></script><script src="../../site-common.js?v=build-0007"></script></body></html>

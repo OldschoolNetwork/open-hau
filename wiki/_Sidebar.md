@@ -7,3 +7,4 @@
 - [Receipts and PDF](Receipts)
 - [Data and backups](Data-and-backups)
 - [Troubleshooting](Troubleshooting)
+- [Local API](API)

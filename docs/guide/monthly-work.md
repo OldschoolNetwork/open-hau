@@ -1,54 +1,47 @@
-# Monthly workflow
+# Monthly workflow and reports
 
-## Select the period
+## Prepare the period
 
-Verify the selected month, opening balances, connected services and applicable
-tariffs. Complete earlier months first: balances require saved historical charges.
+Select the billing period from the period-change command. Review the wizard
+before completing any recalculation or change to saved charges.
 
-## Enter readings and quantities
+## Readings and shared meters
 
-Use the readings workspace for previous/current meter values or explicit
-quantities. Zero is a value, not missing information. Apply the edited readings,
-then save.
+Enter dated individual and shared meter readings. Keep previous and current
+readings distinct. An absent reading is missing information, not zero usage.
 
-Typing into the grid does not commit the edits. Saving asks for pending readings
-to be applied first. Finish the entry before switching periods or closing.
+Connect individual meters and participating accounts to their shared meter.
+Differences are allocated equally across eligible personal accounts. Exclusions
+apply to the selected month; excluded consumers remain part of the subtraction
+from shared consumption but do not receive a difference charge.
 
-Missing readings or tariffs produce warnings. Do not interpret an incomplete
-calculation as zero debt.
+## Waste collection
 
-## Record payments and adjustments
+Set the number of chargeable residents for each account in the selected month.
+The charge uses this monthly count and the applicable per-person tariff.
 
-Choose the account, amount, payment date and entry date. The payment date determines
-the accounting month; entry date records when it was entered. Add a reference to
-the supporting document.
+## Payments
 
-An adjustment belongs to its selected period. A positive adjustment increases
-charges; a negative one reduces them. Record a reason and retain the supporting
-document separately. Adjustments do not replace tariff history.
+Open Batch payment entry to add or fill account rows and enter amounts.
+Enter moves to the next amount; Shift-Enter moves to the previous one.
+The comment and action buttons stay below the scrolling table.
 
-## Reconcile
+Payment details show the allocation by service. Automatic allocation uses the
+service debt proportions. A manual balancing adjustment can be assigned to the
+configured building-maintenance service. Applied historical documents remain
+available for inspection without silently recalculating their imported allocation.
 
-Review charges, payments, balances and warnings. Closing balance equals opening
-balance + charges including adjustments − payments. A negative balance is an
-advance.
+## Reports
 
-For the first October 2026 demonstration account, charges are 1047.44 MDL.
-An October payment of 10.00 MDL with no opening debt leaves 1037.44 MDL.
-The second sample intentionally lacks readings; complete them before closing.
+Choose a report, select the date range and configure filters, grouping and sort
+order. Generate it before printing or exporting. Account and service balance
+reports, payment reports and registers offer the relevant PDF and spreadsheet
+exports. Printing and saving a PDF are separate actions.
 
-CSV exports a monthly summary. Detailed turnover/balance reports are not available
-in 26.1.
+## Finish the month
 
-## Receipts and closing
+Review missing readings, tariffs, adjustments and allocations. Prepare receipts,
+save the database and make an independent backup. Closing a period preserves
+its calculated history; reopening or rolling back requires deliberate review.
 
-Inspect receipts before printing. Incomplete calculations are marked as drafts.
-Close the month, then save. Closing preserves charge snapshots and is blocked
-when required data or historical months are missing.
-
-To correct an earlier closed month, reopen later closed months in reverse order
-first. Export a full backup before corrections, verify the result and close
-periods sequentially again. Reopening imported legacy history may recalculate it
-under the current application's rules; retain the original migration archive.
-
-[Receipts and PDF](receipts.md) · [User guide](index.md)
+[Receipts](receipts.md)

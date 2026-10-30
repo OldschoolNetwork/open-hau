@@ -1,38 +1,26 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Troubleshooting and questions — OpenHaU documentation 26.1 Preview"><title>Troubleshooting and questions · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0013"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
-<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html">OpenHaU</a><a href="index.html">Wiki</a><a href="../index.html#downloads">Download</a><a href="https://github.com/OldschoolNetwork/open-hau">GitHub ↗</a></nav></header>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Troubleshooting — OpenHaU documentation 26.2.4"><title>Troubleshooting · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0014"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
+<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3z"/></svg>OpenHaU</a><a href="index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 6C8 3 4 3 2 4v15c4-1 7-1 10 2 3-3 6-3 10-2V4c-2-1-6-1-10 2v15"/></svg>Wiki</a><a href="../index.html#downloads"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>Download</a><a href="https://github.com/OldschoolNetwork/open-hau"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18"/></svg>GitHub</a></nav></header>
 <main id="main" class="wiki-shell"><aside class="wiki-nav"><h2>OpenHaU Wiki</h2><nav aria-label="Guide sections"><a href="index.html">User guide</a>
 <a href="installation.html">Installation</a>
 <a href="setup.html">Organisation and accounts</a>
 <a href="monthly-work.html">Monthly workflow</a>
 <a href="receipts.html">Receipts and PDF</a>
 <a href="data-and-backups.html">Data and backups</a>
-<a href="troubleshooting.html" aria-current="page">Troubleshooting</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.1 Preview · User guide · English</p><h1>Troubleshooting and questions</h1>
-<h2>Mac cannot open the application</h2>
-<p>26.1 Preview has no Apple Developer ID signature or notarization. One Monterey launch was initially blocked: signature verification reported an unsigned Intel component and extended attributes showed a Telegram quarantine flag. Launch and a superficial check succeeded after removing the app-specific flag. This does not establish full workflow acceptance.</p>
-<p>Install in Applications and try Finder's contextual Open action or specific-app approval in Security &amp; Privacy when offered. Do not disable Gatekeeper globally or run the accounting application with sudo.</p>
-<p>If the window gives no useful reason, run the following separately in Terminal. The first tries to launch; the others inspect the signature and attributes without changing them:</p>
-<pre><code>&quot;/Applications/OpenHaU.app/Contents/MacOS/openhau&quot;
-codesign --verify --deep --strict --verbose=2 &quot;/Applications/OpenHaU.app&quot;
-xattr -lr &quot;/Applications/OpenHaU.app&quot;</code></pre>
-<p>Operation not permitted is a denial, not proof of one specific cause. Bad CPU type points to architecture; a dyld message about a missing library or symbol requires a build investigation.</p>
-<p>For this trusted preview obtained from the official release, if quarantine is confirmed and contextual opening does not work, removing that application's attribute may permit testing. Verify the source and compare the release checksum. This does not sign or notarize the application:</p>
-<pre><code>xattr -dr com.apple.quarantine &quot;/Applications/OpenHaU.app&quot;</code></pre>
-<p>Then launch normally. If this fails, report the exact output instead of changing permissions across Applications.</p>
-<p><a href="https://support.apple.com/102445">Apple's guidance on opening apps safely</a></p>
-<h2>Mac icon appears oversized</h2>
-<p>The current icon's visible artwork is larger than neighbouring Launchpad icons. A Mac-specific transparent-margin adjustment is pending; the selected artwork itself is unchanged.</p>
-<h2>Readings do not save</h2>
-<p>Apply the edited readings before saving and verify the selected month. If saving fails, record the error and protect input with an export when possible before closing.</p>
-<h2>A month cannot close</h2>
-<p>Check missing readings, manual quantities, tariffs and historical gaps. The second sample account deliberately lacks meter data. Do not enter artificial zeros simply to make closing succeed.</p>
-<h2>Edge downloads appears after saving a PDF</h2>
-<p>This was reported in Windows WebView2 printing. A download handler was added to the latest preview, but the complete post-save scenario has not been reverified. Include the WebView2 version, selected PDF printer and a privacy-safe screenshot. HTML export and external browser printing are an alternative.</p>
-<h2>A grammar error appears in the print window</h2>
-<p>Some print-dialog wording belongs to WebView2 rather than OpenHaU's receipt translation. The affected system string is not directly corrected by 26.1.</p>
-<h2>Reports, updates and legacy imports</h2>
-<p>Turnover/balance statements, regulated reporting, a general legacy importer and automatic updates are not available. CSV is a monthly summary. A privately prepared one-time migration does not mean any arbitrary SDF can be imported directly by the application.</p>
-<h2>Reporting a problem</h2>
-<p>Include version, OS, architecture, reproducible steps and expected/actual results. Remove resident data and private identifiers. Do not publish working databases, credentials or unredacted financial records.</p>
-<p><a href="https://github.com/OldschoolNetwork/open-hau/issues">Report an issue</a> · <a href="index.html">User guide</a></p><p class="doc-meta">Source: docs/guide/troubleshooting.md.</p></article></main>
+<a href="troubleshooting.html" aria-current="page">Troubleshooting</a>
+<a href="api.html">Local API</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.2.4 · User guide · English</p><h1>Troubleshooting</h1>
+<h2>A receipt is marked as a draft</h2>
+<p>Check the selected month’s readings, tariffs, shared allocations and historical opening data. A previous month can be complete while the current month is not. Missing values are not automatically converted to zero.</p>
+<h2>A recent-database card has an old name</h2>
+<p>Current versions read the organisation name from an available database. A locked or unavailable file can retain its cached name until it can be read. Check that the listed file path is the database you intended to open.</p>
+<h2>Save conflicts</h2>
+<p>Do not write the same file from the application and API at the same time. If the file changed elsewhere, reopen it and review the latest data before saving again. An unsaved-changes prompt offers save, discard or cancel.</p>
+<h2>macOS first launch</h2>
+<p>Copy the application to Applications before starting it. For a package downloaded from the official release, use macOS’s application-specific approval if requested. The local signature does not replace Apple notarization. Report the exact error and macOS version if approval does not resolve the launch problem.</p>
+<h2>Reports and printing</h2>
+<p>Generate the report first. Use Save PDF for a PDF file or Print for printer output. For receipts, check the selected paper layout and orientation. Verify the printer’s colour and scaling settings when paper output differs from the preview.</p>
+<h2>Requesting help</h2>
+<p>Include the application version, operating system, steps and exact error. Remove private resident and financial information from screenshots and files.</p>
+<p><a href="https://github.com/OldschoolNetwork/open-hau/issues">Project issues</a></p>
+<p><a href="index.html">User guide</a></p></article></main>
 <footer><p>Oldschool Network · <a href="https://t.me/OldschoolNetwork">Telegram</a> · <a href="https://github.com/OldschoolNetwork/open-hau">GitHub</a></p></footer><details class="on-display-settings on-display-fallback"><summary>Display settings</summary><iframe id="onDisplayControls" title="Display mode: Full, Lite, Super Lite" src="../../display-controls.php?page=openhau/wiki/troubleshooting.html" width="100%" height="84" frameborder="0" scrolling="no"><a href="../../display.php?page=openhau/wiki/troubleshooting.html">Full / Lite / Super Lite</a></iframe></details><script src="../../mobile-navigation.js?v=20261019-1"></script><script src="../../site-common.js?v=build-0007"></script></body></html>

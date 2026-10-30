@@ -1,33 +1,25 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Installation and first launch — OpenHaU documentation 26.1 Preview"><title>Installation and first launch · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0013"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
-<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html">OpenHaU</a><a href="index.html">Wiki</a><a href="../index.html#downloads">Download</a><a href="https://github.com/OldschoolNetwork/open-hau">GitHub ↗</a></nav></header>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Installation and updates — OpenHaU documentation 26.2.4"><title>Installation and updates · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0014"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
+<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3z"/></svg>OpenHaU</a><a href="index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 6C8 3 4 3 2 4v15c4-1 7-1 10 2 3-3 6-3 10-2V4c-2-1-6-1-10 2v15"/></svg>Wiki</a><a href="../index.html#downloads"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>Download</a><a href="https://github.com/OldschoolNetwork/open-hau"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18"/></svg>GitHub</a></nav></header>
 <main id="main" class="wiki-shell"><aside class="wiki-nav"><h2>OpenHaU Wiki</h2><nav aria-label="Guide sections"><a href="index.html">User guide</a>
 <a href="installation.html" aria-current="page">Installation</a>
 <a href="setup.html">Organisation and accounts</a>
 <a href="monthly-work.html">Monthly workflow</a>
 <a href="receipts.html">Receipts and PDF</a>
 <a href="data-and-backups.html">Data and backups</a>
-<a href="troubleshooting.html">Troubleshooting</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.1 Preview · User guide · English</p><h1>Installation and first launch</h1>
-<h2>macOS</h2>
-<ol>
-<li>Download OpenHaU_26.1.0_universal.dmg from the official GitHub release.</li>
-<li>Open the image and drag OpenHaU to Applications.</li>
-<li>Launch the installed copy from Applications, not from the mounted image.</li>
-<li>Eject the image after copying. No development tools or separate SQLite installation are needed.</li>
-</ol>
-<p>The target is Monterey 12.6 or later. Both Intel x86_64 and Apple Silicon arm64 are present in the binary. Static packaging checks do not establish compatibility with every supported Mac.</p>
-<p>The preview is unsigned and not notarized. A Monterey test initially encountered a download quarantine block; launch succeeded after removing the app-specific attribute. Use Finder's contextual Open action or the specific-app approval in Security &amp; Privacy when offered. Do not disable system protection globally or run the accounting application as root. See troubleshooting for diagnostic commands.</p>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="api.html">Local API</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.2.4 · User guide · English</p><h1>Installation and updates</h1>
 <h2>Windows</h2>
-<ol>
-<li>Download OpenHaU_26.1.0_x64-setup.exe.</li>
-<li>Run the installer and launch OpenHaU.</li>
-<li>Microsoft Edge WebView2 Runtime is required. The installer may download the runtime if it is absent.</li>
-</ol>
-<p>A standalone EXE is also available. It still requires WebView2 and stores records in the application data directory; it is not a portable-data edition.</p>
+<p>Download the current x64 installer from the official release and run it. Microsoft Edge WebView2 is required; the installer can obtain it when missing. The standalone EXE uses the same runtime but does not register file associations.</p>
+<h2>macOS</h2>
+<p>Open the Universal DMG, drag OpenHaU to Applications and launch the installed copy. Intel and Apple Silicon are included. The minimum system is macOS Monterey 12.6.</p>
+<p>The Mac package has a local code signature, not an Apple Developer ID signature or notarization. If macOS requests approval, use the application-specific Open action or the approval in Security &amp; Privacy. Do not disable Gatekeeper globally.</p>
 <h2>First launch</h2>
-<p>When no saved project exists, the application displays fictional examples. Otherwise it reads the existing desktop database. Settings show the actual data directory.</p>
-<p>Choose Russian or Romanian and system, light or dark appearance, then save. Receipt language is configured independently from interface language.</p>
+<p>Use Create database for a new association or Add existing for an ODB file. The welcome screen also offers documentation and update settings. Choose a preferred database under At startup if it should open automatically.</p>
+<p>Interface language, theme and date formats are in Settings. Receipt language is independent from interface language.</p>
 <h2>Updates</h2>
-<p>Automatic updates are not enabled. Before replacing the application, save and export a complete JSON copy to an independent location. Keep the application data directory. Evaluate previews separately and verify calculations before replacing an established working system.</p>
-<p><a href="index.html">User guide</a></p><p class="doc-meta">Source: docs/guide/installation.md.</p></article></main>
+<p>Open Settings → Updates, choose Check for updates and install an available version. The application checks the downloaded package signature and asks to save pending work before installation. Automatic checking at startup is optional. The welcome screen opens only update settings without opening a database.</p>
+<p>Keep an independent database backup before installing a new release.</p>
+<p><a href="https://github.com/OldschoolNetwork/open-hau/releases">Releases</a></p>
+<p><a href="index.html">User guide</a></p></article></main>
 <footer><p>Oldschool Network · <a href="https://t.me/OldschoolNetwork">Telegram</a> · <a href="https://github.com/OldschoolNetwork/open-hau">GitHub</a></p></footer><details class="on-display-settings on-display-fallback"><summary>Display settings</summary><iframe id="onDisplayControls" title="Display mode: Full, Lite, Super Lite" src="../../display-controls.php?page=openhau/wiki/installation.html" width="100%" height="84" frameborder="0" scrolling="no"><a href="../../display.php?page=openhau/wiki/installation.html">Full / Lite / Super Lite</a></iframe></details><script src="../../mobile-navigation.js?v=20261019-1"></script><script src="../../site-common.js?v=build-0007"></script></body></html>

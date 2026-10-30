@@ -1,28 +1,27 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Monthly workflow — OpenHaU documentation 26.1 Preview"><title>Monthly workflow · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0013"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
-<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html">OpenHaU</a><a href="index.html">Wiki</a><a href="../index.html#downloads">Download</a><a href="https://github.com/OldschoolNetwork/open-hau">GitHub ↗</a></nav></header>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Monthly workflow and reports — OpenHaU documentation 26.2.4"><title>Monthly workflow and reports · OpenHaU Wiki</title><link rel="icon" type="image/png" href="../assets/icon.png"><link rel="stylesheet" href="../openhau.css?v=build-0014"><link rel="stylesheet" href="../../mobile-navigation.css?v=20261019-1"><link rel="stylesheet" href="../../site-common.css?v=build-0007"><link rel="stylesheet" href="../../site-mode.css?v=server-build-0002"><script src="../../site-mode.js?v=server-build-0002"></script></head>
+<body><a class="skip-link" href="#main">Skip to content</a><header class="navbar"><a class="on-brand" href="../../index.html"><img src="../../img/on-logo.png" width="152" height="40" alt="Oldschool Network"></a><nav class="nav-links" aria-label="Navigation"><a href="../index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3z"/></svg>OpenHaU</a><a href="index.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 6C8 3 4 3 2 4v15c4-1 7-1 10 2 3-3 6-3 10-2V4c-2-1-6-1-10 2v15"/></svg>Wiki</a><a href="../index.html#downloads"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>Download</a><a href="https://github.com/OldschoolNetwork/open-hau"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18"/></svg>GitHub</a></nav></header>
 <main id="main" class="wiki-shell"><aside class="wiki-nav"><h2>OpenHaU Wiki</h2><nav aria-label="Guide sections"><a href="index.html">User guide</a>
 <a href="installation.html">Installation</a>
 <a href="setup.html">Organisation and accounts</a>
 <a href="monthly-work.html" aria-current="page">Monthly workflow</a>
 <a href="receipts.html">Receipts and PDF</a>
 <a href="data-and-backups.html">Data and backups</a>
-<a href="troubleshooting.html">Troubleshooting</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.1 Preview · User guide · English</p><h1>Monthly workflow</h1>
-<h2>Select the period</h2>
-<p>Verify the selected month, opening balances, connected services and applicable tariffs. Complete earlier months first: balances require saved historical charges.</p>
-<h2>Enter readings and quantities</h2>
-<p>Use the readings workspace for previous/current meter values or explicit quantities. Zero is a value, not missing information. Apply the edited readings, then save.</p>
-<p>Typing into the grid does not commit the edits. Saving asks for pending readings to be applied first. Finish the entry before switching periods or closing.</p>
-<p>Missing readings or tariffs produce warnings. Do not interpret an incomplete calculation as zero debt.</p>
-<h2>Record payments and adjustments</h2>
-<p>Choose the account, amount, payment date and entry date. The payment date determines the accounting month; entry date records when it was entered. Add a reference to the supporting document.</p>
-<p>An adjustment belongs to its selected period. A positive adjustment increases charges; a negative one reduces them. Record a reason and retain the supporting document separately. Adjustments do not replace tariff history.</p>
-<h2>Reconcile</h2>
-<p>Review charges, payments, balances and warnings. Closing balance equals opening balance + charges including adjustments − payments. A negative balance is an advance.</p>
-<p>For the first October 2026 demonstration account, charges are 1047.44 MDL. An October payment of 10.00 MDL with no opening debt leaves 1037.44 MDL. The second sample intentionally lacks readings; complete them before closing.</p>
-<p>CSV exports a monthly summary. Detailed turnover/balance reports are not available in 26.1.</p>
-<h2>Receipts and closing</h2>
-<p>Inspect receipts before printing. Incomplete calculations are marked as drafts. Close the month, then save. Closing preserves charge snapshots and is blocked when required data or historical months are missing.</p>
-<p>To correct an earlier closed month, reopen later closed months in reverse order first. Export a full backup before corrections, verify the result and close periods sequentially again. Reopening imported legacy history may recalculate it under the current application's rules; retain the original migration archive.</p>
-<p><a href="receipts.html">Receipts and PDF</a> · <a href="index.html">User guide</a></p><p class="doc-meta">Source: docs/guide/monthly-work.md.</p></article></main>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="api.html">Local API</a></nav><p><a href="https://github.com/OldschoolNetwork/open-hau/blob/main/docs/data-format.md">Data format ↗</a></p></aside><article class="wiki-article"><p class="doc-meta">26.2.4 · User guide · English</p><h1>Monthly workflow and reports</h1>
+<h2>Prepare the period</h2>
+<p>Select the billing period from the period-change command. Review the wizard before completing any recalculation or change to saved charges.</p>
+<h2>Readings and shared meters</h2>
+<p>Enter dated individual and shared meter readings. Keep previous and current readings distinct. An absent reading is missing information, not zero usage.</p>
+<p>Connect individual meters and participating accounts to their shared meter. Differences are allocated equally across eligible personal accounts. Exclusions apply to the selected month; excluded consumers remain part of the subtraction from shared consumption but do not receive a difference charge.</p>
+<h2>Waste collection</h2>
+<p>Set the number of chargeable residents for each account in the selected month. The charge uses this monthly count and the applicable per-person tariff.</p>
+<h2>Payments</h2>
+<p>Open Batch payment entry to add or fill account rows and enter amounts. Enter moves to the next amount; Shift-Enter moves to the previous one. The comment and action buttons stay below the scrolling table.</p>
+<p>Payment details show the allocation by service. Automatic allocation uses the service debt proportions. A manual balancing adjustment can be assigned to the configured building-maintenance service. Applied historical documents remain available for inspection without silently recalculating their imported allocation.</p>
+<h2>Reports</h2>
+<p>Choose a report, select the date range and configure filters, grouping and sort order. Generate it before printing or exporting. Account and service balance reports, payment reports and registers offer the relevant PDF and spreadsheet exports. Printing and saving a PDF are separate actions.</p>
+<h2>Finish the month</h2>
+<p>Review missing readings, tariffs, adjustments and allocations. Prepare receipts, save the database and make an independent backup. Closing a period preserves its calculated history; reopening or rolling back requires deliberate review.</p>
+<p><a href="receipts.html">Receipts</a></p></article></main>
 <footer><p>Oldschool Network · <a href="https://t.me/OldschoolNetwork">Telegram</a> · <a href="https://github.com/OldschoolNetwork/open-hau">GitHub</a></p></footer><details class="on-display-settings on-display-fallback"><summary>Display settings</summary><iframe id="onDisplayControls" title="Display mode: Full, Lite, Super Lite" src="../../display-controls.php?page=openhau/wiki/monthly-work.html" width="100%" height="84" frameborder="0" scrolling="no"><a href="../../display.php?page=openhau/wiki/monthly-work.html">Full / Lite / Super Lite</a></iframe></details><script src="../../mobile-navigation.js?v=20261019-1"></script><script src="../../site-common.js?v=build-0007"></script></body></html>

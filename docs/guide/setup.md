@@ -1,47 +1,33 @@
-# Organisation, accounts, services and tariffs
+# Organisation and personal accounts
 
 ## Organisation
 
-Edit the organisation in settings: name, association code, CF/IDNO, address, bank,
-IBAN and notes. Verify them in a receipt preview. Choose the organisation logo in
-the receipt workspace.
+Enter the current organisation name, association code, CF/IDNO, address, bank
+and IBAN in Settings → Organisation. Verify them in the receipt preview.
+The code is not repeated above the organisation name when both values match.
 
-## Personal accounts
+## Accounts
 
-Create an account or edit an existing one. Available fields include:
+Use Personal accounts to view, find and edit accounts. Account documents record
+opening, closing, changes to residents and changes to connected services.
+Keep the original account number when migrating historical records.
 
-- Account number and payer.
-- Address and comma-separated apartment numbers; one account can cover several apartments.
-- Total area, registered residents and a separate person count for waste charges.
-- Opening period and opening balance in MDL; a negative balance means an advance.
-- Active status, connected services and notes.
+The account card includes its holder, property, residents, services, meters,
+additional objects and characteristics. Use dated documents for historical changes.
+Set the waste-charge person count for each month rather than replacing past months.
 
-The opening balance is an initial debt or advance, not a current payment.
-An account does not participate before its opening period. Changes affecting
-closed history require reopening the relevant periods.
+![Windows workspace](../screenshots/windows-workspace.png)
 
-## Services
+## Services and tariffs
 
-Each service has Russian/Romanian names, a unit and a calculation method:
+Each service has a calculation basis, unit, supplier, connected meter types and
+tariff history. Give each tariff an effective date. A transition-month price can
+be entered manually; the following month uses the next applicable tariff.
 
-- Metered: current reading minus previous reading.
-- Per person: 26.1 uses the account's waste-charge person field, not its registered resident count.
-- Area: total account area multiplied by the tariff.
-- Fixed: the service's default quantity.
-- Manual: a quantity entered for the selected month.
+## Table navigation
 
-The service must be active and connected to the account. An explicit monthly
-quantity override takes precedence over the standard calculation method.
+Click a column heading to sort ascending, then descending. A third click restores
+the original order. Shift-click adds a secondary sort column. Reset sorting
+clears the active sorting. Search and filters narrow the displayed records.
 
-## Tariffs and rounding
-
-Tariffs take effect on the first day of a month. Add a dated record instead of
-overwriting an old tariff. The latest applicable record at month start is used.
-Splitting a month between tariffs is not supported in the preview.
-
-Each quantity × tariff line is rounded to two decimal places, then rounded lines
-and adjustments are summed. Settings offer half up and half even rounding.
-Confirm the intended method with the accountant and verify control examples
-before starting a real ledger.
-
-[Monthly workflow](monthly-work.md) · [User guide](index.md)
+[Monthly workflow](monthly-work.md)
