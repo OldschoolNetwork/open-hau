@@ -2629,7 +2629,7 @@ dependencies = [
 
 [[package]]
 name = "openhau"
-version = "26.2.3"
+version = "26.2.4"
 dependencies = [
  "aes-gcm",
  "argon2",

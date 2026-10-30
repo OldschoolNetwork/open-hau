@@ -35,4 +35,11 @@
  <strong>{t('Сумма к распределению: ','Suma de repartizat: ')}{amount} · {t('По услугам: ','Pe servicii: ')}{shares.length?total:'—'}</strong>
  <footer>{#if !locked}<button class="button" onclick={apply}><Check size={16}/>OK</button>{/if}<button class="button secondary" onclick={onclose}><X size={16}/>{t('Закрыть','Închide')}</button></footer>
 </div>
-<style>.payment-details{display:flex;flex-direction:column;gap:14px;padding:16px;min-width:0}.field{display:grid;grid-template-columns:160px minmax(0,1fr);align-items:center;gap:12px}.field input{min-width:0;width:100%;box-sizing:border-box}.check{display:flex;gap:8px;align-items:center}.commands,footer{display:flex;gap:8px}footer{justify-content:flex-end;margin-top:auto}table{width:100%;border-collapse:collapse}th,td{padding:7px;text-align:left}th{background:#80808020}td:last-child{text-align:right;font-variant-numeric:tabular-nums}td input{width:120px;box-sizing:border-box;text-align:right}.table-wrap{max-height:45vh;overflow:auto}</style>
+
+
+
+
+<style>
+.payment-details{display:flex;flex-direction:column;gap:14px;padding:16px;min-width:0}.field{display:grid;grid-template-columns:160px minmax(0,1fr);align-items:center;gap:12px}.field input{min-width:0;width:100%;box-sizing:border-box}.check{display:flex;gap:8px;align-items:center}.commands,footer{display:flex;gap:8px}footer{justify-content:flex-end;margin-top:auto}table{width:100%;border-collapse:collapse}th,td{padding:7px;text-align:left}th{background:#80808020}td:last-child{text-align:right;font-variant-numeric:tabular-nums}td input{width:120px;box-sizing:border-box;text-align:right}.table-wrap{max-height:45vh;overflow:auto}
+:global(.desktop-window-content:has(>.payment-details)){overflow:hidden;display:flex;flex-direction:column}.payment-details{height:100%;flex:1;min-height:0;box-sizing:border-box;background:var(--bg)}.payment-details>.table-wrap{flex:1;min-height:70px;max-height:none;overflow:auto!important;background:var(--surface);border:1px solid var(--border)}.payment-details>footer{flex:none;padding:10px;background:var(--surface);border:1px solid var(--border)}.payment-details>.field,.payment-details>.check,.payment-details>.commands{flex:none}.commands{padding:8px;background:var(--surface);border:1px solid var(--border)}
+</style>

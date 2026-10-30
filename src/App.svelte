@@ -1,4 +1,5 @@
 <script lang="ts">
+ import {sortableTables} from "./sortable-tables";
  import ReceiptContentMenu from "./ReceiptContentMenu.svelte";
  import TranslationEditor from "./TranslationEditor.svelte";
  import {languageOverrides} from "./localization";
@@ -1853,7 +1854,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
 
     <DesktopMenu status={dirty||pendingEditor?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")} unsaved={dirty||!!pendingEditor} menus={desktopMenus} language={lang} oncommand={desktopCommand} onshortcut={createShortcut}/>
   </header>{/if}
-  <main class="desktop-area" bind:this={desktopArea}>
+  <main class="desktop-area" bind:this={desktopArea} use:sortableTables>
     {#if showDatabaseHome}<DatabaseHome onupdates={()=>welcomeUpdates=true} onmanual={()=>welcomeManual=true} {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={openExistingDatabase} onauto={configureAutoDatabase} onremove={removeDatabaseFromList}/>{:else}
     {#if !desktopViews.some(v=>v.visible&&!v.minimized)}<div class="desktop-empty"><img src="/brand/logo-full.svg" alt="OpenHaU OPEN"/></div>{/if}
     <DesktopShortcuts language={lang} menus={desktopMenus} oncommand={desktopCommand}/>

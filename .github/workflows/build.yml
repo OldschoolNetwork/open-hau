@@ -29,7 +29,7 @@ jobs:
             name: windows-x64
             args: ''
           - os: macos-latest
-            name: macos-universal-unsigned
+            name: macos-universal-adhoc
             args: '--target universal-apple-darwin --config src-tauri/tauri.macos.conf.json'
     runs-on: ${{ matrix.os }}
     steps:
@@ -48,6 +48,17 @@ jobs:
       - run: npm run tauri build -- ${{ matrix.args }} --config src-tauri/tauri.ci.conf.json
         env:
           MACOSX_DEPLOYMENT_TARGET: '12.6'
+      - name: Verify macOS bundle signature and architectures
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          app="src-tauri/target/universal-apple-darwin/release/bundle/macos/OpenHaU.app"
+          test -x "$app/Contents/MacOS/openhau"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          architectures=$(lipo -archs "$app/Contents/MacOS/openhau")
+          echo "$architectures"
+          [[ "$architectures" == *x86_64* && "$architectures" == *arm64* ]]
+          /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist"
       - uses: actions/upload-artifact@v4
         with:
           name: OpenHaU-${{ matrix.name }}

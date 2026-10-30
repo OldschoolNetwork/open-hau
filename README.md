@@ -9,7 +9,7 @@ reports without a mandatory account or cloud connection.
 
 ## Download
 
-[OpenHaU 26.2.3 for Windows x64](https://github.com/OldschoolNetwork/open-hau/releases/latest)
+[OpenHaU 26.2.4 for Windows x64](https://github.com/OldschoolNetwork/open-hau/releases/latest)
 is available as an installer or a standalone executable. Microsoft WebView2 is
 required; the installer can obtain it when missing. Installation is per user,
 under the user's application directory, without administrator privileges.

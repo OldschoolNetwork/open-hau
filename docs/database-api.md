@@ -165,3 +165,15 @@ Setting `services` to `[]` removes the readings table. Optional columns and
 sections are documented in the data-format reference. Receipt generation through
 `report.generate` uses the same stored choices as desktop preview, PDF and print.
 These settings never remove charge lines or alter accounting totals.
+
+## Sorting query results
+
+`database.query` accepts an optional `sort` array before pagination. Each entry
+contains a field name (or dotted object path) and `direction`, either `asc` or
+`desc`. The first field has the highest priority. Up to eight fields are accepted.
+Omit `sort` or pass an empty array to return the stored order. Sorting a query
+does not rewrite the database.
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"database.query","params":{"path":"example.odb","pointer":"/accounts","sort":[{"field":"number","direction":"asc"}],"offset":0,"limit":100}}
+```
