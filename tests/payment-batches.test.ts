@@ -56,6 +56,48 @@ test('bank-linked receipts block unposting and imported headers remain immutable
  for(const pay of archived.payments){delete pay.allocation_basis;delete pay.allocation_balancing_service_id;}
  for(const row of header.rows)row.historical_shares=archived.service_accounting.payments.filter(s=>s.payment_id===row.payment_id).map(({service_id,amount})=>({service_id,amount}));
  header.rows.push({id:'legacy-correction',account_id:b.rows[0].account_id,amount:'-0.12',manual_maintenance:null,payment_id:null,historical_shares:[{service_id:'maintenance',amount:'-0.12'}]});
- assert(projectSchema.safeParse(archived).success);assert.throws(()=>unpostPaymentBatch(archived,b.id));assert.throws(()=>savePaymentBatch(archived,header,true));
+ assert(projectSchema.safeParse(archived).success);assert.equal(unpostPaymentBatch(archived,b.id).payment_batches[0].state,'draft');assert.throws(()=>savePaymentBatch(archived,header,true));
  header.rows[0].historical_shares!.find(s=>s.service_id==='water')!.amount='29.00';header.rows[0].historical_shares!.find(s=>s.service_id==='maintenance')!.amount='21.00';assert(!projectSchema.safeParse(archived).success);
+});
+
+function importedFixture(){
+ const {p,b}=fixture(),posted=savePaymentBatch(p,b,true),batch=posted.payment_batches[0];batch.imported=true;batch.balancing_service_id='';
+ for(const row of batch.rows)row.historical_shares=posted.service_accounting.payments.filter(s=>s.payment_id===row.payment_id).map(({service_id,amount})=>({service_id,amount}));
+ return {posted,batch};
+}
+test('imported payments can be unposted and reposted with exact original allocations',()=>{
+ const {posted,batch}=importedFixture(),before=JSON.stringify(posted),draft=unpostPaymentBatch(posted,batch.id);
+ assert.equal(draft.payments.length,0);assert.equal(draft.service_accounting.payments.length,0);
+ assert.equal(JSON.stringify(posted),before);assert.equal(draft.payment_batches[0].source_snapshot,JSON.stringify(batch));
+ const again=savePaymentBatch(draft,draft.payment_batches[0],true);
+ assert.equal(again.payments.length,posted.payments.length);
+ assert.deepEqual(again.payment_batches[0].rows.map(r=>r.historical_shares),batch.rows.map(r=>r.historical_shares));
+ assert.equal(again.payments.reduce((s,r)=>s+Number(r.amount),0),100);
+ assert.throws(()=>savePaymentBatch(again,again.payment_batches[0],true));
+});
+test('changing an imported amount adjusts only the selected maintenance service and survives reopening',()=>{
+ const {posted,batch}=importedFixture(),draft=unpostPaymentBatch(posted,batch.id),edit=structuredClone(draft.payment_batches[0]);
+ edit.balancing_service_id='maintenance';edit.rows[0].amount='60.00';
+ const saved=savePaymentBatch(draft,edit),reopened=projectSchema.parse(JSON.parse(JSON.stringify(saved))),applied=savePaymentBatch(reopened,reopened.payment_batches[0],true);
+ assert.deepEqual(applied.payment_batches[0].rows[0].historical_shares!.filter(s=>s.amount!=='0.00'),[{service_id:'water',amount:'30.00'},{service_id:'maintenance',amount:'30.00'}]);
+ assert.deepEqual(applied.payment_batches[0].rows[1].historical_shares,batch.rows[1].historical_shares);
+ assert.equal(applied.payments.length,2);assert.equal(applied.payments.reduce((s,r)=>s+Number(r.amount),0),110);
+ const twice=unpostPaymentBatch(applied,batch.id);assert.equal(twice.payment_batches[0].source_snapshot,JSON.stringify(batch));
+});
+test('import corrections retain signed compensation and reject structural or ambiguous edits atomically',()=>{
+ const {posted,batch}=importedFixture();batch.rows.push({id:'compensation',account_id:batch.rows[0].account_id,amount:'-0.12',manual_maintenance:null,payment_id:null,historical_shares:[{service_id:'maintenance',amount:'-0.12'}]});
+ const draft=unpostPaymentBatch(posted,batch.id),before=JSON.stringify(draft),edit=structuredClone(draft.payment_batches[0]);edit.rows[0].amount='60.00';edit.balancing_service_id='';
+ assert.throws(()=>savePaymentBatch(draft,edit,true));assert.equal(JSON.stringify(draft),before);
+ edit.balancing_service_id='maintenance';const applied=savePaymentBatch(draft,edit,true);
+ assert.deepEqual(applied.payment_batches[0].rows[2],batch.rows[2]);assert.equal(applied.payments.length,2);
+ const changed=structuredClone(edit);changed.rows[0].account_id=changed.rows[1].account_id;assert.throws(()=>savePaymentBatch(draft,changed,true));
+ changed.rows[0]=structuredClone(edit.rows[0]);changed.rows[2].amount='-0.13';assert.throws(()=>savePaymentBatch(draft,changed,true));
+ const closed=structuredClone(posted);closed.closed_periods.push('2026-10');assert.throws(()=>unpostPaymentBatch(closed,batch.id));
+});
+test('zeroing an imported payment withdraws only its receipt without duplicate service movements',()=>{
+ const {posted,batch}=importedFixture(),draft=unpostPaymentBatch(posted,batch.id),edit=structuredClone(draft.payment_batches[0]);
+ edit.rows[0].amount='0.00';const next=savePaymentBatch(draft,edit,true);
+ assert.equal(next.payments.length,1);assert.equal(next.payment_batches[0].rows[0].payment_id,null);
+ assert(next.payment_batches[0].rows[0].historical_shares!.every(s=>s.amount==='0.00'));
+ assert(next.service_accounting.payments.every(s=>s.payment_id===next.payment_batches[0].rows[1].payment_id));
 });
