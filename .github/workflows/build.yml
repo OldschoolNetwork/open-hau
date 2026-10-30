@@ -59,10 +59,14 @@ jobs:
           echo "$architectures"
           [[ "$architectures" == *x86_64* && "$architectures" == *arm64* ]]
           /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist"
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
+          COPYFILE_DISABLE=1 tar -czf "$(dirname "$app")/OpenHaU_${version}.app.tar.gz" -C "$(dirname "$app")" OpenHaU.app
       - uses: actions/upload-artifact@v4
         with:
           name: OpenHaU-${{ matrix.name }}
           path: |
             src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/openhau.exe
             src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app.tar.gz
           if-no-files-found: error

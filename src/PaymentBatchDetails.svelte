@@ -12,14 +12,14 @@
  const original=request.batch.rows.find(r=>r.id===request.rowId)!;
  let amount=original.amount,automatic=original.source_automatic??original.manual_maintenance===null,manual=original.manual_maintenance||'',shares:PaymentShare[]=[],error='';
  const baseline=JSON.stringify({amount,automatic,manual});
- $:t=translator(project.settings.language,$languageOverrides);$:locked=request.batch.state==='applied';
+ $:t=translator(project.settings.language,$languageOverrides);$:locked=request.batch.state==='applied'||!!request.batch.imported&&original.amount.startsWith('-');
  $:account=project.accounts.find(a=>a.id===original.account_id);
  $:total=shares.reduce((sum,row)=>sum.plus(row.amount),D(0)).toFixed(2);
  $:reportEditorDirty(editorId,!locked&&JSON.stringify({amount,automatic,manual})!==baseline);
  onDestroy(()=>reportEditorDirty(editorId,false));
- function calculate(){try{shares=request.batch.state==='applied'?(original.historical_shares||project.service_accounting.payments.filter(s=>s.payment_id===original.payment_id).map(({service_id,amount})=>({service_id,amount}))):previewBatchRow(project,request.batch,{...original,amount,manual_maintenance:automatic?null:manual});error='';return true;}catch(e){shares=[];error=e instanceof Error?e.message:String(e);return false;}}
+ function calculate(){try{shares=locked?(original.historical_shares||project.service_accounting.payments.filter(s=>s.payment_id===original.payment_id).map(({service_id,amount})=>({service_id,amount}))):previewBatchRow(project,request.batch,{...original,amount,manual_maintenance:automatic?null:manual});error='';return true;}catch(e){shares=[];error=e instanceof Error?e.message:String(e);return false;}}
  function toggle(){if(automatic){if(!calculate())return;manual=shares.find(s=>s.service_id===request.batch.balancing_service_id)?.amount||'0.00';automatic=false;}else{automatic=true;manual='';}calculate();}
- function apply(){if(!calculate())return;try{request.onapply(amount,automatic?null:manual);reportEditorDirty(editorId,false);onclose();}catch(e){error=e instanceof Error?e.message:String(e);}}
+ function apply(){if(!calculate())return;try{request.onapply(amount,request.batch.imported?null:automatic?null:manual);reportEditorDirty(editorId,false);onclose();}catch(e){error=e instanceof Error?e.message:String(e);}}
  calculate();
 </script>
 <div class="payment-details">
@@ -27,11 +27,11 @@
  <label class="field"><span>{t('Лицевой счёт','Cont personal')}</span><input readonly value={(account?.number||'')+', '+(account?.payer_name||'')}/></label>
  <div class="field"><span>{t('Адрес','Adresă')}</span><span>{account?.address||'—'}</span></div>
  <label class="field"><span>{t('Сумма оплаты','Suma plății')}</span><input disabled={locked} bind:value={amount} oninput={()=>shares=[]}/></label>
- <label class="check"><input type="checkbox" disabled={locked} checked={automatic} onchange={toggle}/>{t('Распределять оплату автоматически','Repartizează plata automat')}</label>
+ <label class="check"><input type="checkbox" disabled={locked||!!request.batch.imported} checked={automatic} onchange={toggle}/>{t('Распределять оплату автоматически','Repartizează plata automat')}</label>
  <div class="field"><span>{t('Способ распределения','Metodă de repartizare')}</span><span>{request.batch.imported?t('Сохранённое распределение','Repartizare păstrată'):automatic?t('Пропорционально долгу по услугам','Proporțional datoriei pe servicii'):t('Обслуживание вручную, остальные услуги — по долгу','Deservire manuală, celelalte servicii — după datorie')}</span></div>
  <div class="commands"><button class="button secondary" disabled={locked} onclick={calculate}><RefreshCw size={16}/>{t('Распределить','Repartizează')}</button></div>
- <div class="table-wrap"><table><thead><tr><th>№</th><th>{t('Услуга','Serviciu')}</th><th>{t('Оплата услуг','Plată servicii')}</th></tr></thead><tbody>{#each shares as row,i}<tr><td>{i+1}</td><td>{project.services.find(s=>s.id===row.service_id)?.name[project.settings.language]||'—'}</td><td>{#if !locked&&!automatic&&row.service_id===request.batch.balancing_service_id}<input aria-label={t('Оплата обслуживания дома','Plata deservirii blocului')} bind:value={manual}/>{:else}{row.amount}{/if}</td></tr>{/each}</tbody></table></div>
- {#if !automatic&&!shares.some(s=>s.service_id===request.batch.balancing_service_id)&&!locked}<label class="field">{t('Оплата обслуживания дома','Plata deservirii blocului')}<input bind:value={manual}/></label>{/if}
+ <div class="table-wrap"><table><thead><tr><th>№</th><th>{t('Услуга','Serviciu')}</th><th>{t('Оплата услуг','Plată servicii')}</th></tr></thead><tbody>{#each shares as row,i}<tr><td>{i+1}</td><td>{project.services.find(s=>s.id===row.service_id)?.name[project.settings.language]||'—'}</td><td>{#if !locked&&!request.batch.imported&&!automatic&&row.service_id===request.batch.balancing_service_id}<input aria-label={t('Оплата обслуживания дома','Plata deservirii blocului')} bind:value={manual}/>{:else}{row.amount}{/if}</td></tr>{/each}</tbody></table></div>
+ {#if !request.batch.imported&&!automatic&&!shares.some(s=>s.service_id===request.batch.balancing_service_id)&&!locked}<label class="field">{t('Оплата обслуживания дома','Plata deservirii blocului')}<input bind:value={manual}/></label>{/if}
  <strong>{t('Сумма к распределению: ','Suma de repartizat: ')}{amount} · {t('По услугам: ','Pe servicii: ')}{shares.length?total:'—'}</strong>
  <footer>{#if !locked}<button class="button" onclick={apply}><Check size={16}/>OK</button>{/if}<button class="button secondary" onclick={onclose}><X size={16}/>{t('Закрыть','Închide')}</button></footer>
 </div>

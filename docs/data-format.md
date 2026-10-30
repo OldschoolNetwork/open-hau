@@ -171,7 +171,7 @@ account, service and month, separately from manual adjustments. It prevents
 recalculation and month closing from allocating the same benefit twice.
 See [benefits and recalculation](administration.md) for the supported rules.
 
-Imported legacy journal entries are explicitly `imported: true` and read-only.
+Imported legacy journal entries are explicitly `imported: true`. Most legacy journals remain read-only; group payment documents support guarded unposting and editing in open periods. Their optional `source_snapshot` retains the original document as JSON.
 They preserve source document identity and status without reposting transactions.
 Importing journal headers does not recreate missing source calculation rules or
 replace preserved historical financial sections.

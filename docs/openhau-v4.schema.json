@@ -4898,6 +4898,10 @@
             "maxLength": 100,
             "pattern": "^[A-Za-z0-9_-]+$"
           },
+          "source_snapshot": {
+            "type": "string",
+            "maxLength": 2000000
+          },
           "imported": {
             "type": "boolean"
           },

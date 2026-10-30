@@ -133,6 +133,12 @@ merge/import currently require an unencrypted working copy.
 Both operations reject an existing output and check that the input did not change.
 Import reports may contain private data. Keep them outside public repositories.
 
+To edit an imported group payment in an open period, use `database.apply` with
+`payment.unpost`, then `payment.save` for its edited draft. Set `post: true` to
+post it again. The original allocations and `source_snapshot` are retained;
+changed amounts use the selected maintenance service for their difference.
+The same closed-period and linked-transaction checks apply as in the interface.
+
 ## Extending the API
 
 `translations.list` accepts `path`, `locale` and optional `content` (default

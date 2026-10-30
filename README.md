@@ -9,7 +9,7 @@ reports without a mandatory account or cloud connection.
 
 ## Download
 
-[OpenHaU 26.2.4 for Windows x64](https://github.com/OldschoolNetwork/open-hau/releases/latest)
+[OpenHaU 26.2.5 for Windows x64](https://github.com/OldschoolNetwork/open-hau/releases/latest)
 is available as an installer or a standalone executable. Microsoft WebView2 is
 required; the installer can obtain it when missing. Installation is per user,
 under the user's application directory, without administrator privileges.
@@ -17,9 +17,7 @@ under the user's application directory, without administrator privileges.
 The standalone executable still keeps a local database catalog; it is not a
 portable-data mode. Use **Add existing** to open an ODB file directly.
 
-The [26.1 macOS preview](https://github.com/OldschoolNetwork/open-hau/releases/tag/v26.1.0-preview.1)
-remains available for Intel and Apple Silicon, targeting Monterey 12.6 or later.
-A macOS 26.2 package is not included in the Windows release.
+The [universal macOS DMG](https://github.com/OldschoolNetwork/open-hau/releases/download/v26.2.5/OpenHaU_26.2.5_universal.dmg) includes Intel and Apple Silicon support for Monterey 12.6 or later. Drag OpenHaU to Applications. The locally signed app is not notarized; macOS may request first-launch approval.
 
 ## Features
 
