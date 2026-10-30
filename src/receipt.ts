@@ -1,4 +1,5 @@
 import {receiptReadingsMarkup} from './receipt-readings';
+import {distinctOrganizationCode} from './receipt-identity';
 import {tintLogo} from "./logo";
 import {canvasBackground,canvasCSS} from "./receipt-canvas";
 import {originalReceipt,originalReceiptCSS} from "./original-receipt";
@@ -54,6 +55,7 @@ export function receipt(p: Project, a: Account, period: string) {
       cents
     );
   };
+  const organizationCode = distinctOrganizationCode(o.name, o.association_code);
   const due = paymentDeadline(p,period);
   const incomplete = s.warnings.length || s.gaps.length;
   const meterTable=receiptReadingsMarkup(p,a.id,period);
@@ -72,7 +74,7 @@ export function receipt(p: Project, a: Account, period: string) {
   ${p.demo ? `<p class="r-demo">DEMO · ${esc(tr("Вымышленные данные", "Date fictive"))}</p>` : ""}
   ${incomplete ? `<p class="r-warning">${esc(tr("ЧЕРНОВИК: неполные показания, тарифы или история. Итог не окончательный.", "CIORNĂ: date incomplete. Totalul nu este final."))}</p>` : ""}
   ${legacyNotice}
-  <div class="r-top"><div><p class="r-caption">${esc(o.association_code)}</p><h1>${esc(o.name)}</h1><p>${esc(text(settings.receipt_title))}</p></div>${content.logo && settings.organization_logo ? `<img class="r-logo" alt="Logo" src="${esc(tintLogo(settings.organization_logo,settings.logo_tint))}"/>` : ""}<div><p class="r-caption">${esc(tr("Расчётный период", "Perioada de calcul"))}</p><h2>${esc(displayPeriod(period,p,lang))}</h2>${content.deadline?`<p>${esc(tr("Оплатить до", "Achitați până la"))} ${esc(displayDate(due,p,lang))}</p>`:''}</div></div>
+  <div class="r-top"><div>${organizationCode ? `<p class="r-caption">${esc(organizationCode)}</p>` : ""}<h1>${esc(o.name)}</h1><p>${esc(text(settings.receipt_title))}</p></div>${content.logo && settings.organization_logo ? `<img class="r-logo" alt="Logo" src="${esc(tintLogo(settings.organization_logo,settings.logo_tint))}"/>` : ""}<div><p class="r-caption">${esc(tr("Расчётный период", "Perioada de calcul"))}</p><h2>${esc(displayPeriod(period,p,lang))}</h2>${content.deadline?`<p>${esc(tr("Оплатить до", "Achitați până la"))} ${esc(displayDate(due,p,lang))}</p>`:''}</div></div>
   <div class="r-meta"><div><p class="r-caption">${esc(tr("Плательщик", "Plătitor"))}</p><strong>${esc(a.payer_name)}</strong><p>${content.address?esc(a.address):''}${content.address&&a.apartments.length ? ", " + esc(tr("кв.", "ap.")) + " " + esc(a.apartments.join(", ")) : ""}</p></div><div><p class="r-caption">${esc(tr("Лицевой счёт", "Cont personal"))}</p><p class="r-number">${esc(a.number)}</p></div></div>
   <div class="r-calculations"><section class="r-charges"><table><thead><tr><th>${esc(tr("Услуга", "Serviciu"))}</th><th class="num">${esc(tr("Объём", "Volum"))}</th><th>${esc(tr("Ед.", "Unit."))}</th><th class="num">${esc(tr("Тариф", "Tarif"))}</th><th class="num">${esc(tr("Сумма", "Sumă"))}, MDL</th></tr></thead><tbody>${s.lines.map((l) => `<tr><td>${esc(text(l.name))}</td><td class="num">${esc(l.quantity)}</td><td>${esc(unitLabel(l.unit, lang))}</td><td class="num">${esc(l.rate.replace(".", lang === "en" ? "." : ","))}</td><td class="num">${esc(n(l.amount))}</td></tr>`).join("")}</tbody></table>
   </section>${meterTable}

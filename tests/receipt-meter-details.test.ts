@@ -33,3 +33,14 @@ test('missing current readings remain missing, never zero or a later reading',()
  assert(rows.every(r=>r.current===null&&r.reading_date===null&&r.consumption===null&&r.warning==='missing'));
  assert(rows.every(r=>r.previous_date==='2026-09-29'));
 });
+
+test('receipt designs omit a repeated organization code but retain a distinct code',()=>{
+ const p=fixture();p.organization.name='Sample Association';
+ for(const design of receiptDesigns){
+  p.settings.receipt_design=design;p.organization.association_code='  Sample   Association  ';
+  const repeated=receiptDocument(p,[p.accounts[0]],'2026-10');
+  assert(!repeated.includes('Sample   Association'),design+': repeated code');
+  p.organization.association_code='SAMPLE-0191';
+  assert(receiptDocument(p,[p.accounts[0]],'2026-10').includes('SAMPLE-0191'),design+': distinct code');
+ }
+});
