@@ -208,7 +208,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
   let registerFilterRequests:Record<string,RegisterFilterRequest>={};
   let reportSettingsRequests:Record<string,ReportSettingsRequest>={};
   let reportLookupRequests:Record<string,ReportLookupRequest>={};
-  let welcomeManual=false;
+  let welcomeManual=false,welcomeUpdates=false;
   let workspaceLocked=false;
   let queuedEditorSave=false;
   let editorDirties:Record<string,boolean>={};
@@ -333,6 +333,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
   }
   function desktopCommand(action:string){
 
+    if(action==='updates'){openDesktop('settings');settingsCategory='updates';return;}
     if(action==='temporary-lock'){void lockCurrentDatabase();return;}
     if(action.startsWith("file:")){if(action==="file:save")void save();else if(action==="file:export")void exportJson();else if(action==="file:open")void openExistingDatabase();else if(action==="file:save-as")void saveDatabaseAs();else if(action==="file:import")void importDatabase();else if(action==="file:exit"){if(native)void getCurrentWindow().close().catch(fail);else void requestDatabaseHome();}else void requestDatabaseHome();return;}
     if(action.startsWith("edit:")){void editText(action.slice(5));return;}
@@ -1853,7 +1854,7 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
     <DesktopMenu status={dirty||pendingEditor?t("Есть изменения","Modificări nesalvate"):t("Все изменения сохранены","Toate modificările salvate")} unsaved={dirty||!!pendingEditor} menus={desktopMenus} language={lang} oncommand={desktopCommand} onshortcut={createShortcut}/>
   </header>{/if}
   <main class="desktop-area" bind:this={desktopArea}>
-    {#if showDatabaseHome}<DatabaseHome onmanual={()=>welcomeManual=true} {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={openExistingDatabase} onauto={configureAutoDatabase} onremove={removeDatabaseFromList}/>{:else}
+    {#if showDatabaseHome}<DatabaseHome onupdates={()=>welcomeUpdates=true} onmanual={()=>welcomeManual=true} {catalog} language={lang} active={activeDatabaseId} onopen={openDatabase} onnew={newDatabase} onimport={openExistingDatabase} onauto={configureAutoDatabase} onremove={removeDatabaseFromList}/>{:else}
     {#if !desktopViews.some(v=>v.visible&&!v.minimized)}<div class="desktop-empty"><img src="/brand/logo-full.svg" alt="OpenHaU OPEN"/></div>{/if}
     <DesktopShortcuts language={lang} menus={desktopMenus} oncommand={desktopCommand}/>
     <DesktopWidgets language={lang} databaseId={activeDatabaseId} period={displayPeriod(period,p)} charges={totalCharges} paid={totalPaid} balance={totalBalance} attention={missing} onopen={desktopCommand}/>
@@ -2132,3 +2133,5 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
 
 
 <PrintDialog language={lang}/>
+
+{#if showDatabaseHome&&welcomeUpdates}<div class="welcome-manual-backdrop" role="dialog" aria-modal="true" aria-label={t("Обновления","Actualizări")} tabindex="-1"><section><header><h2>{t("Параметры","Setări")}</h2><button class="button secondary" onclick={()=>welcomeUpdates=false}><X size={18}/>{t("Закрыть","Închide")}</button></header><UpdateSettings language={lang} prepare={async()=>true}/></section></div>{/if}

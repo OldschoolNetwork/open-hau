@@ -519,6 +519,7 @@ export const desktopMenus: DesktopCommand[] = [
     ro: "Ajutor",
     children: [
       item("manual", "Документация", "Documentație", "manual"),
+      item("updates", "Обновления", "Actualizări", "updates"),
       item("about", "О программе", "Despre aplicație", "about"),
     ],
   },

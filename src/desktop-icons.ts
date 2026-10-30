@@ -1,8 +1,9 @@
-import {Undo2,Redo2,Scissors,ClipboardPaste,TextSelect,LogOut,File,FilePlus,Save,SaveAll,Copy,Database,LayoutDashboard,Landmark,Archive,Building2,ChartNoAxesCombined,ChevronRight,FileJson,FolderOpen,Gauge,Info,Layers3,ReceiptText,Settings,Users,Wallet} from "@lucide/svelte";
+import {RefreshCw,Undo2,Redo2,Scissors,ClipboardPaste,TextSelect,LogOut,File,FilePlus,Save,SaveAll,Copy,Database,LayoutDashboard,Landmark,Archive,Building2,ChartNoAxesCombined,ChevronRight,FileJson,FolderOpen,Gauge,Info,Layers3,ReceiptText,Settings,Users,Wallet} from "@lucide/svelte";
 import type {DesktopCommand} from "./desktop-menu";
 export function commandIcon(command:DesktopCommand){
   const id=command.id;
   const editIcons:Record<string,typeof File>={undo:Undo2,redo:Redo2,cut:Scissors,copy:Copy,paste:ClipboardPaste,'select-all':TextSelect};if(editIcons[id])return editIcons[id];
+  if(id==='updates')return RefreshCw;
   if(id==='file')return File;
   const fileIcons:Record<string,typeof File>={'exit':LogOut,'database-home':Database,'database-new':FilePlus,'database-open':FolderOpen,'save':Save,'save-as':SaveAll,'import-copy':Copy,'export-json':FileJson,'workspace-tools':LayoutDashboard,'overview':ChartNoAxesCombined,'readings':Gauge,'payments':Wallet,'treasury':Landmark};
   if(fileIcons[id])return fileIcons[id];

@@ -3,6 +3,55 @@ use rusqlite::{Connection,OpenFlags};
 use serde_json::{Value,json};
 use std::{fs,path::PathBuf,time::{SystemTime,UNIX_EPOCH}};
 
+fn organization_name(reader:impl std::io::Read)->Option<String>{
+    use serde::de::{IgnoredAny,MapAccess,Visitor,Error};
+    use serde::Deserializer;
+    struct NameVisitor<'a>(&'a mut Option<String>);
+    impl<'de> Visitor<'de> for NameVisitor<'_> {
+        type Value=();
+        fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{f.write_str("database metadata")}
+        fn visit_map<M:MapAccess<'de>>(self,mut map:M)->Result<Self::Value,M::Error>{
+            while let Some(key)=map.next_key::<String>()? {
+                if key=="format" {if map.next_value::<String>()?!="openhau" {return Err(M::Error::custom("protected metadata"));}}
+                else if key=="organization" {
+                    let value:Value=map.next_value()?;
+                    *self.0=value["name"].as_str().filter(|name|!name.trim().is_empty()).map(str::to_owned);
+                    // Stop the parser here instead of reading the remaining financial history.
+                    return Err(M::Error::custom("metadata complete"));
+                }
+                else {map.next_value::<IgnoredAny>()?;}
+            }
+            Ok(())
+        }
+    }
+    let mut name=None;
+    let _=serde_json::Deserializer::from_reader(reader).deserialize_map(NameVisitor(&mut name));
+    name
+}
+
+fn refresh_names(root:&PathBuf,mut value:Value)->Value{
+    if let Some(rows)=value["databases"].as_array_mut(){for row in rows {
+        let name=if let Some(path)=row["path"].as_str(){fs::File::open(path).ok().and_then(|file|organization_name(std::io::BufReader::new(file)))}
+        else {row["id"].as_str().and_then(|id|root_for(root,id).ok()).and_then(|dir|Connection::open_with_flags(dir.join("openhau.sqlite"),OpenFlags::SQLITE_OPEN_READ_ONLY).ok()).and_then(|conn|conn.query_row("SELECT json FROM project_sections WHERE name='organization'",[],|r|r.get::<_,String>(0)).ok()).and_then(|text|serde_json::from_str::<Value>(&text).ok()).and_then(|org|org["name"].as_str().map(str::to_owned))};
+        if let Some(name)=name {row["name"]=json!(name);}
+    }}
+    value
+}
+
+#[cfg(test)]mod metadata_names{
+    use super::*;
+    #[test]fn chooser_reads_name_without_loading_financial_sections(){
+        let source=b"{\"format\":\"openhau\",\"organization\":{\"name\":\"Sample Association\"},\"meter_values\":[";
+        let mut reader=std::io::Cursor::new(source);
+        assert_eq!(organization_name(&mut reader).as_deref(),Some("Sample Association"));
+        assert!(reader.position()<(source.len() as u64));
+    }
+    #[test]fn protected_or_invalid_metadata_keeps_the_cached_label(){
+        assert!(organization_name(&b"{\"format\":\"openhau-encrypted\",\"payload\":\""[..]).is_none());
+        assert!(organization_name(&b"not-json"[..]).is_none());
+    }
+}
+
 fn id_ok(id:&str)->bool{let value=id.strip_prefix("file:").unwrap_or(id);!value.is_empty()&&id.len()<=64&&value.bytes().all(|b|b.is_ascii_alphanumeric()||b==b'-'||b==b'_')}
 pub fn root_for(root:&PathBuf,id:&str)->Result<PathBuf,String>{if !id_ok(id){return Err("Invalid database identifier".into());}Ok(if id=="default"{root.clone()}else{root.join("databases").join(id.strip_prefix("file:").map(|value|format!("file-{value}")).unwrap_or_else(||id.to_string()))})}
 pub fn current(storage:&Storage)->Result<PathBuf,String>{root_for(&storage.root,&storage.active.lock().map_err(|e|e.to_string())?)}
@@ -18,7 +67,7 @@ fn write(root:&PathBuf,value:&Value)->Result<(),String>{fs::create_dir_all(root)
 fn known(root:&PathBuf,id:&str)->Result<(),String>{let c=catalog(root)?;if !id_ok(id)||!c["databases"].as_array().unwrap().iter().any(|r|r["id"].as_str()==Some(id)){return Err("Database not found".into());}Ok(())}
 fn read(root:&PathBuf)->Result<Option<Value>,String>{let path=root.join("openhau.sqlite");if !path.exists(){return Ok(None);}let conn=Connection::open_with_flags(path,OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e|e.to_string())?;let mut stmt=conn.prepare("SELECT name,json FROM project_sections").map_err(|e|e.to_string())?;let rows=stmt.query_map([],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?))).map_err(|e|e.to_string())?;let mut map=serde_json::Map::new();for row in rows{let (key,text)=row.map_err(|e|e.to_string())?;map.insert(key,serde_json::from_str(&text).map_err(|e|e.to_string())?);}if map.is_empty(){Ok(None)}else{let value=Value::Object(map);validate(&value)?;Ok(Some(value))}}
 #[tauri::command]
-pub fn database_catalog(storage:tauri::State<Storage>)->Result<Value,String>{let _guard=storage.lock.lock().map_err(|e|e.to_string())?;catalog(&storage.root)}
+pub fn database_catalog(storage:tauri::State<Storage>)->Result<Value,String>{let _guard=storage.lock.lock().map_err(|e|e.to_string())?;Ok(refresh_names(&storage.root,catalog(&storage.root)?))}
 #[tauri::command]
 pub fn create_database(name:String,storage:tauri::State<Storage>)->Result<String,String>{let _guard=storage.lock.lock().map_err(|e|e.to_string())?;let name=name.trim();if name.is_empty()||name.chars().count()>120{return Err("Invalid database name".into());}let mut c=catalog(&storage.root)?;let id=format!("db-{}",SystemTime::now().duration_since(UNIX_EPOCH).map_err(|e|e.to_string())?.as_nanos());let root=root_for(&storage.root,&id)?;connection(&root)?;c["databases"].as_array_mut().unwrap().push(json!({"id":id,"name":name}));write(&storage.root,&c)?;Ok(id)}
 #[tauri::command]
