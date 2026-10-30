@@ -45,3 +45,5 @@
 :root[data-platform="macos"][data-theme="dark"]{--mac-glass:rgba(43,43,48,.92)}
 :root[data-platform="macos"] :is(.desktop-menubar,.desktop-dropdown,.menu-shortcut-actions,.taskbar-context,.desktop-context,.desktop-dock){background:var(--mac-glass)}
 @media(prefers-reduced-transparency:reduce){:root[data-platform="macos"] :is(.desktop-menubar,.desktop-dropdown,.menu-shortcut-actions,.taskbar-context,.desktop-context,.desktop-dock){background:var(--surface);backdrop-filter:none}}
+:root[data-platform="macos"] .desktop-window-actions .mac-symbol{opacity:0;width:9px!important;height:9px!important;color:#342a24!important}
+:root[data-platform="macos"] .desktop-window-actions:hover .mac-symbol{opacity:1}

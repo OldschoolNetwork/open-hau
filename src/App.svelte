@@ -278,7 +278,8 @@ import {databaseFilename,databaseFileFilters,databaseSaveFilters} from './databa
     const existing=desktopViews.find(v=>v.id===id);
     if(existing){existing.visible=true;existing.minimized=false;focusDesktop(id);return;}
     const n=desktopViews.length%6;
-    desktopViews=[...desktopViews,{id,page:id,visible:true,minimized:false,position:{x:16+n*22,y:16+n*22,width:Math.max(620,Math.min(1060,(desktopArea?.clientWidth||window.innerWidth)-50)),height:Math.max(300,Math.min(650,(desktopArea?.clientHeight||window.innerHeight-150)-40))}}];
+    const preferences=id==='settings'&&$platform==='macos';
+    desktopViews=[...desktopViews,{id,page:id,visible:true,minimized:false,position:{x:16+n*22,y:16+n*22,width:Math.max(620,Math.min(preferences?760:1060,(desktopArea?.clientWidth||window.innerWidth)-50)),height:Math.max(300,Math.min(preferences?530:650,(desktopArea?.clientHeight||window.innerHeight-150)-40))}}];
     activeDesktop=id;
   }
   function focusDesktop(id:string){
