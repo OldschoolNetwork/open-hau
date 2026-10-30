@@ -100,7 +100,7 @@
 .menu-reel-shell.mac{display:grid;grid-template-columns:28px minmax(0,1fr);gap:6px;align-items:start;transition:grid-template-columns .28s ease}
 .menu-reel-shell.mac.collapsed{grid-template-columns:28px minmax(0,0fr)}
 .mac .menu-reel{min-width:0;transform-origin:left center;transition:transform .28s ease,opacity .2s ease,visibility 0s}
-.mac.collapsed .menu-reel{transform:scaleX(0);opacity:0;visibility:hidden;pointer-events:none;transition:transform .28s ease,opacity .2s ease,visibility 0s .28s}
+.mac.collapsed .menu-reel{height:30px;overflow:hidden;transform:scaleX(0);opacity:0;visibility:hidden;pointer-events:none;transition:transform .28s ease,opacity .2s ease,visibility 0s .28s}
 .menu-reel-toggle{width:28px;height:30px;border-radius:7px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:25px;line-height:1}
 kbd{margin-left:auto;padding-left:22px;font:13px -apple-system,BlinkMacSystemFont,sans-serif;color:inherit;opacity:.7;white-space:nowrap}
 @media(prefers-reduced-motion:reduce){.menu-reel-shell.mac,.mac .menu-reel,.mac.collapsed .menu-reel{transition:none}}

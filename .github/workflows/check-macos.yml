@@ -13,10 +13,16 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: '1.99.1'
       - run: mkdir -p dist && printf '<!doctype html><title>OpenHaU</title>' > dist/index.html
+      - run: npm ci
+      - run: node scripts/build-api.mjs && node scripts/build-quick-start.mjs
       - run: cargo check --locked --manifest-path src-tauri/Cargo.toml
         env:
           MACOSX_DEPLOYMENT_TARGET: '12.6'
