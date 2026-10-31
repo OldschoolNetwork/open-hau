@@ -31,6 +31,12 @@ service debt proportions. A manual balancing adjustment can be assigned to the
 configured building-maintenance service. Applied historical documents remain
 available for inspection without silently recalculating their imported allocation.
 
+To correct an imported payment in an open period, choose **Unpost and edit**.
+Select the maintenance service in Allocation parameters, change the amount and
+choose OK to post again. Other service allocations are preserved; the difference
+goes to the selected maintenance service. The original document is retained.
+Closed periods, later payments and bank/cash links can prevent unposting.
+
 ## Reports
 
 Choose a report, select the date range and configure filters, grouping and sort
